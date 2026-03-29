@@ -304,6 +304,7 @@ Reading a variable before any assignment to it is a **compile error** where the 
 - Variables assigned inside `if`, `elif`, `else`, `for`, and `while` blocks are still **globally scoped** — there is no block scope.
 - The **loop variable** in a `for` loop (e.g. `$dir` in `for $dir in $directions`) is globally scoped and remains accessible after the loop ends, holding the last value it was assigned.
 - Variables assigned inside a **function body** are **locally scoped** to that function. They are not visible outside the function.
+- **Function scope is fully isolated.** A function body can only access its own parameters and variables assigned within the body. It has no access to script-level (global) variables. This is because functions persist across turns and may be called from scripts that define entirely different global variables.
 - **Function parameters** are declared without `$` in the `def` signature but are accessed with `$` inside the function body (like any other local variable).
 - Functions receive all arguments **by value**. Modifying a parameter inside the function has no effect on the caller's variable.
 - **Lists passed to functions are copied** on entry. Mutations to list parameters inside the function do not affect the original list.
