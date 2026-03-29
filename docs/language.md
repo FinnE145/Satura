@@ -239,6 +239,8 @@ $result = ($x + $y) * $z
 
 Applying arithmetic operators to non-numeric types is a runtime halt. Applying `%` to a float operand is a runtime halt. Division or modulo by zero is a runtime halt.
 
+> **There is no integer division.** `/` always returns a float, even when both operands are integers. `2 / 3` is `0.6666...`, not `0`.
+
 ### 5.5 min and max
 
 `min(a, b)` and `max(a, b)` — each costs **1 word.** Both parentheses and the comma are free. Operands must be numeric (`int` or `float`). Mixed int/float returns float.
