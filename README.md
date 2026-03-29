@@ -2,7 +2,7 @@
 
 A competitive programming strategy game.
 
-> Disclaimer: I'm a busy student and don't have time to write docs right now, so this readme is AI-generated (and unfortunately very much sounds like it). I will update it manually in the future. In the meantime, the spec in [Game Design Specification](./docs/spec.md) is more technical and produced in closer collaboration with myself with a higher level of care.
+> Disclaimer: I'm a busy student and don't have time to write docs right now, so this readme is AI-generated (and unfortunately very much sounds like it). I will update it manually in the future. In the meantime, the spec and language docs in the [docs folder](./docs/) are more technical and I kept them at a much higher standard of care than this readme. Treat them as the source of truth and use them if you find AI slop unbearable to read.
 
 Satura is a turn-based strategy game where your moves are programs. Each turn, you write a short script that governs your agent's behavior on a shared grid — painting territory, navigating friction, and disrupting your opponent's plans. The board is fully visible and the starting position is fixed and symmetric.
 

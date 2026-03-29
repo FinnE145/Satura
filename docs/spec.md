@@ -96,9 +96,9 @@ Friction determines how many ops it costs to move into a cell. It is computed as
 
 ```
 get_friction(cell):
-    if cell.p1 + cell.p2 == 0:  return 1    // blank cell
-    if cell.p1 + cell.p2 == 10: return 10   // black cell
-    return opponent_paint(cell)              // default case
+    if cell.p1 + cell.p2 == 0:  return 1                          // blank cell
+    if cell.p1 + cell.p2 == 10: return 2 * (p1 + p2)             // black cell → 20
+    return 2 * opponent_paint(cell)                                // default case
 ```
 
 For Player 1, opponent_paint = p2. For Player 2, opponent_paint = p1. Key properties of this formula:
@@ -107,15 +107,15 @@ For Player 1, opponent_paint = p2. For Player 2, opponent_paint = p1. Key proper
 |---|---|
 | (5, 0) — your territory | 0 — movement is free on your own paint |
 | (0, 0) — blank | 1 — small cost to expand |
-| (0, 3) — lightly contested | 3 |
-| (4, 5) — nearly black | 5 |
-| (5, 5) — black | 10 — near-impassable, but pushable |
+| (0, 3) — lightly contested | 6 |
+| (0, 5) — fully opponent-owned | 10 |
+| (5, 5) — black | 20 — double a fully opponent-owned cell |
 
-> Moving through your own paint is free. All friction cost comes from opponent paint and black cells. Black cells cost exactly double a maximally contested cell, making mutual aggression self-punishing.
+> Moving through your own paint is free. All friction cost comes from opponent paint and black cells. Black cells cost double a fully opponent-owned cell, making mutual aggression self-punishing.
 
 ### Paint Rules
 
-- Painting a cell costs ops equal to the amount painted. `paint(3)` costs 3 ops.
+- Painting a cell costs 2 ops per unit painted. `paint(3)` costs 6 ops.
 - You may paint as much as you choose in a single call, up to the cell's remaining capacity.
 - Attempting to paint more than the cell can accept (e.g. your paint is already 5, or the total would exceed 10) is a game state error and resets the turn.
 - Painting is a separate action from movement. Moving through a cell does not automatically paint it.
@@ -128,7 +128,7 @@ Each script execution has an op budget. Board-interacting operations consume ops
 | Operation | Op cost |
 |---|---|
 | `move(dir)` | Costs `get_friction(target_cell)` ops |
-| `paint(num)` | Costs `num` ops |
+| `paint(num)` | Costs `2 × num` ops |
 | `get_friction(loc)` | 1 op |
 | `has_agent(dir)` | 1 op |
 | `my_paint(loc)` | 1 op |
@@ -309,9 +309,9 @@ This section is the definitive specification for the Satura scripting language.
 
 ```
 // Both of these are identical in word count and meaning:
-if x > 3 { move(UP) }
+if $x > 3 { move(UP) }
 
-if x > 3
+if $x > 3
 {
     move(UP)
 }
@@ -332,7 +332,7 @@ A word is any keyword, operator, or board function that appears in the script. S
 |---|---|
 | Keywords | `if`, `elif`, `else`, `for`, `while`, `halt`, `return`, `def` — each counts as 1 word |
 | Operators | `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `+`, `-`, `*`, `/`, `%`, `and`, `or`, `not`, `min`, `max` — each counts as 1 word |
-| Language mechanics | `call`, `$`, `range`, `index`, `length`, `push`, `pop` — each counts as 1 word |
+| Language mechanics | `call`, `$`, `range`, `index`, `length`, `push`, `pop` — each counts as 1 word. `$` is required before every variable name (built-in or user-defined) and counts as 1 word per occurrence. `in` (for-loop keyword) and `list` (empty list constructor) are free. |
 | Board operations | `get_friction`, `has_agent`, `my_paint`, `opp_paint`, `paint`, `move` — each counts as 1 word |
 | Variable names | Free — never count as words |
 | Function names | Free — never count as words |
@@ -346,11 +346,11 @@ A word is any keyword, operator, or board function that appears in the script. S
 
 | Type | Description |
 |---|---|
-| `int` | Integer. Division returns int if exact, float if not. |
-| `float` | Floating point. Produced by inexact division. |
+| `int` | Integer. |
+| `float` | Floating point. Produced by any division (`/`) or float literals (e.g. `1.5`, `3.0`). |
 | `direction` | Enum: `UP`, `DOWN`, `LEFT`, `RIGHT`. |
 | `location` | Enum: `UP`, `DOWN`, `LEFT`, `RIGHT`, `HERE`. |
-| `list` | Ordered collection. Built with `push()`. No literal syntax. |
+| `list` | Ordered collection. Created with `list()`. No literal syntax. |
 | `0` and `1` | Boolean values. `if`, `while`, and `elif` require exactly 0 or 1. Any other value in a boolean context is a runtime halt. |
 
 ## 4.3 Variables and Scope
@@ -374,7 +374,7 @@ These variables are always available at no word or op cost:
 | `$ops_remaining` | Current ops remaining in this execution |
 | `$op_limit` | Total op budget for this execution |
 
-> `$` is a word that must be written before accessing any built-in variable. `$ops_remaining` costs 1 word to access. The value itself is free.
+> `$` is a word that must be written before **any** variable name, whether built-in or user-defined. `$ops_remaining` and `$my_var` each cost 1 word to access (for the `$`). The variable name itself is free.
 
 ## 4.5 Direction and Location Constants
 
@@ -385,8 +385,8 @@ UP, DOWN, LEFT, RIGHT     // direction constants
 HERE                      // location constant (current cell)
 
 // Constants can be assigned to variables:
-dir = UP
-move(dir)
+$dir = UP
+move($dir)
 ```
 
 ## 4.6 Control Flow
@@ -408,16 +408,16 @@ if condition {
 Iterates over a list or range:
 
 ```
-for dir in $directions {
-    move(dir)
+for $dir in $directions {
+    move($dir)
 }
 
-for i in range(5) {
+for $i in range(5) {
     paint(1)
 }
 
-for i in range(0, 10, 2) {   // start, stop, step
-    // i = 0, 2, 4, 6, 8
+for $i in range(0, 10, 2) {   // start, stop, step
+    // $i = 0, 2, 4, 6, 8
 }
 ```
 
@@ -446,22 +446,22 @@ move(UP)
 
 ```
 def function_name(param1, param2) {
-    // body
-    return value
+    // body — access parameters as $param1, $param2
+    return $value
 }
 ```
 
-- `def` counts as 1 word. The function name and parameter names are free.
+- `def` counts as 1 word. The function name and parameter names are free. Parameters are declared without `$` in the signature but accessed with `$` inside the body like any other local variable.
 - Function definitions persist for the whole match across rewrites.
 - A function may call other defined functions. Stack overflow halts execution (implementation-defined depth limit).
 
 ### Calling a Function
 
 ```
-call function_name(arg1, arg2)
+call function_name($arg1, $arg2)
 
 // Capture return value:
-result = call function_name(arg1, arg2)
+$result = call function_name($arg1, $arg2)
 ```
 
 - `call` counts as 1 word regardless of the function's definition length.
@@ -476,7 +476,7 @@ result = call function_name(arg1, arg2)
 | `+` | Addition |
 | `-` | Subtraction |
 | `*` | Multiplication |
-| `/` | Division. Returns int if exact, float otherwise. No exponentiation operator exists. |
+| `/` | Division. Always returns float. No exponentiation operator exists. |
 | `%` | Modulo. Integer only. |
 | `min` | `min(a, b)` — returns the smaller of two values |
 | `max` | `max(a, b)` — returns the larger of two values |
@@ -503,29 +503,35 @@ result = call function_name(arg1, arg2)
 Comparison operators return 0 or 1. These can be stored and used in boolean contexts:
 
 ```
-result = x > 3          // result is 0 or 1
-if result { move(UP) }  // valid
-if x > 3 { move(UP) }  // also valid, inline
+$result = $x > 3          // $result is 0 or 1
+if $result { move(UP) }   // valid
+if $x > 3 { move(UP) }   // also valid, inline
 ```
 
 ## 4.9 List Operations
 
+### list()
+
+- Creates and returns an empty list.
+- Free — no word cost.
+
 ### push(list, value, [pos])
 
 - Appends value to end of list if pos is omitted.
-- `push(mylist, x, 0)` — prepends to front. Position 0 is a free literal.
+- `push($mylist, $x, 0)` — prepends to front. Position 0 is a free literal.
 - Counts as 1 word.
 
 ### pop(list, [pos])
 
 - Removes and returns the last element if pos is omitted.
-- `pop(mylist, 0)` — removes and returns the first element.
+- `pop($mylist, 0)` — removes and returns the first element.
 - Calling `pop` on an empty list is a runtime halt.
 - Counts as 1 word.
 
-### index(list, pos)
+### index(list, [pos])
 
 - Returns the element at position pos without removing it.
+- If pos is omitted, returns the last element.
 - Out-of-bounds access is a runtime halt.
 - Counts as 1 word.
 
@@ -547,8 +553,8 @@ All board operations cost ops in addition to counting as words. See Section 2.4 
 ### move(dir)
 
 ```
-move(UP)      // move agent one cell in direction dir
-move(mydir)   // variable also accepted
+move(UP)       // move agent one cell upward using a constant
+move($mydir)   // variable also accepted
 ```
 
 - Costs `get_friction(target_cell)` ops.
@@ -561,7 +567,7 @@ move(mydir)   // variable also accepted
 paint(3)    // add 3 to your paint on the current cell
 ```
 
-- Costs `num` ops.
+- Costs `2 × num` ops.
 - `num` must be a positive integer. `paint(0)` or `paint(negative)` is a runtime halt.
 - Painting more than the cell can accept resets the turn.
 - Painting a black cell resets the turn.
@@ -605,7 +611,7 @@ opp_paint(HERE)  // opponent paint on the current cell (0-5)
 ```
 
 - Returns the opponent's paint value at the specified location.
-- Note: `get_friction(loc)` encodes opponent paint implicitly, but `opp_paint` lets you distinguish between a blank cell (opp=0) and a lightly painted cell (opp=1) when both have friction=1.
+- Note: a fully opponent-owned cell (opp = 5) has friction 10; a black cell has friction 20. `get_friction` distinguishes the two, but `opp_paint` combined with `my_paint` makes the distinction explicit — you can paint a heavily opponent-owned cell but not a black one.
 - Costs 1 op.
 
 ---
