@@ -120,4 +120,4 @@ Early development. The game design specification is complete. Implementation is 
 
 ## License
 
-Proprietary for now, will be revistied.
+Proprietary for now, will be revisited.

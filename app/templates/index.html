@@ -1,0 +1,16 @@
+<!-- [AI Summary] Main (and only) HTML template. Renders the game board,
+     script editor panel, word count, function library, and script history.
+     Served by app/routes.py. Loads app/static/css/style.css and
+     app/static/js/main.js. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satura</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
