@@ -114,23 +114,24 @@ class Parser:
         if self._check(TokenType.WHILE):
             return self._parse_while()
         if self._check(TokenType.HALT):
-            self._advance()
+            tok = self._expect(TokenType.HALT, "expected 'halt'")
             self._match(TokenType.SEMICOLON)
-            return Halt()
+            return Halt(line=tok.line, col=tok.col)
         if self._check(TokenType.RETURN):
             return self._parse_return()
 
         # Assignment requires exactly: $ IDENT =
-        # Use two-token lookahead to distinguish from an expression starting with $var
+        # Two-token lookahead to distinguish from an expression starting with $var
         if (self._check(TokenType.DOLLAR)
                 and self._peek(1).type == TokenType.IDENT
                 and self._peek(2).type == TokenType.ASSIGN):
             return self._parse_assign()
 
         # Everything else is a standalone expression (board ops, calls, etc.)
+        tok = self._peek()
         expr = self._parse_expr()
         self._match(TokenType.SEMICOLON)
-        return ExprStmt(expr)
+        return ExprStmt(expr, line=tok.line, col=tok.col)
 
     def _parse_block(self) -> list[Stmt]:
         self._expect(TokenType.LBRACE, "expected '{'")
@@ -143,15 +144,15 @@ class Parser:
         return stmts
 
     def _parse_assign(self) -> Assign:
-        self._expect(TokenType.DOLLAR, "expected '$'")
+        tok = self._expect(TokenType.DOLLAR, "expected '$'")
         name = self._expect(TokenType.IDENT, "expected variable name").value
         self._expect(TokenType.ASSIGN, "expected '='")
         value = self._parse_expr()
         self._match(TokenType.SEMICOLON)
-        return Assign(name, value)
+        return Assign(name, value, line=tok.line, col=tok.col)
 
     def _parse_if(self) -> If:
-        self._expect(TokenType.IF, "expected 'if'")
+        tok = self._expect(TokenType.IF, "expected 'if'")
         cond = self._parse_expr()
         body = self._parse_block()
         branches = [(cond, body)]
@@ -166,57 +167,55 @@ class Parser:
         if self._match(TokenType.ELSE):
             else_body = self._parse_block()
 
-        return If(branches, else_body)
+        return If(branches, else_body, line=tok.line, col=tok.col)
 
     def _parse_for(self) -> For:
-        self._expect(TokenType.FOR, "expected 'for'")
+        tok = self._expect(TokenType.FOR, "expected 'for'")
         self._expect(TokenType.DOLLAR, "expected '$' before loop variable")
         var = self._expect(TokenType.IDENT, "expected loop variable name").value
         self._expect(TokenType.IN, "expected 'in'")
         iterable = self._parse_range_or_expr()
         body = self._parse_block()
-        return For(var, iterable, body)
+        return For(var, iterable, body, line=tok.line, col=tok.col)
 
     def _parse_range_or_expr(self) -> Expr:
         """Parse either a range(...) expression (for-loop only) or a regular expression."""
         if not self._check(TokenType.RANGE):
             return self._parse_expr()
-        self._advance()  # consume 'range'
+        tok = self._expect(TokenType.RANGE, "expected 'range'")
         self._expect(TokenType.LPAREN, "expected '(' after 'range'")
         first = self._parse_expr()
         if not self._match(TokenType.COMMA):
             # range(stop)
             self._expect(TokenType.RPAREN, "expected ')'")
-            return RangeExpr(start=None, stop=first, step=None)
+            return RangeExpr(start=None, stop=first, step=None, line=tok.line, col=tok.col)
         second = self._parse_expr()
         if not self._match(TokenType.COMMA):
             # range(start, stop)
             self._expect(TokenType.RPAREN, "expected ')'")
-            return RangeExpr(start=first, stop=second, step=None)
+            return RangeExpr(start=first, stop=second, step=None, line=tok.line, col=tok.col)
         # range(start, stop, step)
         third = self._parse_expr()
         self._expect(TokenType.RPAREN, "expected ')'")
-        return RangeExpr(start=first, stop=second, step=third)
+        return RangeExpr(start=first, stop=second, step=third, line=tok.line, col=tok.col)
 
     def _parse_while(self) -> While:
-        self._expect(TokenType.WHILE, "expected 'while'")
+        tok = self._expect(TokenType.WHILE, "expected 'while'")
         cond = self._parse_expr()
         body = self._parse_block()
-        return While(cond, body)
+        return While(cond, body, line=tok.line, col=tok.col)
 
     def _parse_return(self) -> Return:
-        self._expect(TokenType.RETURN, "expected 'return'")
-        # If the next token can start an expression, parse it.
-        # Otherwise this is a bare `return` (returns 0 per spec).
+        tok = self._expect(TokenType.RETURN, "expected 'return'")
         if self._check(*_EXPR_START):
             value = self._parse_expr()
         else:
             value = None
         self._match(TokenType.SEMICOLON)
-        return Return(value=value)
+        return Return(value=value, line=tok.line, col=tok.col)
 
     def _parse_funcdef(self) -> FuncDef:
-        self._expect(TokenType.DEF, "expected 'def'")
+        tok = self._expect(TokenType.DEF, "expected 'def'")
         name = self._expect(TokenType.IDENT, "expected function name").value
         self._expect(TokenType.LPAREN, "expected '('")
         params = []
@@ -226,7 +225,7 @@ class Parser:
                 params.append(self._expect(TokenType.IDENT, "expected parameter name").value)
         self._expect(TokenType.RPAREN, "expected ')'")
         body = self._parse_block()
-        return FuncDef(name, params, body)
+        return FuncDef(name, params, body, line=tok.line, col=tok.col)
 
     # --------------------------------------------------------- expression parsing
     # Precedence (low → high):
@@ -240,7 +239,7 @@ class Parser:
         while self._check(TokenType.OR):
             op = self._advance()
             right = self._parse_and()
-            left = BinOp(op.type, left, right)
+            left = BinOp(op.type, left, right, line=op.line, col=op.col)
         return left
 
     def _parse_and(self) -> Expr:
@@ -248,13 +247,13 @@ class Parser:
         while self._check(TokenType.AND):
             op = self._advance()
             right = self._parse_not()
-            left = BinOp(op.type, left, right)
+            left = BinOp(op.type, left, right, line=op.line, col=op.col)
         return left
 
     def _parse_not(self) -> Expr:
         if self._check(TokenType.NOT):
             op = self._advance()
-            return UnaryOp(op.type, self._parse_not())
+            return UnaryOp(op.type, self._parse_not(), line=op.line, col=op.col)
         return self._parse_comparison()
 
     def _parse_comparison(self) -> Expr:
@@ -262,7 +261,7 @@ class Parser:
         while self._check(*_COMPARISON_OPS):
             op = self._advance()
             right = self._parse_additive()
-            left = BinOp(op.type, left, right)
+            left = BinOp(op.type, left, right, line=op.line, col=op.col)
         return left
 
     def _parse_additive(self) -> Expr:
@@ -270,7 +269,7 @@ class Parser:
         while self._check(*_ADDITIVE_OPS):
             op = self._advance()
             right = self._parse_multiplicative()
-            left = BinOp(op.type, left, right)
+            left = BinOp(op.type, left, right, line=op.line, col=op.col)
         return left
 
     def _parse_multiplicative(self) -> Expr:
@@ -278,17 +277,17 @@ class Parser:
         while self._check(*_MULT_OPS):
             op = self._advance()
             right = self._parse_unary()
-            left = BinOp(op.type, left, right)
+            left = BinOp(op.type, left, right, line=op.line, col=op.col)
         return left
 
     def _parse_unary(self) -> Expr:
         if self._check(TokenType.MINUS):
             op = self._advance()
-            return UnaryOp(op.type, self._parse_unary())
+            return UnaryOp(op.type, self._parse_unary(), line=op.line, col=op.col)
         return self._parse_primary()
 
     def _parse_primary(self) -> Expr:
-        tok = self._peek()
+        tok = self._peek()  # saved here; used as position for all nodes in this method
 
         # Grouped expression
         if self._match(TokenType.LPAREN):
@@ -298,26 +297,26 @@ class Parser:
 
         # Integer and float literals
         if self._check(TokenType.INT_LIT):
-            return IntLit(int(self._advance().value))
+            return IntLit(int(self._advance().value), line=tok.line, col=tok.col)
         if self._check(TokenType.FLOAT_LIT):
-            return FloatLit(float(self._advance().value))
+            return FloatLit(float(self._advance().value), line=tok.line, col=tok.col)
 
         # Direction / location constants
         if self._check(*_CONSTANT_TYPES):
-            return Constant(self._advance().value)
+            return Constant(self._advance().value, line=tok.line, col=tok.col)
 
         # Variable reference: $ IDENT
         if self._check(TokenType.DOLLAR):
             self._advance()
             name = self._expect(TokenType.IDENT, "expected variable name after '$'").value
-            return VarRef(name)
+            return VarRef(name, line=tok.line, col=tok.col)
 
         # list()
         if self._check(TokenType.LIST):
             self._advance()
             self._expect(TokenType.LPAREN, "expected '(' after 'list'")
             self._expect(TokenType.RPAREN, "expected ')'")
-            return ListConstructor()
+            return ListConstructor(line=tok.line, col=tok.col)
 
         # min(a, b) / max(a, b)
         if self._check(TokenType.MIN, TokenType.MAX):
@@ -327,7 +326,7 @@ class Parser:
             self._expect(TokenType.COMMA, "expected ','")
             right = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Min(left, right) if is_min else Max(left, right)
+            return Min(left, right, line=tok.line, col=tok.col) if is_min else Max(left, right, line=tok.line, col=tok.col)
 
         # push(list, value [, pos])
         if self._check(TokenType.PUSH):
@@ -338,7 +337,7 @@ class Parser:
             value = self._parse_expr()
             pos = self._parse_expr() if self._match(TokenType.COMMA) else None
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Push(lst, value, pos)
+            return Push(lst, value, pos, line=tok.line, col=tok.col)
 
         # pop(list [, pos])
         if self._check(TokenType.POP):
@@ -347,7 +346,7 @@ class Parser:
             lst = self._parse_expr()
             pos = self._parse_expr() if self._match(TokenType.COMMA) else None
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Pop(lst, pos)
+            return Pop(lst, pos, line=tok.line, col=tok.col)
 
         # index(list [, pos])
         if self._check(TokenType.INDEX):
@@ -356,7 +355,7 @@ class Parser:
             lst = self._parse_expr()
             pos = self._parse_expr() if self._match(TokenType.COMMA) else None
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Index(lst, pos)
+            return Index(lst, pos, line=tok.line, col=tok.col)
 
         # length(list)
         if self._check(TokenType.LENGTH):
@@ -364,7 +363,7 @@ class Parser:
             self._expect(TokenType.LPAREN, "expected '('")
             lst = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Length(lst)
+            return Length(lst, line=tok.line, col=tok.col)
 
         # Board operations — each takes exactly one argument
         if self._check(TokenType.MOVE):
@@ -372,42 +371,42 @@ class Parser:
             self._expect(TokenType.LPAREN, "expected '('")
             arg = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Move(arg)
+            return Move(arg, line=tok.line, col=tok.col)
 
         if self._check(TokenType.PAINT):
             self._advance()
             self._expect(TokenType.LPAREN, "expected '('")
             arg = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Paint(arg)
+            return Paint(arg, line=tok.line, col=tok.col)
 
         if self._check(TokenType.GET_FRICTION):
             self._advance()
             self._expect(TokenType.LPAREN, "expected '('")
             arg = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return GetFriction(arg)
+            return GetFriction(arg, line=tok.line, col=tok.col)
 
         if self._check(TokenType.HAS_AGENT):
             self._advance()
             self._expect(TokenType.LPAREN, "expected '('")
             arg = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return HasAgent(arg)
+            return HasAgent(arg, line=tok.line, col=tok.col)
 
         if self._check(TokenType.MY_PAINT):
             self._advance()
             self._expect(TokenType.LPAREN, "expected '('")
             arg = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return MyPaint(arg)
+            return MyPaint(arg, line=tok.line, col=tok.col)
 
         if self._check(TokenType.OPP_PAINT):
             self._advance()
             self._expect(TokenType.LPAREN, "expected '('")
             arg = self._parse_expr()
             self._expect(TokenType.RPAREN, "expected ')'")
-            return OppPaint(arg)
+            return OppPaint(arg, line=tok.line, col=tok.col)
 
         # call function_name([args...])
         if self._check(TokenType.CALL):
@@ -420,9 +419,9 @@ class Parser:
                 while self._match(TokenType.COMMA):
                     args.append(self._parse_expr())
             self._expect(TokenType.RPAREN, "expected ')'")
-            return Call(name, args)
+            return Call(name, args, line=tok.line, col=tok.col)
 
-        # range() is only valid directly in a for loop — not as a general expression
+        # range() outside a for loop
         if self._check(TokenType.RANGE):
             raise ParseError(
                 "'range' can only be used in a for loop (e.g. 'for $i in range(5)')",
