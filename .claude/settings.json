@@ -1,5 +1,0 @@
-{
-  "allowed_commands": [
-    "python -m pytest *"
-  ]
-}
