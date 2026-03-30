@@ -103,8 +103,8 @@ move($dir)
 `$` is a required prefix for **every variable access and assignment** — both user-defined variables and built-in variables. It costs **1 word** per occurrence. The identifier following `$` is free.
 
 ```
-$x = 5                        // assignment: 1 word (for $)
-$y = $x + 1                   // two accesses + operator: 3 words ($ + $ + +)
+$x = 5                        // assignment: 2 words ($ + =)
+$y = $x + 1                   // two accesses + operator: 4 words ($ + = + $ + +)
 $ops_remaining                 // built-in: 1 word (for $)
 ```
 
@@ -125,6 +125,7 @@ A word is any keyword, operator, or board function that appears in the script. T
 | Flow keywords | `halt`, `return`, `def` | 1 each |
 | Call keyword | `call` | 1 |
 | Variable sigil | `$` | 1 per occurrence |
+| Assignment operator | `=` | 1 |
 | Arithmetic operators | `+`, `-`, `*`, `/`, `%` | 1 each |
 | Comparison operators | `==`, `!=`, `<`, `>`, `<=`, `>=` | 1 each |
 | Logical operators | `and`, `or`, `not` | 1 each |
@@ -137,7 +138,7 @@ A word is any keyword, operator, or board function that appears in the script. T
 | Literals | integers, floats, constants | 0 (free) |
 | Punctuation | `(`, `)`, `{`, `}`, `,`, `;` | 0 (free) |
 
-> **`$` cost:** Every variable reference and assignment requires `$`, which costs 1 word. The identifier itself is free. So `$x` costs 1 word (for `$`), and `$x = $y + 1` costs 3 words (two `$` sigils and `+`).
+> **`$` cost:** Every variable reference and assignment requires `$`, which costs 1 word. The identifier itself is free. So `$x` costs 1 word (for `$`), and `$x = $y + 1` costs 4 words (two `$` sigils, `=`, and `+`).
 
 > **Note on `elif`:** `elif` costs 1 word. Writing `} else { if` instead is syntactically equivalent but costs 2 words. Always prefer `elif`.
 
@@ -238,6 +239,8 @@ $result = ($x + $y) * $z
 
 Applying arithmetic operators to non-numeric types is a runtime halt. Applying `%` to a float operand is a runtime halt. Division or modulo by zero is a runtime halt.
 
+> **There is no integer division.** `/` always returns a float, even when both operands are integers. `2 / 3` is `0.6666...`, not `0`.
+
 ### 5.5 min and max
 
 `min(a, b)` and `max(a, b)` — each costs **1 word.** Both parentheses and the comma are free. Operands must be numeric (`int` or `float`). Mixed int/float returns float.
@@ -303,6 +306,7 @@ Reading a variable before any assignment to it is a **compile error** where the 
 - Variables assigned inside `if`, `elif`, `else`, `for`, and `while` blocks are still **globally scoped** — there is no block scope.
 - The **loop variable** in a `for` loop (e.g. `$dir` in `for $dir in $directions`) is globally scoped and remains accessible after the loop ends, holding the last value it was assigned.
 - Variables assigned inside a **function body** are **locally scoped** to that function. They are not visible outside the function.
+- **Function scope is fully isolated.** A function body can only access its own parameters and variables assigned within the body. It has no access to script-level (global) variables. This is because functions persist across turns and may be called from scripts that define entirely different global variables.
 - **Function parameters** are declared without `$` in the `def` signature but are accessed with `$` inside the function body (like any other local variable).
 - Functions receive all arguments **by value**. Modifying a parameter inside the function has no effect on the caller's variable.
 - **Lists passed to functions are copied** on entry. Mutations to list parameters inside the function do not affect the original list.
@@ -783,10 +787,10 @@ IDENT           = [a-zA-Z_][a-zA-Z0-9_]* ;
 ### Annotated word counts
 
 ```
-// Assignment — 1 word ($ sigil)
+// Assignment — 2 words ($ + =)
 $x = 5
 
-// Variable assignment with expression — 3 words ($ + $ + +)
+// Variable assignment with expression — 4 words ($ + = + $ + +)
 $y = $x + 1
 
 // Conditional move — 4 words (if + $ + > + move)
@@ -816,7 +820,7 @@ def safe_move(d) {
     $cost = get_friction($d)
     if $ops_remaining > $cost { move($d) }
 }
-// words: def(1) $(1) get_friction(1) $(1) if(1) $(1) >(1) $(1) move(1) $(1) = 10 words
+// words: def(1) $(1) =(1) get_friction(1) $(1) if(1) $(1) >(1) $(1) move(1) $(1) = 11 words
 // each call: call(1) = 1 word (if passing a constant direction)
 ```
 
@@ -838,5 +842,6 @@ push($moves, RIGHT)
 for $dir in $moves {
     if not has_agent($dir) { move($dir) }
 }
-// list() is free; push costs push(1) + $(1 for $moves) each call = 2 words per push
+// $moves = list(): 2 words ($ + =); list() is free
+// push costs push(1) + $(1 for $moves) each call = 2 words per push
 ```
