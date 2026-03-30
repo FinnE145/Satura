@@ -1,7 +1,7 @@
 import pytest
 from app.lang.lexer import tokenize
 from app.lang.parser import parse
-from app.lang.compiler import check, CompileError, CompileWarning
+from app.lang.compiler import check, CompileError, CompileWarning, Type
 
 
 # ------------------------------------------------------------------ helpers
@@ -71,15 +71,16 @@ class TestUndefinedVariables:
         assert any("$x" in m for m in msgs)
 
     def test_assigned_before_read_is_fine(self):
-        assert errors("$x = 5\nmove($x)") == []
+        assert errors("$x = UP\nmove($x)") == []
 
     def test_assigned_in_branch_counts(self):
         # $x is assigned somewhere — compiler only errors if NEVER assigned
-        src = "if $ops_remaining > 0 { $x = 1 }\nmove($x)"
+        src = "if $ops_remaining > 0 { $x = 1 }\npaint($x)"
         assert errors(src) == []
 
     def test_builtin_vars_always_in_scope(self):
-        assert_clean("move($directions)")
+        # $directions is always accessible (check via length, which takes a list)
+        assert_clean("length($directions)")
 
     def test_undefined_in_condition(self):
         msgs = error_messages("if $y > 0 { halt }")
@@ -138,7 +139,11 @@ class TestNestedDefErrors:
 class TestBoardOpErrors:
     def test_move_here_is_error(self):
         msgs = error_messages("move(HERE)")
-        assert any("move" in m and "HERE" in m for m in msgs)
+        assert any("move" in m for m in msgs)
+
+    def test_move_int_is_error(self):
+        msgs = error_messages("move(5)")
+        assert any("move" in m for m in msgs)
 
     def test_move_up_is_fine(self):
         assert errors("move(UP)") == []
@@ -148,7 +153,7 @@ class TestBoardOpErrors:
 
     def test_has_agent_here_is_error(self):
         msgs = error_messages("has_agent(HERE)")
-        assert any("has_agent" in m and "HERE" in m for m in msgs)
+        assert any("has_agent" in m for m in msgs)
 
     def test_has_agent_down_is_fine(self):
         assert errors("has_agent(DOWN)") == []
@@ -156,11 +161,31 @@ class TestBoardOpErrors:
     def test_get_friction_here_is_fine(self):
         assert errors("get_friction(HERE)") == []
 
+    def test_get_friction_up_is_fine(self):
+        # directions are also valid locations
+        assert errors("get_friction(UP)") == []
+
+    def test_get_friction_int_is_error(self):
+        msgs = error_messages("get_friction(5)")
+        assert any("get_friction" in m for m in msgs)
+
     def test_my_paint_here_is_fine(self):
         assert errors("my_paint(HERE)") == []
 
     def test_opp_paint_here_is_fine(self):
         assert errors("opp_paint(HERE)") == []
+
+    def test_paint_float_is_error(self):
+        msgs = error_messages("paint(1.5)")
+        assert any("paint" in m for m in msgs)
+        assert any(isinstance(e, CompileError) for e in errors("paint(1.5)"))
+
+    def test_paint_dir_is_error(self):
+        msgs = error_messages("paint(UP)")
+        assert any("paint" in m for m in msgs)
+
+    def test_paint_int_is_fine(self):
+        assert errors("paint(3)") == []
 
 
 # -------------------------------------------------------- function call errors
@@ -188,35 +213,86 @@ class TestCallErrors:
 
     def test_call_persisted_function(self):
         # Function defined in a previous turn
-        persisted = {"go": (["d"], False)}
+        persisted = {"go": (["d"], Type.INT)}
         assert errors("call go(UP)", persisted) == []
 
     def test_call_persisted_wrong_args(self):
-        persisted = {"go": (["d"], False)}
+        persisted = {"go": (["d"], Type.INT)}
         msgs = error_messages("call go(UP, DOWN)", persisted)
         assert any("expects" in m for m in msgs)
 
 
-# ---------------------------------------------------- could_be_float warnings
+# -------------------------------------------------------- type errors
 
-class TestCouldBeFloat:
-    def test_float_literal_in_paint_warns(self):
-        msgs = warning_messages("paint(1.5)")
-        assert any("paint" in m for m in msgs)
+class TestTypeErrors:
+    """Guaranteed type mismatches — no overlap between actual and required type."""
 
-    def test_int_literal_in_paint_is_clean(self):
-        assert warnings("paint(3)") == []
+    def test_float_in_paint_is_error(self):
+        # FLOAT has no overlap with INT — guaranteed wrong
+        assert errors("paint(1.5)") != []
 
-    def test_division_always_float(self):
-        # / always produces float, so passing result to paint should warn
-        msgs = warning_messages("$x = 6\n$y = 3\npaint($x / $y)")
-        assert any("paint" in m for m in msgs)
+    def test_division_result_in_paint_is_error(self):
+        # / always produces FLOAT
+        assert errors("$x = 6\n$y = 3\npaint($x / $y)") != []
 
-    def test_addition_with_float_propagates(self):
+    def test_range_float_stop_is_error(self):
+        # range requires INT; FLOAT has no overlap
+        assert errors("for $i in range(1.5) { halt }") != []
+
+    def test_range_float_start_is_error(self):
+        assert errors("for $i in range(1.0, 5) { halt }") != []
+
+    def test_push_float_pos_is_error(self):
+        assert errors("$lst = list()\n$p = 1.0\npush($lst, 1, $p)") != []
+
+    def test_pop_float_pos_is_error(self):
+        assert errors("$lst = list()\n$p = 1.5\npop($lst, $p)") != []
+
+    def test_index_float_pos_is_error(self):
+        assert errors("$lst = list()\n$p = 1.5\nindex($lst, $p)") != []
+
+    def test_function_returning_float_in_paint_is_error(self):
+        # get_val() returns FLOAT; FLOAT has no overlap with INT
+        src = "def get_val() { return 1.5 }\n$x = call get_val()\npaint($x)"
+        assert errors(src) != []
+
+    def test_dir_in_paint_is_error(self):
+        assert errors("paint(UP)") != []
+
+    def test_loc_in_move_is_error(self):
+        # HERE is LOC, move requires DIR
+        assert errors("move(HERE)") != []
+
+    def test_int_in_move_is_error(self):
+        assert errors("move(5)") != []
+
+    def test_list_in_arithmetic_is_error(self):
+        assert errors("$x = list()\n$y = $x + 1") != []
+
+    def test_push_on_non_list_is_error(self):
+        assert errors("$x = 5\npush($x, 1)") != []
+
+    def test_pop_on_non_list_is_error(self):
+        assert errors("$x = 5\npop($x)") != []
+
+    def test_length_on_non_list_is_error(self):
+        assert errors("$x = 5\nlength($x)") != []
+
+    def test_for_over_non_list_is_error(self):
+        assert errors("$x = 5\nfor $i in $x { halt }") != []
+
+
+# ------------------------------------------------------- type warnings
+
+class TestTypeWarnings:
+    """Partial type overlaps — possibly wrong but not guaranteed."""
+
+    def test_int_or_float_var_in_paint_warns(self):
+        # $y can be INT or FLOAT — overlaps INT but FLOAT part is wrong
         msgs = warning_messages("$x = 1.0\n$y = $x + 1\npaint($y)")
         assert any("paint" in m for m in msgs)
 
-    def test_addition_int_only_is_clean(self):
+    def test_int_only_in_paint_is_clean(self):
         assert warnings("$x = 2\n$y = $x + 1\npaint($y)") == []
 
     def test_modulo_always_int(self):
@@ -226,50 +302,35 @@ class TestCouldBeFloat:
         assert warnings("$x = 1.5\npaint($x > 0)") == []
 
     def test_get_friction_is_int(self):
-        # get_friction returns int — no warning when passed to paint
         assert warnings("paint(get_friction(HERE))") == []
 
-    def test_min_propagates_float(self):
+    def test_min_int_or_float_warns(self):
         msgs = warning_messages("paint(min(1.5, 2))")
         assert any("paint" in m for m in msgs)
 
     def test_max_int_only_is_clean(self):
         assert warnings("paint(max(1, 2))") == []
 
-    def test_range_float_arg_warns(self):
-        msgs = warning_messages("for $i in range(1.5) { halt }")
-        assert any("range" in m for m in msgs)
-
     def test_range_int_arg_is_clean(self):
         assert warnings("for $i in range(5) { halt }") == []
-
-    def test_push_float_pos_warns(self):
-        msgs = warning_messages("$lst = list()\n$p = 1.0\npush($lst, 1, $p)")
-        assert any("push" in m for m in msgs)
-
-    def test_pop_float_pos_warns(self):
-        msgs = warning_messages("$lst = list()\n$p = 1.5\npop($lst, $p)")
-        assert any("pop" in m for m in msgs)
-
-    def test_index_float_pos_warns(self):
-        msgs = warning_messages("$lst = list()\n$p = 1.5\nindex($lst, $p)")
-        assert any("index" in m for m in msgs)
-
-    def test_function_return_cbf_propagates(self):
-        # Function that returns a float expression
-        src = "def get_val() { return 1.5 }\n$x = call get_val()\npaint($x)"
-        msgs = warning_messages(src)
-        assert any("paint" in m for m in msgs)
 
     def test_function_return_int_is_clean(self):
         src = "def get_val() { return 5 }\n$x = call get_val()\npaint($x)"
         assert warnings(src) == []
 
     def test_float_taint_does_not_cross_function_boundary(self):
-        # $g is float, but f() has isolated scope — $g is undefined in f
-        # (this checks that global float doesn't leak into function scope as cbf)
+        # $g is FLOAT, but f() has isolated scope — $x inside is INT only
         src = "$g = 1.5\ndef f() { $x = 1\npaint($x) }"
         assert warnings(src) == []
+
+    def test_dir_or_loc_var_in_move_warns(self):
+        # $d could be UP (DIR) or HERE (LOC) — overlaps DIR but LOC part is wrong
+        src = "$d = UP\nif $ops_remaining > 0 { $d = HERE }\nmove($d)"
+        msgs = warning_messages(src)
+        assert any("move" in m for m in msgs)
+
+    def test_pure_dir_var_in_move_is_clean(self):
+        assert warnings("$d = UP\nmove($d)") == []
 
 
 # -------------------------------------------------------- clean scripts
@@ -283,6 +344,9 @@ class TestCleanScripts:
 
     def test_loop_over_directions(self):
         assert_clean("for $dir in $directions { move($dir) }")
+
+    def test_loop_over_locations(self):
+        assert_clean("for $loc in $locations { get_friction($loc) }")
 
     def test_function_def_and_call(self):
         assert_clean("def go(d) { move($d) }\ncall go(UP)")
