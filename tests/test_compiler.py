@@ -175,10 +175,10 @@ class TestBoardOpErrors:
     def test_opp_paint_here_is_fine(self):
         assert errors("opp_paint(HERE)") == []
 
-    def test_paint_float_is_error(self):
-        msgs = error_messages("paint(1.5)")
-        assert any("paint" in m for m in msgs)
-        assert any(isinstance(e, CompileError) for e in errors("paint(1.5)"))
+    def test_paint_float_warns(self):
+        # float is accepted but warns; runtime coercion handles fractional check
+        assert errors("paint(1.5)") == []
+        assert any("paint" in m for m in warning_messages("paint(1.5)"))
 
     def test_paint_dir_is_error(self):
         msgs = error_messages("paint(UP)")
@@ -227,34 +227,39 @@ class TestCallErrors:
 class TestTypeErrors:
     """Guaranteed type mismatches — no overlap between actual and required type."""
 
-    def test_float_in_paint_is_error(self):
-        # FLOAT has no overlap with INT — guaranteed wrong
-        assert errors("paint(1.5)") != []
+    def test_float_in_paint_warns(self):
+        assert errors("paint(1.5)") == []
+        assert warnings("paint(1.5)") != []
 
-    def test_division_result_in_paint_is_error(self):
-        # / always produces FLOAT
-        assert errors("$x = 6\n$y = 3\npaint($x / $y)") != []
+    def test_division_result_in_paint_warns(self):
+        # / always produces FLOAT → warns
+        assert errors("$x = 6\n$y = 3\npaint($x / $y)") == []
+        assert warnings("$x = 6\n$y = 3\npaint($x / $y)") != []
 
-    def test_range_float_stop_is_error(self):
-        # range requires INT; FLOAT has no overlap
-        assert errors("for $i in range(1.5) { halt }") != []
+    def test_range_float_stop_warns(self):
+        assert errors("for $i in range(1.5) { halt }") == []
+        assert warnings("for $i in range(1.5) { halt }") != []
 
-    def test_range_float_start_is_error(self):
-        assert errors("for $i in range(1.0, 5) { halt }") != []
+    def test_range_float_start_warns(self):
+        assert errors("for $i in range(1.0, 5) { halt }") == []
+        assert warnings("for $i in range(1.0, 5) { halt }") != []
 
-    def test_push_float_pos_is_error(self):
-        assert errors("$lst = list()\n$p = 1.0\npush($lst, 1, $p)") != []
+    def test_push_float_pos_warns(self):
+        assert errors("$lst = list()\n$p = 1.0\npush($lst, 1, $p)") == []
+        assert warnings("$lst = list()\n$p = 1.0\npush($lst, 1, $p)") != []
 
-    def test_pop_float_pos_is_error(self):
-        assert errors("$lst = list()\n$p = 1.5\npop($lst, $p)") != []
+    def test_pop_float_pos_warns(self):
+        assert errors("$lst = list()\n$p = 1.5\npop($lst, $p)") == []
+        assert warnings("$lst = list()\n$p = 1.5\npop($lst, $p)") != []
 
-    def test_index_float_pos_is_error(self):
-        assert errors("$lst = list()\n$p = 1.5\nindex($lst, $p)") != []
+    def test_index_float_pos_warns(self):
+        assert errors("$lst = list()\n$p = 1.5\nindex($lst, $p)") == []
+        assert warnings("$lst = list()\n$p = 1.5\nindex($lst, $p)") != []
 
-    def test_function_returning_float_in_paint_is_error(self):
-        # get_val() returns FLOAT; FLOAT has no overlap with INT
+    def test_function_returning_float_in_paint_warns(self):
         src = "def get_val() { return 1.5 }\n$x = call get_val()\npaint($x)"
-        assert errors(src) != []
+        assert errors(src) == []
+        assert warnings(src) != []
 
     def test_dir_in_paint_is_error(self):
         assert errors("paint(UP)") != []
@@ -288,7 +293,7 @@ class TestTypeWarnings:
     """Partial type overlaps — possibly wrong but not guaranteed."""
 
     def test_int_or_float_var_in_paint_warns(self):
-        # $y can be INT or FLOAT — overlaps INT but FLOAT part is wrong
+        # $y is INT|FLOAT — warns because float component could cause runtime halt
         msgs = warning_messages("$x = 1.0\n$y = $x + 1\npaint($y)")
         assert any("paint" in m for m in msgs)
 
@@ -305,6 +310,7 @@ class TestTypeWarnings:
         assert warnings("paint(get_friction(HERE))") == []
 
     def test_min_int_or_float_warns(self):
+        # min(float, int) → INT|FLOAT — warns because float component could cause runtime halt
         msgs = warning_messages("paint(min(1.5, 2))")
         assert any("paint" in m for m in msgs)
 

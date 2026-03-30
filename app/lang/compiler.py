@@ -144,6 +144,35 @@ class Compiler:
     def _warn(self, msg: str, line: int, col: int) -> None:
         self.warnings.append(CompileWarning(msg, line, col))
 
+    def _check_coercible_int(
+        self,
+        actual: Type,
+        context: str,
+        line: int,
+        col: int,
+    ) -> None:
+        """
+        Used wherever _coerce_int runs at runtime (paint, range, push/pop/index pos).
+        Error   — actual has no numeric component (e.g. direction, list).
+        Warning — actual includes FLOAT; whole floats coerce fine but fractional
+                  ones cause a runtime HaltSignal.
+        Clean   — actual is purely INT.
+        Type(0) or ANY means no useful type information; skip silently.
+        """
+        if not actual or actual == ANY:
+            return
+        if not (actual & NUMERIC):
+            self._error(
+                f"{context}: expected {_type_name(NUMERIC)}, got {_type_name(actual)}",
+                line, col,
+            )
+        elif actual & Type.FLOAT:
+            self._warn(
+                f"{context}: expected int, but value might be float"
+                " (fractional floats cause a runtime halt)",
+                line, col,
+            )
+
     def _check_type(
         self,
         actual: Type,
@@ -349,8 +378,8 @@ class Compiler:
                     if arg is None:
                         continue
                     self._check_expr(arg)
-                    self._check_type(
-                        self._type_of(arg, self._var_types), Type.INT,
+                    self._check_coercible_int(
+                        self._type_of(arg, self._var_types),
                         f"range() {label} argument", arg.line, arg.col,
                     )
             else:
@@ -458,8 +487,8 @@ class Compiler:
 
         elif isinstance(expr, Paint):
             self._check_expr(expr.num)
-            self._check_type(
-                self._type_of(expr.num, self._var_types), Type.INT,
+            self._check_coercible_int(
+                self._type_of(expr.num, self._var_types),
                 "paint() argument", expr.num.line, expr.num.col,
             )
 
@@ -493,8 +522,8 @@ class Compiler:
             )
             if expr.pos is not None:
                 self._check_expr(expr.pos)
-                self._check_type(
-                    self._type_of(expr.pos, self._var_types), Type.INT,
+                self._check_coercible_int(
+                    self._type_of(expr.pos, self._var_types),
                     "push() position argument", expr.pos.line, expr.pos.col,
                 )
 
@@ -506,8 +535,8 @@ class Compiler:
             )
             if expr.pos is not None:
                 self._check_expr(expr.pos)
-                self._check_type(
-                    self._type_of(expr.pos, self._var_types), Type.INT,
+                self._check_coercible_int(
+                    self._type_of(expr.pos, self._var_types),
                     "pop() position argument", expr.pos.line, expr.pos.col,
                 )
 
@@ -519,8 +548,8 @@ class Compiler:
             )
             if expr.pos is not None:
                 self._check_expr(expr.pos)
-                self._check_type(
-                    self._type_of(expr.pos, self._var_types), Type.INT,
+                self._check_coercible_int(
+                    self._type_of(expr.pos, self._var_types),
                     "index() position argument", expr.pos.line, expr.pos.col,
                 )
 
