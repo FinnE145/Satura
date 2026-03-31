@@ -109,7 +109,7 @@ class FloatLit:
 
 @dataclass
 class Constant:
-    """Direction or location constant: UP, DOWN, LEFT, RIGHT, HERE."""
+    """Direction, location, or null constant: UP, DOWN, LEFT, RIGHT, HERE, NULL."""
     value: str
     line:  int = 0
     col:   int = 0

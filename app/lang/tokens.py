@@ -54,6 +54,9 @@ class TokenType(Enum):
     RIGHT        = auto()
     HERE         = auto()
 
+    # Null sentinel — free
+    NULL         = auto()
+
     # Arithmetic operators — costly
     PLUS         = auto()
     MINUS        = auto()
@@ -124,6 +127,7 @@ KEYWORDS: dict[str, TokenType] = {
     "LEFT":         TokenType.LEFT,
     "RIGHT":        TokenType.RIGHT,
     "HERE":         TokenType.HERE,
+    "NULL":         TokenType.NULL,
 }
 
 

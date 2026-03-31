@@ -211,6 +211,8 @@ class _Interpreter:
             return expr.value
 
         if isinstance(expr, Constant):
+            if expr.value == "NULL":
+                return None
             return expr.value   # "UP" / "DOWN" / "LEFT" / "RIGHT" / "HERE"
 
         if isinstance(expr, ListConstructor):

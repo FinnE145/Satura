@@ -17,11 +17,12 @@ class Type(Flag):
     DIR   = auto()
     LOC   = auto()
     LIST  = auto()
+    NULL  = auto()
 
 
 NUMERIC  = Type.INT | Type.FLOAT
 LOCATION = Type.DIR | Type.LOC
-ANY      = Type.INT | Type.FLOAT | Type.DIR | Type.LOC | Type.LIST
+ANY      = Type.INT | Type.FLOAT | Type.DIR | Type.LOC | Type.LIST | Type.NULL
 
 _COMPARISON_OPS = frozenset({
     TokenType.EQ, TokenType.NEQ,
@@ -47,6 +48,7 @@ def _type_name(t: Type) -> str:
     if Type.DIR   in t: parts.append("direction")
     if Type.LOC   in t: parts.append("location")
     if Type.LIST  in t: parts.append("list")
+    if Type.NULL  in t: parts.append("NULL")
     return " | ".join(parts)
 
 
@@ -166,12 +168,19 @@ class Compiler:
                 f"{context}: expected {_type_name(NUMERIC)}, got {_type_name(actual)}",
                 line, col,
             )
-        elif actual & Type.FLOAT:
-            self._warn(
-                f"{context}: expected int, but value might be float"
-                " (fractional floats cause a runtime halt)",
-                line, col,
-            )
+        else:
+            if actual & Type.FLOAT:
+                self._warn(
+                    f"{context}: expected int, but value might be float"
+                    " (fractional floats cause a runtime halt)",
+                    line, col,
+                )
+            if actual & Type.NULL:
+                self._warn(
+                    f"{context}: expected int, but value might be NULL"
+                    " (NULL in a non-null context is a runtime halt)",
+                    line, col,
+                )
 
     def _check_type(
         self,
@@ -211,6 +220,8 @@ class Compiler:
         if isinstance(expr, FloatLit):
             return Type.FLOAT
         if isinstance(expr, Constant):
+            if expr.value == "NULL":
+                return Type.NULL
             return Type.LOC if expr.value == "HERE" else Type.DIR
         if isinstance(expr, ListConstructor):
             return Type.LIST
@@ -242,7 +253,7 @@ class Compiler:
             result = left | right
             return result if result else NUMERIC
         if isinstance(expr, (GetFriction, MyPaint, OppPaint, HasAgent)):
-            return Type.INT
+            return Type.INT | Type.NULL
         if isinstance(expr, (Move, Paint)):
             return Type.INT
         if isinstance(expr, Length):

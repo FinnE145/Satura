@@ -409,17 +409,17 @@ class TestRunExecution:
         return result.program
 
     def test_normal_outcome(self):
-        outcome = self.e.run_execution(1, self._compiled())
+        outcome, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "normal"
 
     def test_halt_outcome_via_engine_signal(self):
         with patch("app.lang.interpreter.execute", side_effect=HaltSignal("test halt")):
-            outcome = self.e.run_execution(1, self._compiled())
+            outcome, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "halt"
 
     def test_reset_outcome_via_engine_signal(self):
         with patch("app.lang.interpreter.execute", side_effect=ResetSignal("test reset")):
-            outcome = self.e.run_execution(1, self._compiled())
+            outcome, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "reset"
 
     def test_reset_rolls_back_board(self):
@@ -431,7 +431,7 @@ class TestRunExecution:
             raise ResetSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=mutate_then_reset):
-            outcome = e.run_execution(1, self._compiled())
+            outcome, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "reset"
         assert e.board.cell(1, 1).p1 == 3  # restored
@@ -446,7 +446,7 @@ class TestRunExecution:
             raise ResetSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=move_then_reset):
-            outcome = e.run_execution(1, self._compiled())
+            outcome, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "reset"
         assert e.agents[1].snapshot() == original_pos
@@ -459,7 +459,7 @@ class TestRunExecution:
             raise HaltSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=mutate_then_halt):
-            outcome = e.run_execution(1, self._compiled())
+            outcome, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "halt"
         assert e.board.cell(1, 1).p1 == 4  # NOT rolled back

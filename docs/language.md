@@ -98,6 +98,18 @@ $dir = UP
 move($dir)
 ```
 
+### 2.10 The NULL Sentinel
+
+`NULL` is a keyword constant that represents the absence of a value. It is **free** (no word cost). It is returned by board query operations (`get_friction`, `has_agent`, `my_paint`, `opp_paint`) when the target location is outside the board boundary.
+
+`NULL` may only appear in `==` and `!=` comparisons. Using `NULL` in any other context — arithmetic, boolean condition, board operation argument, ordered comparison — is a **runtime halt.**
+
+```
+$f = get_friction(UP)
+if $f == NULL { halt }    // edge-of-board guard
+move(UP)                   // safe — $f is not NULL here
+```
+
 ### 2.10 The `$` Sigil
 
 `$` is a required prefix for **every variable access and assignment** — both user-defined variables and built-in variables. It costs **1 word** per occurrence. The identifier following `$` is free.
@@ -134,6 +146,7 @@ A word is any keyword, operator, or board function that appears in the script. T
 | List constructor | `list` | 0 (free) |
 | Board operations | `move`, `paint`, `get_friction`, `has_agent`, `my_paint`, `opp_paint` | 1 each |
 | `in` (for-loop only) | `in` | 0 (free; `for` accounts for the loop) |
+| Null sentinel | `NULL` | 0 (free) |
 | Variable / function / parameter names | any identifier | 0 (free) |
 | Literals | integers, floats, constants | 0 (free) |
 | Punctuation | `(`, `)`, `{`, `}`, `,`, `;` | 0 (free) |
@@ -157,6 +170,7 @@ A word is any keyword, operator, or board function that appears in the script. T
 | `direction` | Enum: `UP`, `DOWN`, `LEFT`, `RIGHT`. |
 | `location` | Enum: `UP`, `DOWN`, `LEFT`, `RIGHT`, `HERE`. A superset of `direction`. |
 | `list` | An ordered, mutable, heterogeneous sequence. Created with `list()`. |
+| `NULL` | Sentinel value returned by board query operations when the target location is outside the board. May only appear in `==` and `!=` comparisons. Any other use is a **runtime halt.** |
 
 There is no distinct boolean type. Conditions (`if`, `elif`, `while`) require integer values of exactly `0` or `1`. Any other value in a boolean context is a **runtime halt.**
 
@@ -173,7 +187,7 @@ Types are inferred — players never write type names. For the purposes of numer
 | `/` | always `true` |
 | `+`, `-`, `*`, `%`, `min`, `max`, unary `-` | `true` if any operand is `true` |
 | Comparison, logical operator | always `false` (result is always 0 or 1) |
-| `get_friction`, `has_agent`, `my_paint`, `opp_paint` | always `false` |
+| `get_friction`, `has_agent`, `my_paint`, `opp_paint` | always `false` — but these operations may return `NULL` for out-of-bounds locations (see Section 11) |
 | `$ops_remaining`, `$op_limit` | always `false` |
 | `length` | always `false` |
 | Direction/location constant | always `false` |
@@ -569,7 +583,7 @@ get_friction($loc)    // variable also accepted
   - `1` if the cell is blank (both paints = 0)
   - `20` if the cell is black (both paints = 5)
   - `2 × opponent_paint(cell)` otherwise (range: 2–10)
-- For cells outside the board boundary, behavior is **implementation-defined.**
+- For cells outside the board boundary, returns `NULL`. The op cost (1) is still deducted.
 - Costs 1 op.
 
 ### 11.4 has_agent(dir)
@@ -581,6 +595,7 @@ has_agent($dir)    // variable also accepted
 
 - `dir` must be a `direction` value. `HERE` is not valid (a player always knows their own position). Passing `HERE` or any non-direction value is a **compile error** where detectable, otherwise a **runtime halt.**
 - Returns `int` `1` if any agent (either player's) occupies the adjacent cell, `0` otherwise.
+- Returns `NULL` if `dir` refers to a cell outside the board boundary. The op cost (1) is still deducted.
 - Costs 1 op.
 
 ### 11.5 my_paint(loc)
@@ -593,6 +608,7 @@ my_paint($loc)    // variable also accepted
 
 - `loc` must be a `location` value. Passing a non-location value is a **compile error** where detectable, otherwise a **runtime halt.**
 - Returns `int` in range `[0, 5]`.
+- Returns `NULL` if `loc` refers to a cell outside the board boundary. The op cost (1) is still deducted.
 - Costs 1 op.
 
 ### 11.6 opp_paint(loc)
@@ -604,6 +620,7 @@ opp_paint($loc)    // variable also accepted
 
 - `loc` must be a `location` value. Passing a non-location value is a **compile error** where detectable, otherwise a **runtime halt.**
 - Returns `int` in range `[0, 5]`.
+- Returns `NULL` if `loc` refers to a cell outside the board boundary. The op cost (1) is still deducted.
 - A fully opponent-owned cell (opp = 5) has friction 10; a black cell has friction 20. `get_friction` distinguishes the two, but `opp_paint` combined with `my_paint` makes the distinction explicit — you can paint a heavily opponent-owned cell but not a black one.
 - Costs 1 op.
 
@@ -630,6 +647,7 @@ A script execution ends in one of three ways:
 
 - `halt` keyword executed
 - Runtime type mismatch (e.g. non-boolean in condition, wrong type passed to operator)
+- `NULL` value used in any context other than `==` or `!=` comparison (arithmetic, boolean condition, board operation argument, ordered comparison, etc.)
 - Non-integer (fractional float) value passed to an integer-required context
 - `paint(0)` or `paint(negative)`
 - `move()` outside board boundary
@@ -732,6 +750,7 @@ primary         = INT_LIT
                 | FLOAT_LIT
                 | direction_const
                 | location_const
+                | null_const
                 | var_ref
                 | list_constructor
                 | min_expr
@@ -751,6 +770,7 @@ var_ref         = "$" IDENT ;
 
 direction_const = "UP" | "DOWN" | "LEFT" | "RIGHT" ;
 location_const  = "UP" | "DOWN" | "LEFT" | "RIGHT" | "HERE" ;
+null_const      = "NULL" ;
 
 list_constructor = "list" "(" ")" ;
 

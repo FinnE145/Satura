@@ -11,10 +11,8 @@
 
 ## Win / End Conditions
 
--   Win: ≥60% of total cells dominated
--   Draw:
-    -   Agent trapped (no valid moves within op budget)
-    -   Win condition unreachable (too many black cells)
+-   Win: ≥60% of total cells dominated, checked at end of execution
+-   Draw: win condition unreachable (too many black cells)
 -   Loss: time runs out
 
 ## Agent + Movement
@@ -71,7 +69,7 @@
 
 ## Types
 
--   int, float, direction, location, list, boolean
+-   int, float, direction, location, list, boolean, NULL
 
 ## Variables
 
@@ -101,6 +99,8 @@
 ## Board API
 
 -   move, paint, get_friction, has_agent, my_paint, opp_paint
+-   get_friction / has_agent / my_paint / opp_paint return NULL when called with an out-of-bounds location (op cost still deducted)
+-   NULL can only be tested with == and !=; any other use is a runtime halt
 
 ## Strategic Constraints
 

@@ -19,6 +19,7 @@ class ParseError(Exception):
 
 _CONSTANT_TYPES = frozenset({
     TokenType.UP, TokenType.DOWN, TokenType.LEFT, TokenType.RIGHT, TokenType.HERE,
+    TokenType.NULL,
 })
 
 _COMPARISON_OPS = frozenset({
@@ -35,6 +36,7 @@ _EXPR_START = frozenset({
     TokenType.INT_LIT, TokenType.FLOAT_LIT,
     TokenType.DOLLAR,
     TokenType.UP, TokenType.DOWN, TokenType.LEFT, TokenType.RIGHT, TokenType.HERE,
+    TokenType.NULL,
     TokenType.LPAREN,
     TokenType.MINUS,
     TokenType.NOT,

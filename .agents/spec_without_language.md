@@ -12,7 +12,7 @@
 ## Win / End Conditions
 
 -   Win: ≥60% control
--   Draw: trapped or unreachable win
+-   Draw: win condition unreachable (too many black cells)
 -   Loss: time expires
 
 ## Movement + Interaction
