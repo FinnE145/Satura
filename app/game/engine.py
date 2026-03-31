@@ -286,7 +286,11 @@ class Engine:
 
     def check_stalemate(self) -> bool:
         """
-        True when black cells make 60% of total cells unreachable for both players.
+        True when neither player can reach 60% of total cells.
+        A cell where the opponent has 5 paint is permanently unwinnable.
         """
-        _p1, _p2, black, total = self.board.territory()
-        return (total - black) < total * 0.6
+        total = self.board.size * self.board.size
+        threshold = total * 0.6
+        p1_maxed = sum(c.p1 == 5 for row in self.board.grid for c in row)
+        p2_maxed = sum(c.p2 == 5 for row in self.board.grid for c in row)
+        return (total - p2_maxed) < threshold and (total - p1_maxed) < threshold
