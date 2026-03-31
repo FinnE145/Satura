@@ -84,7 +84,7 @@ Each player controls one agent. Agents begin at fixed starting positions on oppo
 - Agents are always visible to both players.
 - No two agents may occupy the same cell at the same time.
 - If a moving agent attempts to enter a cell occupied by the opponent's agent, the moving agent's script resets (see Section 2.5).
-- An agent that cannot leave its current cell in any direction within its op budget is considered trapped (see Section 2.6).
+
 
 ## 2.3 Paint and Friction
 
@@ -171,10 +171,7 @@ Black cells are never counted toward either player's total. They reduce the maxi
 
 ### Stalemate
 
-A stalemate occurs under either of these conditions:
-
-- **Trapped agent:** A player's agent cannot leave its current cell in any valid direction given the current op budget and opponent agent position. The game ends immediately as a draw.
-- **Unreachable threshold:** Sufficient black cells have accumulated that neither player can mathematically reach the win threshold. The game ends as a draw.
+A stalemate occurs when sufficient black cells have accumulated that neither player can mathematically reach the win threshold. The game ends as a draw.
 
 > Oscillating agents (moving back and forth between two cells indefinitely) are not explicitly banned by rule. However, this behavior is self-defeating since the player accumulates no score and burns their execution. It is considered a degenerate strategy, not a rules violation.
 

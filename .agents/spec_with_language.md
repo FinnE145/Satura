@@ -12,9 +12,7 @@
 ## Win / End Conditions
 
 -   Win: ≥60% of total cells dominated, checked at end of execution
--   Draw:
-    -   Agent trapped (no valid moves within op budget)
-    -   Win condition unreachable (too many black cells)
+-   Draw: win condition unreachable (too many black cells)
 -   Loss: time runs out
 
 ## Agent + Movement

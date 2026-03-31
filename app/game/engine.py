@@ -305,28 +305,8 @@ class Engine:
             return 2
         return None
 
-    def _is_trapped(self, player: int) -> bool:
-        """True if the player's agent has no reachable adjacent cell within op_limit."""
-        agent = self.agents[player]
-        opp   = self.agents[3 - player]
-        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-            r, c = agent.row + dr, agent.col + dc
-            if not self.board.in_bounds(r, c):
-                continue
-            if opp.row == r and opp.col == c:
-                continue
-            if get_friction(self.board.cell(r, c), player) <= self.op_limit:
-                return False
-        return True
-
     def check_stalemate(self) -> bool:
-        """
-        True when the game is a draw:
-        - A player's agent is trapped (no reachable adjacent cell within op_limit), or
-        - Neither player can mathematically reach the 60% win threshold.
-        """
-        if self._is_trapped(1) or self._is_trapped(2):
-            return True
+        """True when neither player can mathematically reach the 60% win threshold."""
         total = self.board.size * self.board.size
         threshold = total * 0.6
         p1_maxed = sum(c.p1 == 5 for row in self.board.grid for c in row)

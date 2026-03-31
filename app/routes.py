@@ -12,9 +12,9 @@ bp = Blueprint('main', __name__)
 
 # Game defaults — move to Config when tuning is needed
 _BOARD_SIZE = 16
-_OP_LIMIT = 1000
+_OP_LIMIT = 25
 _CLOCK_SECONDS = 300.0
-_WORD_RATE = 1.0
+_WORD_RATE = 2.0
 
 
 @bp.route('/')

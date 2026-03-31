@@ -96,11 +96,7 @@ If a script temporarily reaches win condition but loses it before completion, it
 
 ## Stalemate Condition
 
-Either of the following triggers a stalemate (draw):
-
-**Trapped agent:** A player's agent has no reachable adjacent cell in any direction given the current board state and opponent position. A cell is reachable if it is in-bounds, not occupied by the opponent, and its friction cost is ≤ op_limit.
-
-**Unreachable threshold:** For each player:
+A stalemate (draw) occurs when neither player can mathematically reach the win threshold:
 
 max_possible = total_cells - cells_where_opponent_has_5
 
