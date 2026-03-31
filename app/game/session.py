@@ -16,6 +16,7 @@ class GameSession:
         self._anim_deadline: float | None = None
         self.game_over: bool = False
         self.winner: int | str | None = None
+        self._exec_log: list[dict] = []
 
     # ------------------------------------------------------------------ public API
 
@@ -92,6 +93,7 @@ class GameSession:
                 1: self.engine.word_bank(1),
                 2: self.engine.word_bank(2),
             },
+            "exec_log": self._exec_log,
         }
 
     def check_clock_expired(self) -> bool:
@@ -107,7 +109,9 @@ class GameSession:
         self.phase = "exec2"
         program = self._program[self.current_player]
         if program is not None:
-            self.engine.run_execution(self.current_player, program)
+            _, self._exec_log = self.engine.run_execution(self.current_player, program)
+        else:
+            self._exec_log = []
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_pre_write"
@@ -116,7 +120,7 @@ class GameSession:
 
     def _run_exec1(self) -> None:
         self.phase = "exec1"
-        self.engine.run_execution(self.current_player, self._program[self.current_player])
+        _, self._exec_log = self.engine.run_execution(self.current_player, self._program[self.current_player])
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_post_exec1"

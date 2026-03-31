@@ -63,6 +63,7 @@ class ExecutionContext:
         self._board = board
         self._own = own_agent
         self._opp = opp_agent
+        self._log: list[dict] = []
 
     # ------------------------------------------------------------ op accounting
 
@@ -80,6 +81,8 @@ class ExecutionContext:
     # ------------------------------------------------------------ board ops
 
     def board_move(self, direction: str) -> None:
+        dr, dc = _DELTAS[direction]
+        dest = (self._own.row + dr, self._own.col + dc)
         # agent.move() returns the op cost; raises MoveOutOfBounds or MoveCollision
         try:
             cost = self._own.move(direction, self._board, self._opp)
@@ -89,10 +92,12 @@ class ExecutionContext:
             raise ResetSignal(str(e)) from e
         # Deduct after move; if over budget, ResetSignal triggers full rollback
         self._deduct(cost)
+        self._log.append({"op": "move", "to": dest})
 
     def board_paint(self, amount: int) -> None:
         if amount <= 0:
             raise HaltSignal(f"paint({amount}) is not a positive integer")
+        at = (self._own.row, self._own.col)
         self._deduct(2 * amount)
         try:
             self._board.paint(self._own.row, self._own.col, self.player, amount)
@@ -100,18 +105,23 @@ class ExecutionContext:
             raise ResetSignal(str(e)) from e
         except PaintOverflow as e:
             raise ResetSignal(str(e)) from e
+        self._log.append({"op": "paint", "at": at, "amount": amount})
 
     def board_get_friction(self, loc: str) -> int:
         self._deduct(1)
         r, c = self._resolve(loc)
         if not self._board.in_bounds(r, c):
             raise HaltSignal(f"get_friction({loc}) is outside the board boundary")
-        return get_friction(self._board.cell(r, c), self.player)
+        result = get_friction(self._board.cell(r, c), self.player)
+        self._log.append({"op": "get_friction", "at": (r, c), "result": result})
+        return result
 
     def board_has_agent(self, direction: str) -> int:
         self._deduct(1)
         r, c = self._resolve(direction)
-        return 1 if (self._opp.row == r and self._opp.col == c) else 0
+        result = 1 if (self._opp.row == r and self._opp.col == c) else 0
+        self._log.append({"op": "has_agent", "at": (r, c), "result": result})
+        return result
 
     def board_my_paint(self, loc: str) -> int:
         self._deduct(1)
@@ -119,7 +129,9 @@ class ExecutionContext:
         if not self._board.in_bounds(r, c):
             raise HaltSignal(f"my_paint({loc}) is outside the board boundary")
         cell = self._board.cell(r, c)
-        return cell.p1 if self.player == 1 else cell.p2
+        result = cell.p1 if self.player == 1 else cell.p2
+        self._log.append({"op": "my_paint", "at": (r, c), "result": result})
+        return result
 
     def board_opp_paint(self, loc: str) -> int:
         self._deduct(1)
@@ -127,7 +139,9 @@ class ExecutionContext:
         if not self._board.in_bounds(r, c):
             raise HaltSignal(f"opp_paint({loc}) is outside the board boundary")
         cell = self._board.cell(r, c)
-        return cell.p2 if self.player == 1 else cell.p1
+        result = cell.p2 if self.player == 1 else cell.p1
+        self._log.append({"op": "opp_paint", "at": (r, c), "result": result})
+        return result
 
 
 # --------------------------------------------------------------------------- engine
@@ -238,10 +252,11 @@ class Engine:
 
     # ---------------------------------------------------------------- execution
 
-    def run_execution(self, player: int, program) -> str:
+    def run_execution(self, player: int, program) -> tuple[str, list[dict]]:
         """
         Execute a compiled program for `player`.
-        Returns "normal", "halt", or "reset".
+        Returns (outcome, log) where outcome is "normal", "halt", or "reset"
+        and log is a list of realized board operations (empty on reset).
 
         Assumes the script has already been compiled (result.ok) and words spent.
         """
@@ -267,7 +282,7 @@ class Engine:
             own.restore(own_snap)
             opp.restore(opp_snap)
 
-        return outcome
+        return outcome, ctx._log
 
     # --------------------------------------------------------- win / stalemate
 
