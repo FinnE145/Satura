@@ -163,7 +163,7 @@ Syntax errors are caught at compile time before the turn begins — they are not
 
 ### Win Condition
 
-A player wins when they dominate 60% or more of total cells on the board simultaneously at any point during turn resolution. A cell is dominated when one player's paint strictly exceeds the other's.
+A player wins when they dominate 60% or more of total cells on the board at the end of an execution phase. A cell is dominated when one player's paint strictly exceeds the other's.
 
 > **Alternative win condition (decide during playtesting):** First player to dominate 80% of non-black cells. This adjusts dynamically with black cell accumulation but may incentivize generating black cells intentionally to shrink the denominator. The 60% total threshold is the primary design.
 
@@ -351,6 +351,7 @@ A word is any keyword, operator, or board function that appears in the script. S
 | `direction` | Enum: `UP`, `DOWN`, `LEFT`, `RIGHT`. |
 | `location` | Enum: `UP`, `DOWN`, `LEFT`, `RIGHT`, `HERE`. |
 | `list` | Ordered collection. Created with `list()`. No literal syntax. |
+| `NULL` | Sentinel returned by board queries when the target location is outside the board. Can only be compared with `==` and `!=`. Using `NULL` in any other context is a runtime halt. |
 | `0` and `1` | Boolean values. `if`, `while`, and `elif` require exactly 0 or 1. Any other value in a boolean context is a runtime halt. |
 
 ## 4.3 Variables and Scope
@@ -582,6 +583,7 @@ get_friction(UP)     // friction of cell above
 - Returns the friction value for the specified cell from your perspective.
 - Uses the formula defined in Section 2.3.
 - `loc` is a location type (includes `HERE`).
+- Returns `NULL` if `loc` refers to a cell outside the board boundary.
 - Costs 1 op.
 
 ### has_agent(dir)
@@ -592,6 +594,7 @@ has_agent(UP)   // returns 1 if any agent is in that cell, 0 otherwise
 
 - `dir` is a direction type (does not include `HERE` — you always know your own position).
 - Returns 1 if any agent occupies the adjacent cell, 0 otherwise.
+- Returns `NULL` if `dir` refers to a cell outside the board boundary.
 - Costs 1 op.
 
 ### my_paint(loc)
@@ -602,6 +605,7 @@ my_paint(UP)     // your paint on the cell above
 ```
 
 - Returns your paint value at the specified location.
+- Returns `NULL` if `loc` refers to a cell outside the board boundary.
 - Costs 1 op.
 
 ### opp_paint(loc)
@@ -611,6 +615,7 @@ opp_paint(HERE)  // opponent paint on the current cell (0-5)
 ```
 
 - Returns the opponent's paint value at the specified location.
+- Returns `NULL` if `loc` refers to a cell outside the board boundary.
 - Note: a fully opponent-owned cell (opp = 5) has friction 10; a black cell has friction 20. `get_friction` distinguishes the two, but `opp_paint` combined with `my_paint` makes the distinction explicit — you can paint a heavily opponent-owned cell but not a black one.
 - Costs 1 op.
 

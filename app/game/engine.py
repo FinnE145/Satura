@@ -107,37 +107,43 @@ class ExecutionContext:
             raise ResetSignal(str(e)) from e
         self._log.append({"op": "paint", "at": at, "amount": amount})
 
-    def board_get_friction(self, loc: str) -> int:
+    def board_get_friction(self, loc: str) -> int | None:
         self._deduct(1)
         r, c = self._resolve(loc)
         if not self._board.in_bounds(r, c):
-            raise HaltSignal(f"get_friction({loc}) is outside the board boundary")
+            self._log.append({"op": "get_friction", "at": (r, c), "result": None})
+            return None
         result = get_friction(self._board.cell(r, c), self.player)
         self._log.append({"op": "get_friction", "at": (r, c), "result": result})
         return result
 
-    def board_has_agent(self, direction: str) -> int:
+    def board_has_agent(self, direction: str) -> int | None:
         self._deduct(1)
         r, c = self._resolve(direction)
+        if not self._board.in_bounds(r, c):
+            self._log.append({"op": "has_agent", "at": (r, c), "result": None})
+            return None
         result = 1 if (self._opp.row == r and self._opp.col == c) else 0
         self._log.append({"op": "has_agent", "at": (r, c), "result": result})
         return result
 
-    def board_my_paint(self, loc: str) -> int:
+    def board_my_paint(self, loc: str) -> int | None:
         self._deduct(1)
         r, c = self._resolve(loc)
         if not self._board.in_bounds(r, c):
-            raise HaltSignal(f"my_paint({loc}) is outside the board boundary")
+            self._log.append({"op": "my_paint", "at": (r, c), "result": None})
+            return None
         cell = self._board.cell(r, c)
         result = cell.p1 if self.player == 1 else cell.p2
         self._log.append({"op": "my_paint", "at": (r, c), "result": result})
         return result
 
-    def board_opp_paint(self, loc: str) -> int:
+    def board_opp_paint(self, loc: str) -> int | None:
         self._deduct(1)
         r, c = self._resolve(loc)
         if not self._board.in_bounds(r, c):
-            raise HaltSignal(f"opp_paint({loc}) is outside the board boundary")
+            self._log.append({"op": "opp_paint", "at": (r, c), "result": None})
+            return None
         cell = self._board.cell(r, c)
         result = cell.p2 if self.player == 1 else cell.p1
         self._log.append({"op": "opp_paint", "at": (r, c), "result": result})
@@ -299,11 +305,28 @@ class Engine:
             return 2
         return None
 
+    def _is_trapped(self, player: int) -> bool:
+        """True if the player's agent has no reachable adjacent cell within op_limit."""
+        agent = self.agents[player]
+        opp   = self.agents[3 - player]
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            r, c = agent.row + dr, agent.col + dc
+            if not self.board.in_bounds(r, c):
+                continue
+            if opp.row == r and opp.col == c:
+                continue
+            if get_friction(self.board.cell(r, c), player) <= self.op_limit:
+                return False
+        return True
+
     def check_stalemate(self) -> bool:
         """
-        True when neither player can reach 60% of total cells.
-        A cell where the opponent has 5 paint is permanently unwinnable.
+        True when the game is a draw:
+        - A player's agent is trapped (no reachable adjacent cell within op_limit), or
+        - Neither player can mathematically reach the 60% win threshold.
         """
+        if self._is_trapped(1) or self._is_trapped(2):
+            return True
         total = self.board.size * self.board.size
         threshold = total * 0.6
         p1_maxed = sum(c.p1 == 5 for row in self.board.grid for c in row)
