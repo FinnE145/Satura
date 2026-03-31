@@ -498,10 +498,11 @@ class TestFunctions:
         _run("def f() { return 42 }\npaint(call f())", ctx)
         ctx.board_paint.assert_called_once_with(42)
 
-    def test_implicit_return_zero(self):
+    def test_implicit_return_null(self):
+        # A function that runs off the end returns NULL; comparing with NULL is valid.
         ctx = _mock_ctx()
-        _run("def f() {}\npaint(call f())", ctx)
-        ctx.board_paint.assert_called_once_with(0)
+        _run("def f() {}\n$r = call f()\nif $r == NULL { paint(1) }", ctx)
+        ctx.board_paint.assert_called_once_with(1)
 
     def test_bare_return(self):
         ctx = _mock_ctx()
