@@ -407,7 +407,7 @@ class _Interpreter:
         except RecursionError:
             raise HaltSignal("stack depth exceeded")
 
-        return 0    # implicit return 0
+        return None    # implicit return NULL
 
     # ---------------------------------------------------------- variable read
 
