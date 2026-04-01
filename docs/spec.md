@@ -2,8 +2,6 @@
 ### Game Design Specification
 *A competitive programming strategy game*
 
-**Draft — Work In Progress**
-
 ---
 
 # 1. Key Tenets
@@ -18,10 +16,10 @@ Code becomes irreplaceable when the goal of a script cannot be fully specified a
 
 ## 1.2 Game Strategy and Code Strategy Are Coupled But Untransferable
 
-No single system — human, LLM, or algorithm — should be able to dominate both the game-side and code-side decisions simultaneously. Specifically:
+No nonspecialized general system — LLM, or algorithm — should be able to dominate both the game-side and code-side decisions simultaneously. Specifically:
 
-- A program that can predict board states well enough to identify optimal sub-goals has no mechanism for translating those sub-goals into efficient scripts.
-- An LLM that can write efficient, well-structured code has no model of the board state three turns out, and cannot determine whether a given abstraction is worth defining.
+- A program that can predict board states well enough to identify optimal sub-goals should have no mechanism for translating those sub-goals into efficient scripts.
+- An LLM that can write efficient, well-structured code should have no model of the board state three turns out, and cannot determine whether a given abstraction is worth defining.
 - These two competencies cannot be pipelined. A board state description is not a code-writing prompt. A code snippet is not a game tree node. The interface between them exists only in the player's mind.
 
 This means the game's depth is irreducibly human. Experience, pattern recognition, and the ability to hold strategic intent and code economics in mind simultaneously are the core skills — not programming knowledge, and not game theory alone.
@@ -97,8 +95,8 @@ Friction determines how many ops it costs to move into a cell. It is computed as
 ```
 get_friction(cell):
     if cell.p1 + cell.p2 == 0:  return 1                          // blank cell
-    if cell.p1 + cell.p2 == 10: return 2 * (p1 + p2)             // black cell → 20
-    return 2 * opponent_paint(cell)                                // default case
+    if cell.p1 + cell.p2 == 10: return 2 * (p1 + p2)              // black cell → 20
+    return 2 * opponent_paint(cell)                               // default case
 ```
 
 For Player 1, opponent_paint = p2. For Player 2, opponent_paint = p1. Key properties of this formula:
@@ -135,7 +133,7 @@ Each script execution has an op budget. Board-interacting operations consume ops
 | `opp_paint(loc)` | 1 op |
 | All other operations | 0 ops (internal computation is free) |
 
-> Op limit is TBD and subject to playtesting. It may vary by game mode. See Section 5.1 (Undecided).
+> Op limit is currently 25 ops per script execution, but subject to playtesting. It may vary by game mode. See Section 5.1 (Undecided).
 
 ## 2.5 Turn Reset vs. Halt
 
@@ -165,7 +163,7 @@ Syntax errors are caught at compile time before the turn begins — they are not
 
 A player wins when they dominate 60% or more of total cells on the board at the end of an execution phase. A cell is dominated when one player's paint strictly exceeds the other's.
 
-> **Alternative win condition (decide during playtesting):** First player to dominate 80% of non-black cells. This adjusts dynamically with black cell accumulation but may incentivize generating black cells intentionally to shrink the denominator. The 60% total threshold is the primary design.
+> **Alternative win condition (TBD during playtesting):** First player to dominate 80% of non-black cells. This adjusts dynamically with black cell accumulation but may incentivize generating black cells intentionally to shrink the denominator. The 60% total threshold is the primary design.
 
 Black cells are never counted toward either player's total. They reduce the maximum achievable score for both players.
 
@@ -173,13 +171,13 @@ Black cells are never counted toward either player's total. They reduce the maxi
 
 A stalemate occurs when sufficient black cells have accumulated that neither player can mathematically reach the win threshold. The game ends as a draw.
 
-> Oscillating agents (moving back and forth between two cells indefinitely) are not explicitly banned by rule. However, this behavior is self-defeating since the player accumulates no score and burns their execution. It is considered a degenerate strategy, not a rules violation.
+> Oscillating agents (moving back and forth between two cells indefinitely) are not explicitly banned by rule. However, this behavior is self-defeating since the player accumulates no score and burns their time, ops, and words. It is considered a degenerate strategy, not a rules violation at this time.
 
 ### Time Loss
 
-A player who runs out of game time loses. Time management is discussed in Section 3.2.
+The first player to run out of game time loses. Time management is discussed in Section 3.2.
 
-> Maximum turn count or game time cap is TBD. See Section 5.1 (Undecided).
+> Maximum turn count or game time cap is TBD, but tentatively set at 60 minutes for a standard game (30 mins per player). Will vary based on game mode. See Section 5.1 (Undecided).
 
 ---
 
@@ -198,7 +196,7 @@ Every script has a word count. Words are the primary resource governing script c
 - There is no cap on the word bank. Words accumulate indefinitely, but game time is finite (chess-style clock), so hoarding words is naturally self-limiting.
 - A player may not deploy a script if their bank does not contain enough words for it.
 
-> Word accumulation rate is TBD and may vary by game mode. See Section 5.1 (Undecided).
+> Word accumulation rate is TBD (tentatively 1 word/s) and may vary by game mode. See Section 5.1 (Undecided).
 
 ## 3.2 Time Control
 
@@ -240,7 +238,7 @@ P1 writes...
 Key rules governing this cycle:
 
 - Exec1 and exec2 always run the same script. A script cannot be modified between its two executions.
-- If exec1 resets or halts, exec2 still runs. It runs from the start of the script, against whatever board state exists at that point (which, after a reset, is the pre-exec1 state).
+- If exec1 resets or halts, exec2 still runs. It runs from the start of the script, against whatever board state exists at that point.
 - If exec2 resets, only exec2 is undone. The board returns to its state immediately before exec2 began.
 - Function definitions persist for the entire match, across all rewrites and both execution phases.
 
@@ -254,7 +252,7 @@ Players must manage their op budget manually. Three approaches exist:
 
 - **Deterministic scripting:** Calculate the op cost of the script precisely before deploying. Works only if friction values are predictable — i.e., the board behaves as expected. Cheap in words, brittle against disruption.
 - **Conservative buffer:** Design the script to stop well short of the op limit. Wastes potential ops but never resets. Safe but suboptimal.
-- **Self-tracking:** Write an op counter into the script using `get_friction()` before each move and a running variable. Costs significantly in both words and ops, but gives precise real-time budget control.
+- **Self-tracking:** Use the `$ops_remaining` variable and conditionals or loops. Costs more in both words and potentially ops, but gives precise real-time budget control.
 
 ### Opponent Detection
 
@@ -275,7 +273,7 @@ Scripts have no pathfinding primitives. Route planning is either:
 
 The player must decide how much of their script to dedicate to exec2 robustness. Options:
 
-- **Full robustness:** Write extensive conditional logic so exec2 behaves correctly across many possible disrupted board states. Costs many words.
+- **Full robustness:** Write extensive conditional logic so exec2 behaves correctly across many possible disrupted board states. Costs many words and ops.
 - **Intentional halt:** Design exec2 to halt quickly and do little — accept that it won't be productive, but avoid doing something actively harmful on a disrupted board.
 - **Optimistic:** Write exec2 as if the board will be in a favorable state. High upside, high reset risk.
 
@@ -304,7 +302,7 @@ This section is the definitive specification for the Satura scripting language.
 - Variable names, function names, literal values, parentheses, commas, and braces do not count as words.
 - Comparison operators and logical operators count as words.
 
-```
+```c
 // Both of these are identical in word count and meaning:
 if $x > 3 { move(UP) }
 
@@ -378,7 +376,7 @@ These variables are always available at no word or op cost:
 
 The following constants are globally available and do not count as words:
 
-```
+```c
 UP, DOWN, LEFT, RIGHT     // direction constants
 HERE                      // location constant (current cell)
 
@@ -391,7 +389,7 @@ move($dir)
 
 ### if / elif / else
 
-```
+```c
 if condition {
     // body
 } elif condition {
@@ -405,7 +403,7 @@ if condition {
 
 Iterates over a list or range:
 
-```
+```c
 for $dir in $directions {
     move($dir)
 }
@@ -421,7 +419,7 @@ for $i in range(0, 10, 2) {   // start, stop, step
 
 ### while
 
-```
+```c
 while $ops_remaining > 10 {
     move(UP)
 }
@@ -431,7 +429,7 @@ while $ops_remaining > 10 {
 
 Immediately stops execution. All actions taken up to this point stand. Counts as 1 word.
 
-```
+```c
 if get_friction(UP) > 8 {
     halt
 }
@@ -442,7 +440,7 @@ move(UP)
 
 ### Defining a Function
 
-```
+```c
 def function_name(param1, param2) {
     // body — access parameters as $param1, $param2
     return $value
@@ -455,7 +453,7 @@ def function_name(param1, param2) {
 
 ### Calling a Function
 
-```
+```c
 call function_name($arg1, $arg2)
 
 // Capture return value:
@@ -500,7 +498,7 @@ $result = call function_name($arg1, $arg2)
 
 Comparison operators return 0 or 1. These can be stored and used in boolean contexts:
 
-```
+```c
 $result = $x > 3          // $result is 0 or 1
 if $result { move(UP) }   // valid
 if $x > 3 { move(UP) }   // also valid, inline
@@ -550,7 +548,7 @@ All board operations cost ops in addition to counting as words. See Section 2.4 
 
 ### move(dir)
 
-```
+```c
 move(UP)       // move agent one cell upward using a constant
 move($mydir)   // variable also accepted
 ```
@@ -561,7 +559,7 @@ move($mydir)   // variable also accepted
 
 ### paint(num)
 
-```
+```c
 paint(3)    // add 3 to your paint on the current cell
 ```
 
@@ -572,7 +570,7 @@ paint(3)    // add 3 to your paint on the current cell
 
 ### get_friction(loc)
 
-```
+```c
 get_friction(HERE)   // friction of current cell
 get_friction(UP)     // friction of cell above
 ```
@@ -585,7 +583,7 @@ get_friction(UP)     // friction of cell above
 
 ### has_agent(dir)
 
-```
+```c
 has_agent(UP)   // returns 1 if any agent is in that cell, 0 otherwise
 ```
 
@@ -596,7 +594,7 @@ has_agent(UP)   // returns 1 if any agent is in that cell, 0 otherwise
 
 ### my_paint(loc)
 
-```
+```c
 my_paint(HERE)   // your paint on the current cell (0-5)
 my_paint(UP)     // your paint on the cell above
 ```
@@ -607,7 +605,7 @@ my_paint(UP)     // your paint on the cell above
 
 ### opp_paint(loc)
 
-```
+```c
 opp_paint(HERE)  // opponent paint on the current cell (0-5)
 ```
 
@@ -620,7 +618,7 @@ opp_paint(HERE)  // opponent paint on the current cell (0-5)
 
 # 5. Future Changes
 
-This section covers items that are deliberately deferred — either because they require playtesting to tune, or because they belong to the implementation phase rather than the design phase.
+This section covers items that are deliberately deferred because they require playtesting to tune.
 
 ## 5.1 Undecided — Requires Playtesting
 
