@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(python -m pytest tests/*)",
-      "python -m pytest tests/*"
+      "Bash(.venv/Scripts/python -m pytest tests/ -x --tb=short)"
     ]
   }
 }
