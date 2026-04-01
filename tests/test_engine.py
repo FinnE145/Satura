@@ -158,10 +158,9 @@ class TestBoardGetFriction:
         ctx.board_get_friction("HERE")
         assert ctx.ops_remaining == 9
 
-    def test_out_of_bounds_raises_halt(self):
+    def test_out_of_bounds_returns_null(self):
         ctx, _, own, _ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
-            ctx.board_get_friction("UP")
+        assert ctx.board_get_friction("UP") is None
 
     def test_painted_cell(self):
         ctx, board, own, _ = _make_ctx(own_pos=(2, 2))
@@ -215,15 +214,13 @@ class TestBoardPaintQueries:
         board.grid[2][3].p1 = 5
         assert ctx.board_opp_paint("RIGHT") == 5
 
-    def test_my_paint_out_of_bounds_raises_halt(self):
+    def test_my_paint_out_of_bounds_returns_null(self):
         ctx, *_ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
-            ctx.board_my_paint("UP")
+        assert ctx.board_my_paint("UP") is None
 
-    def test_opp_paint_out_of_bounds_raises_halt(self):
+    def test_opp_paint_out_of_bounds_returns_null(self):
         ctx, *_ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
-            ctx.board_opp_paint("UP")
+        assert ctx.board_opp_paint("UP") is None
 
     def test_my_paint_deducts_op(self):
         ctx, *_ = _make_ctx(op_limit=10)

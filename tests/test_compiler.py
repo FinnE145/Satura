@@ -306,8 +306,10 @@ class TestTypeWarnings:
     def test_comparison_always_int(self):
         assert warnings("$x = 1.5\npaint($x > 0)") == []
 
-    def test_get_friction_is_int(self):
-        assert warnings("paint(get_friction(HERE))") == []
+    def test_get_friction_nullable_warns_in_paint(self):
+        # get_friction returns NULL for out-of-bounds, so passing it to paint() warns
+        msgs = warning_messages("paint(get_friction(HERE))")
+        assert any("paint" in m for m in msgs)
 
     def test_min_int_or_float_warns(self):
         # min(float, int) → INT|FLOAT — warns because float component could cause runtime halt
