@@ -1,6 +1,46 @@
 # SATURA
-### Game Design Specification
+
 *A competitive programming strategy game*
+
+
+### Game Guide & Design Specification
+
+## Table of Contents
+
+- [1. Key Tenets](#1-key-tenets)
+  - [1.1 Code Is Irreplaceable](#11-code-is-irreplaceable)
+  - [1.2 Game Strategy and Code Strategy Are Coupled But Untransferable](#12-game-strategy-and-code-strategy-are-coupled-but-untransferable)
+  - [1.3 Not Deterministic, Not Solvable, Not Random](#13-not-deterministic-not-solvable-not-random)
+  - [1.4 Sub-Goals Must Change Turn By Turn](#14-sub-goals-must-change-turn-by-turn)
+  - [1.5 Code Reuse Is a Strategic Resource](#15-code-reuse-is-a-strategic-resource)
+  - [1.6 Local Execution, Global Value](#16-local-execution-global-value)
+  - [1.7 Simple Rules, Near-Infinite Depth](#17-simple-rules-near-infinite-depth)
+- [2. Game Rules](#2-game-rules)
+  - [2.1 The Board](#21-the-board)
+  - [2.2 Agents](#22-agents)
+  - [2.3 Paint and Friction](#23-paint-and-friction)
+  - [2.4 Operations (Ops)](#24-operations-ops)
+  - [2.5 Turn Reset vs. Halt](#25-turn-reset-vs-halt)
+  - [2.6 Win, Loss, and Stalemate](#26-win-loss-and-stalemate)
+- [3. Scripting — Design Guide](#3-scripting--design-guide)
+  - [3.1 Words and the Word Bank](#31-words-and-the-word-bank)
+  - [3.2 Time Control](#32-time-control)
+  - [3.3 Turn Structure and Execution Order](#33-turn-structure-and-execution-order)
+  - [3.4 Strategic Tradeoffs in Scripting](#34-strategic-tradeoffs-in-scripting)
+- [4. Language Reference](#4-language-reference)
+  - [4.1 Syntax](#41-syntax)
+  - [4.2 Types](#42-types)
+  - [4.3 Variables and Scope](#43-variables-and-scope)
+  - [4.4 Built-in Variables](#44-built-in-variables)
+  - [4.5 Direction and Location Constants](#45-direction-and-location-constants)
+  - [4.6 Control Flow](#46-control-flow)
+  - [4.7 Functions](#47-functions)
+  - [4.8 Operators](#48-operators)
+  - [4.9 List Operations](#49-list-operations)
+  - [4.10 Board Operations](#410-board-operations)
+- [5. Future Changes](#5-future-changes)
+  - [5.1 Undecided — Requires Playtesting](#51-undecided--requires-playtesting)
+  - [5.2 Implementation Notes](#52-implementation-notes)
 
 ---
 
@@ -622,22 +662,24 @@ This section covers items that are deliberately deferred because they require pl
 
 ## 5.1 Undecided — Requires Playtesting
 
-The following values and mechanics are intentionally left open. They require playtesting to tune correctly and should not be fixed prematurely.
+The following values and mechanics are intentionally left open. Somey require playtesting to tune correctly and should not be fixed prematurely. Others are shelved for future versions/game modes.
 
-| Item | Notes |
-|---|---|
-| Board dimensions | Variable by game mode. Must be square and symmetric. Starting positions scale as approx. N/4 from each corner toward center. |
-| Op limit per turn | TBD. Likely variable by game mode. Core balance number — determines how far an agent can travel and how much it can paint per execution. |
-| Paint value cap | Currently specified as 0–5 per player. Exact cap may require adjustment based on how quickly cells go black in practice. |
-| Word accumulation rate | Tentatively 1 word per second of real time. May vary by game mode (bullet, rapid, classical). |
-| Word/op values by game mode | Bullet, rapid, and classical modes likely need different op limits and/or accumulation rates. Relationship between time control and resource availability is TBD. |
-| Win threshold | Set at 60% of total cells. Alternative: 80% of non-black cells. 60% total is primary design; 80% non-black adjusts dynamically but may incentivize generating black cells. |
-| Maximum game length | No explicit turn cap defined. Game clock is the primary time limit. Whether a maximum turn count is needed as a backstop is TBD. |
-| Tiebreaker at time expiry | If both players' clocks expire simultaneously (unlikely but possible in correspondence mode), resolution is TBD. Options: paint volume, cell count, draw. |
-| Stalemate — oscillating agents | Two agents moving back and forth indefinitely is not banned by rule. Whether this constitutes a formal stalemate condition, or is simply a self-defeating strategy, is TBD. |
-| Multiple agents (shelved) | Originally considered: multiple agents per player sharing one op pool. Shelved to keep the core design clean. Candidate for a variant mode once the single-agent game is stable. Key questions if revisited: death mechanics, op pool splitting, and collision rules between own agents. |
+| Item | Tentative Value| Notes |
+|---|---|---|
+| Board dimensions | 16x16 | Variable by game mode. Must be square and symmetric. Starting positions scale as approx. N/4 from each corner toward center. |
+| Op limit per turn | 25 |Likely variable by game mode. Core balance number — determines how far an agent can travel and how much it can paint per execution. |
+| Paint value cap | 5 per player | Exact cap may require adjustment based on how quickly cells go black in practice. |
+| Word accumulation rate | 1word/s | May vary by game mode (bullet, rapid, classical). |
+| Word/op values by game mode | ... | Bullet, rapid, and classical modes likely need different op limits and/or accumulation rates. Relationship between time control and resource availability is TBD. |
+| Win threshold | 60% of total cells. | Alternative: 80% of non-black cells. 60% total is primary design; 80% non-black adjusts dynamically but may incentivize generating black cells. |
+| Maximum turns | None | No explicit turn cap defined. Game clock is the primary time limit. Whether a maximum turn count is needed as a backstop is TBD. |
+| Tiebreaker at time expiry | Shelved | If both players' clocks expire simultaneously (unlikely but possible in correspondence mode), resolution is TBD. Options: paint volume, cell count, draw. |
+| Stalemate — oscillating agents | Shelved | Two agents moving back and forth indefinitely is not banned by rule. Whether this constitutes a formal stalemate condition, or is simply a self-defeating strategy, is TBD. |
+| Multiple agents | Shelved | Originally considered: multiple agents per player sharing one op pool. Shelved to keep the core design clean. Candidate for a variant mode once the single-agent game is stable. Key questions if revisited: death mechanics, op pool splitting, and collision rules between own agents. |
 
 ## 5.2 Implementation Notes
+
+> Note: This section is now partially irrelevant as some features have already been implemented and many are currently in development, and cannot be guaranteed to match this part of the spec. However, it serves as a guide for incomplete parts of the game and as general information about the UX.
 
 The following are not game design decisions but implementation details to carry into the build phase.
 
@@ -655,10 +697,11 @@ The scripting panel includes the following controls alongside the text editor:
 - **Defined functions viewer:** A collapsible panel showing all functions currently in the player's library, with their word costs. Useful for referencing existing vocabulary when writing a new script.
 - **Word count and wait time:** Live display of the current script's word cost, the player's current word bank balance, and the time remaining until the bank reaches the script's cost if not yet sufficient.
 - **Restore last script:** A button to reload the previous turn's script into the editor. A script history covering at minimum the last several turns should be browsable and restorable, to allow reuse and iteration without retyping.
-- **Compiler output:** Syntax and type errors are shown continuously as the player types, before deployment. The compiler runs against the current editor content in real time.
+- **Compiler output:** Syntax and type errors are shown upon script submission
 - **Runtime error log:** After an execution that halted or reset due to a runtime or game state error, the error type and the line that caused it are displayed. This helps the player diagnose and fix scripts between turns.
+- **Constant availability:** Players can draft and editing scripts anytime, even when they are not on the clock and it is not their write phase. However, word accumulation only happens during the timed write phase.
 
-> These scripting controls are included intentionally to level the playing field. All of them — drafting scripts during an opponent's turn, tracking word counts, restoring past scripts — could be achieved with external software and a clipboard. Providing them in-app removes any advantage from external tooling and ensures both players operate under identical conditions.
+> These scripting controls are included intentionally to level the playing field. All of them, while not strictly in the spirit of the game, could be achieved with external software and a clipboard. Providing them in-app removes any advantage from external tooling and ensures both players operate under identical conditions.
 
 ### Language Implementation
 
