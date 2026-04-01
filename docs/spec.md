@@ -356,7 +356,7 @@ A word is any keyword, operator, or board function that appears in the script. S
 - Variables declared inside a function body are locally scoped to that function.
 - Functions receive parameters by value. Modifying a parameter does not affect the caller's variable.
 - Lists passed to functions are copied locally — mutations inside the function do not affect the original.
-- Functions can return values with `return`. A function that reaches its end without returning returns 0.
+- Functions can return values with `return`. A function that reaches its end without returning returns NULL.
 - Function definitions persist for the entire match across all script rewrites and both execution phases.
 
 ## 4.4 Built-in Variables

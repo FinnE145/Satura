@@ -74,6 +74,30 @@ class CompileWarning:
         return f"Line {self.line}, col {self.col}: warning: {self.message}"
 
 
+def _might_fall_through(body: list) -> bool:
+    """
+    Return True if execution might reach the end of body without hitting a
+    return or halt statement.  Used to decide whether NULL must be included
+    in a function's inferred return type.
+    """
+    if not body:
+        return True
+    last = body[-1]
+    if isinstance(last, (Return, Halt)):
+        return False
+    if isinstance(last, If):
+        # Falls through unless there is an else and every branch is guaranteed
+        # to return/halt.
+        if last.else_body is None:
+            return True
+        for _, branch in last.branches:
+            if _might_fall_through(branch):
+                return True
+        return _might_fall_through(last.else_body)
+    # For, While, Assign, ExprStmt, FuncDef — always might fall through.
+    return True
+
+
 # --------------------------------------------------------------------------- compiler
 
 class Compiler:
@@ -344,7 +368,7 @@ class Compiler:
 
     def _func_return_type(self, body: list, var_types: dict[str, Type]) -> Type:
         """Union of all types that can be returned from body."""
-        result = Type(0)
+        result = Type.NULL if _might_fall_through(body) else Type(0)
         for s in body:
             if isinstance(s, Return) and s.value is not None:
                 result |= self._type_of(s.value, var_types)
