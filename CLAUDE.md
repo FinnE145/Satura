@@ -19,7 +19,7 @@ Before doing any work, you MUST read the appropriate spec:
 If unsure, default to:
 → `.agents/spec_with_language.md`
 
-If more detail is needed on general game info, refer to the specific section of `docs/game_guide.md` using the table of contents on lines 8-44. If more detail is needed on specific language implementation, refer to the right section of `docs/language.md`. Load only necessary chunks into context, drop anything that is not necessary for the query or task.
+If more detail is needed on general game info, refer to the specific section of `docs/game_guide.md` using the table of contents on lines 8-44. If more detail is needed on specific language implementation, refer to the right section of `docs/language_spec.md`. Load only necessary chunks into context, drop anything that is not necessary for the query or task.
 
 ## Expectations
 - Follow all rules and constraints from the specs precisely.
@@ -30,4 +30,4 @@ If more detail is needed on general game info, refer to the specific section of 
 - Ask questions (using the built-in question tool if available) instead of guessing.
 - Clarify ambiguities, edge cases, or missing details before implementing.
 - It is better to pause and confirm than to proceed with incorrect assumptions.
-- Ask me questions first; only read docs/game_guide.md or docs/language.md if broader clarification is needed (they are large and token-expensive).
+- Ask me questions first; only read docs/game_guide.md or docs/language_spec.md if broader clarification is needed (they are large and token-expensive).

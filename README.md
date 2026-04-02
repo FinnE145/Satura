@@ -107,7 +107,7 @@ The scripting panel includes:
 ## Docs
 
 - [Game Rules](./docs/rules.md)
-- [Language Reference](./docs/language.md)
+- [Language Reference](./docs/language_spec.md)
 - [Game Design Specification](./docs/spec.md)
 
 ---
