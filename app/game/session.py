@@ -1,9 +1,7 @@
 import time
 from datetime import datetime, timezone
 from .engine import Engine
-
-
-ANIMATION_DURATION = 15.0
+from config import Config
 
 
 class GameSession:
@@ -17,6 +15,7 @@ class GameSession:
         self.game_over: bool = False
         self.winner: int | str | None = None
         self._exec_log: list[dict] = []
+        self._exec_ops: int = 0
 
     # ------------------------------------------------------------------ public API
 
@@ -109,22 +108,23 @@ class GameSession:
         self.phase = "exec2"
         program = self._program[self.current_player]
         if program is not None:
-            _, self._exec_log = self.engine.run_execution(self.current_player, program)
+            _, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, program)
         else:
             self._exec_log = []
+            self._exec_ops = 0
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_pre_write"
-            self._anim_deadline = time.monotonic() + ANIMATION_DURATION
+            self._anim_deadline = time.monotonic() + Config.ANIMATION_DURATION
             self.engine.resume_word_accumulation(self.current_player)
 
     def _run_exec1(self) -> None:
         self.phase = "exec1"
-        _, self._exec_log = self.engine.run_execution(self.current_player, self._program[self.current_player])
+        _, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, self._program[self.current_player])
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_post_exec1"
-            self._anim_deadline = time.monotonic() + ANIMATION_DURATION
+            self._anim_deadline = time.monotonic() + Config.ANIMATION_DURATION
 
     def _maybe_advance_animation(self) -> None:
         if self._anim_deadline is None or time.monotonic() < self._anim_deadline:

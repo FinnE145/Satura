@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch
 
 from app.game.engine import Engine
-from app.game.session import GameSession, create_session, get_session, _sessions, ANIMATION_DURATION
+from app.game.session import GameSession, create_session, get_session, _sessions
 
 
 # ================================================================== helpers

@@ -273,13 +273,16 @@ class Engine:
             execute(program, ctx, self.persisted_funcs)
         except HaltSignal:
             outcome = "halt"
+            ctx._log.append({"op": "halt"})
         except ResetSignal:
             outcome = "reset"
             self.board.restore(board_snap)
             own.restore(own_snap)
             opp.restore(opp_snap)
+            ctx._log.append({"op": "reset"})
 
-        return outcome, ctx._log
+        ops_consumed = ctx.op_limit - ctx.ops_remaining
+        return outcome, ctx._log, ops_consumed
 
     # --------------------------------------------------------- win / stalemate
 

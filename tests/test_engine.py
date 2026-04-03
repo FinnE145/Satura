@@ -243,7 +243,7 @@ class TestEngineInit:
     def test_agent_positions(self):
         e = Engine(size=8, op_limit=100, clock_seconds=60.0)
         assert e.agents[1].row == 2 and e.agents[1].col == 2   # 8//4 = 2
-        assert e.agents[2].row == 6 and e.agents[2].col == 6   # 3*8//4 = 6
+        assert e.agents[2].row == 5 and e.agents[2].col == 5   # 8 - 1 - 8//4 = 5
 
     def test_op_limit(self):
         e = Engine(size=8, op_limit=200, clock_seconds=60.0)
@@ -428,7 +428,7 @@ class TestRunExecution:
             raise ResetSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=mutate_then_reset):
-            outcome, _ = e.run_execution(1, self._compiled())
+            outcome, _, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "reset"
         assert e.board.cell(1, 1).p1 == 3  # restored
@@ -443,7 +443,7 @@ class TestRunExecution:
             raise ResetSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=move_then_reset):
-            outcome, _ = e.run_execution(1, self._compiled())
+            outcome, _, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "reset"
         assert e.agents[1].snapshot() == original_pos
@@ -456,7 +456,7 @@ class TestRunExecution:
             raise HaltSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=mutate_then_halt):
-            outcome, _ = e.run_execution(1, self._compiled())
+            outcome, _, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "halt"
         assert e.board.cell(1, 1).p1 == 4  # NOT rolled back
