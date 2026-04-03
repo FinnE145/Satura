@@ -154,7 +154,7 @@ class Engine:
         self.board = Board(size)
         self.agents: dict[int, Agent] = {
             1: Agent(1, size // 4,     size // 4),
-            2: Agent(2, 3 * size // 4, 3 * size // 4),
+            2: Agent(2, size - 1 - size // 4, size - 1 - size // 4),
         }
         self.op_limit = op_limit
         self.persisted_funcs: dict = {}

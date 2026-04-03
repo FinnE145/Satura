@@ -406,17 +406,17 @@ class TestRunExecution:
         return result.program
 
     def test_normal_outcome(self):
-        outcome, _ = self.e.run_execution(1, self._compiled())
+        outcome, _, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "normal"
 
     def test_halt_outcome_via_engine_signal(self):
         with patch("app.lang.interpreter.execute", side_effect=HaltSignal("test halt")):
-            outcome, _ = self.e.run_execution(1, self._compiled())
+            outcome, _, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "halt"
 
     def test_reset_outcome_via_engine_signal(self):
         with patch("app.lang.interpreter.execute", side_effect=ResetSignal("test reset")):
-            outcome, _ = self.e.run_execution(1, self._compiled())
+            outcome, _, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "reset"
 
     def test_reset_rolls_back_board(self):
