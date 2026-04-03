@@ -92,7 +92,10 @@ class GameSession:
                 1: self.engine.word_bank(1),
                 2: self.engine.word_bank(2),
             },
+            "word_rate": self.engine._word_rate,
             "exec_log": self._exec_log,
+            "exec_ops_consumed": self._exec_ops,
+            "op_limit": self.engine.op_limit,
         }
 
     def check_clock_expired(self) -> bool:

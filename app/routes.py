@@ -3,18 +3,15 @@
 # Imports: app/game/session.py, app/game/engine.py, app/lang/compiler.py,
 #          app/lang/interpreter.py. Imported by: app/__init__.py.
 
+import uuid
+
 from flask import Blueprint, request, jsonify, render_template
 from . import db
 from .models import Game, Account
 from .game.session import create_session, get_session
+from config import Config
 
 bp = Blueprint('main', __name__)
-
-# Game defaults — move to Config when tuning is needed
-_BOARD_SIZE = 16
-_OP_LIMIT = 25
-_CLOCK_SECONDS = 300.0
-_WORD_RATE = 2.0
 
 
 @bp.route('/')
@@ -46,10 +43,10 @@ def create_game():
 
     create_session(
         game_id=game.id,
-        size=_BOARD_SIZE,
-        op_limit=_OP_LIMIT,
-        clock_seconds=_CLOCK_SECONDS,
-        word_rate=_WORD_RATE,
+        size=Config.BOARD_SIZE,
+        op_limit=Config.OP_LIMIT,
+        clock_seconds=Config.CLOCK_SECONDS,
+        word_rate=Config.WORD_RATE,
     )
 
     return jsonify({"game_id": game.id}), 201
