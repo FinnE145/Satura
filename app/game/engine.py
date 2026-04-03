@@ -6,6 +6,7 @@ from ..lang.tokens import WORD_COSTS
 from ..lang.lexer import tokenize, LexError
 from ..lang.parser import parse, ParseError
 from ..lang.compiler import check, CompileError, CompileWarning
+from ..lang.signals import HaltSignal, ResetSignal
 
 _DELTAS: dict[str, tuple[int, int]] = {
     "HERE":  ( 0,  0),
@@ -14,16 +15,6 @@ _DELTAS: dict[str, tuple[int, int]] = {
     "LEFT":  ( 0, -1),
     "RIGHT": ( 0,  1),
 }
-
-
-# --------------------------------------------------------------------------- signals
-
-class HaltSignal(Exception):
-    """Raised by halt keyword or a runtime halt condition. Actions taken stand."""
-
-
-class ResetSignal(Exception):
-    """Raised when the entire execution must be undone."""
 
 
 # ----------------------------------------------------------------------- compile result

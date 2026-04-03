@@ -21,14 +21,7 @@ _VALID_DIRECTIONS = frozenset(_DIRECTIONS)
 _VALID_LOCATIONS  = frozenset(_LOCATIONS)
 
 
-# --------------------------------------------------------------------------- signals
-
-class HaltSignal(Exception):
-    """Raised by halt keyword or a runtime halt condition. Actions taken stand."""
-
-
-class ResetSignal(Exception):
-    """Raised when the entire execution must be undone."""
+from .signals import HaltSignal, ResetSignal
 
 
 # --------------------------------------------------------------------------- internal control flow
