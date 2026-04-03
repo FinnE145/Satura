@@ -105,6 +105,35 @@ def deploy_script(game_id):
     return jsonify(result), status
 
 
+@bp.route('/test')
+def test_page():
+    return render_template('test.html')
+
+
+@bp.route('/test/session', methods=['POST'])
+def test_create_session():
+    """
+    Create a throw-away in-memory session for the test bench.
+    No DB accounts required. Animation is skipped and both word banks
+    are pre-filled so the user can compile and deploy immediately.
+    """
+    game_id = str(uuid.uuid4())
+    session = create_session(
+        game_id=game_id,
+        size=Config.BOARD_SIZE,
+        op_limit=Config.OP_LIMIT,
+        clock_seconds=Config.TEST_CLOCK_SECONDS,
+        word_rate=Config.TEST_WORD_RATE,
+    )
+    # Skip the initial animation so the session is immediately in write phase
+    session._anim_deadline = 0
+    session._maybe_advance_animation()
+    # Start with a pre-loaded bank; accrues at TEST_WORD_RATE from there
+    session.engine._word_bank[1] = Config.TEST_WORD_BANK_START
+    session.engine._word_bank[2] = Config.TEST_WORD_BANK_START
+    return jsonify({"game_id": game_id}), 201
+
+
 @bp.route('/games/<game_id>/state', methods=['GET'])
 def game_state(game_id):
     """
