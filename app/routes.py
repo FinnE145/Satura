@@ -5,7 +5,8 @@
 
 import uuid
 
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from flask_login import login_user, logout_user, login_required, current_user
 from . import db
 from .models import Game, Account
 from .game.session import create_session, get_session
@@ -14,30 +15,60 @@ from config import Config
 bp = Blueprint('main', __name__)
 
 
+def _player_authorized(game, player):
+    """Return True if current_user is the account for the given player slot."""
+    if player == 1:
+        return current_user.id == game.player1_id
+    if player == 2:
+        return current_user.id == game.player2_id
+    return False
+
+
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        account = Account.query.filter_by(username=username).first()
+        if account and account.check_password(password):
+            login_user(account)
+            return redirect(url_for('main.index'))
+        flash('Invalid username or password.')
+
+    return render_template('login.html')
+
+
+@bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('main.login'))
+
+
 @bp.route('/')
 def index():
     return render_template('index.html')
 
 
 @bp.route('/games', methods=['POST'])
+@login_required
 def create_game():
     """
-    Create a new game.
+    Create a new game. player1 is always the logged-in user.
 
-    JSON body:
-        { "player1_id": <int>, "player2_id": <int> }
+    JSON body (optional):
+        { "player2_id": <int> }
 
     Returns:
         { "game_id": <str> }
     """
     data = request.get_json(silent=True) or {}
-    player1_id = data.get('player1_id')
     player2_id = data.get('player2_id')
 
-    if not player1_id:
-        return jsonify({"error": "player1_id required"}), 400
-
-    game = Game(player1_id=player1_id, player2_id=player2_id, status='active')
+    game = Game(player1_id=current_user.id, player2_id=player2_id, status='active')
     db.session.add(game)
     db.session.commit()
 
@@ -53,6 +84,7 @@ def create_game():
 
 
 @bp.route('/games/<game_id>/compile', methods=['POST'])
+@login_required
 def compile_script(game_id):
     """
     Lint a script without advancing game state.
@@ -74,11 +106,17 @@ def compile_script(game_id):
     if player not in (1, 2):
         return jsonify({"error": "player must be 1 or 2"}), 400
 
+    game = db.session.get(Game, game_id)
+    if game is not None:
+        if not current_user.is_authenticated or not _player_authorized(game, player):
+            return jsonify({"error": "forbidden"}), 403
+
     result = session.compile_script(player, source)
     return jsonify(result)
 
 
 @bp.route('/games/<game_id>/deploy', methods=['POST'])
+@login_required
 def deploy_script(game_id):
     """
     Deploy a script, ending the current write phase.
@@ -99,6 +137,11 @@ def deploy_script(game_id):
 
     if player not in (1, 2):
         return jsonify({"error": "player must be 1 or 2"}), 400
+
+    game = db.session.get(Game, game_id)
+    if game is not None:
+        if not current_user.is_authenticated or not _player_authorized(game, player):
+            return jsonify({"error": "forbidden"}), 403
 
     result = session.deploy_script(player, source)
     status = 200 if result.get('ok') else 422

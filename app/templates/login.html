@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satura — Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:           #2E2C2A;
+            --bg-card:      #353331;
+            --bg-hover:     rgba(246, 245, 244, 0.04);
+            --text:         #F6F5F4;
+            --text-muted:   rgba(246, 245, 244, 0.5);
+            --text-subtle:  rgba(246, 245, 244, 0.7);
+            --border:       rgba(246, 245, 244, 0.08);
+            --border-mid:   rgba(246, 245, 244, 0.14);
+            --accent:       #D2640E;
+            --accent-tint:  rgba(210, 100, 14, 0.10);
+            --accent-dim:   rgba(210, 100, 14, 0.65);
+            --error:        #D95F5F;
+            --error-tint:   rgba(217, 95, 95, 0.10);
+            --font-compact: 'Libre Baskerville', Georgia, serif;
+            --font-ui:      'DM Sans', system-ui, sans-serif;
+            --radius:       0.44em;
+            --radius-sm:    0.25em;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html {
+            font-size: 18px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-ui);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+        }
+
+        .login-wrap {
+            width: 100%;
+            max-width: 22em;
+            padding: 1.5em;
+            text-align: center;
+        }
+
+        .wordmark {
+            display: block;
+            margin: 0 auto 1em auto;
+            height: 2.5em;
+            width: auto;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1em 1.5em 1.5em 1.5em;
+            text-align: left;
+        }
+
+        .field {
+            margin-bottom: 1em;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75em;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.45em;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            padding: 0.5em 0.75em;
+            background: var(--bg);
+            border: 1px solid var(--border-mid);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-family: var(--font-ui);
+            font-size: 0.9375em;
+            line-height: 1.5;
+            transition: border-color 0.15s;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--accent-dim);
+        }
+
+        .btn-submit {
+            display: block;
+            width: 100%;
+            margin-top: 1.25em;
+            padding: 0.55em 1.25em;
+            background: transparent;
+            border: 1px solid var(--accent-dim);
+            border-radius: var(--radius-sm);
+            color: var(--accent);
+            font-family: var(--font-ui);
+            font-size: 0.9375em;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-tint);
+            border-color: var(--accent);
+        }
+
+        .error-msg {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5em;
+            margin-bottom: 1em;
+            padding: 0.55em 0.75em;
+            background: var(--error-tint);
+            border: 1px solid rgba(217, 95, 95, 0.25);
+            border-radius: var(--radius-sm);
+            color: var(--error);
+            font-size: 0.875em;
+        }
+
+        ::selection {
+            background: rgba(210, 100, 14, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrap">
+        <div class="login-card">
+            <img class="wordmark" src="{{ url_for('static', filename='satura_wordmark_white.svg') }}" alt="Satura">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="error-msg">{{ messages[0] }}</div>
+                {% endif %}
+            {% endwith %}
+            <form method="post">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-submit">Login</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
