@@ -1,16 +1,424 @@
-<!-- [AI Summary] Main (and only) HTML template. Renders the game board,
-     script editor panel, word count, function library, and script history.
-     Served by app/routes.py. Loads app/static/css/style.css and
-     app/static/js/main.js. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Satura</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 </head>
 <body>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
+    <nav class="site-nav">
+        <div class="nav-inner container">
+            <a href="/" class="brand">
+                <img
+                    src="{{ url_for('static', filename='satura_logo_mark_solstice.svg') }}"
+                    alt=""
+                    class="brand-mark"
+                    width="28" height="28"
+                >
+                <span class="brand-wordmark">Satura</span>
+            </a>
+            <div class="nav-links">
+                <a href="/new-game" class="nav-link">New game</a>
+                <a href="/my-games" class="nav-link">My games</a>
+                <a href="/how-to-play" class="nav-link">How to play</a>
+            </div>
+            <div class="nav-actions">
+                {% if current_user.is_authenticated %}
+                    <div class="nav-profile" id="nav-profile">
+                        <button type="button" class="nav-profile-btn" id="nav-profile-btn" aria-haspopup="true" aria-expanded="false">
+                            <span class="material-symbols-outlined">account_circle</span>
+                        </button>
+                        <div class="nav-dropdown" id="nav-dropdown" hidden>
+                            <a href="/profile" class="nav-dropdown-item">Profile</a>
+                            <a href="/account" class="nav-dropdown-item">Account</a>
+                            <a href="/settings" class="nav-dropdown-item">Settings</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="/login" class="btn-signin">Sign in</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="site-main">
+        <div class="container">
+
+            <!-- ── Hero ────────────────────────────────────────────────────────── -->
+            <section class="hero">
+                <div class="hero-content">
+                    <img
+                        src="{{ url_for('static', filename='satura_wordmark_white.svg') }}"
+                        alt="Satura"
+                        class="wordmark"
+                    >
+                    <p class="tagline">A competitive programming<br>strategy game.</p>
+                    <div>
+                        <p class="hero-create-label">Create game</p>
+                        <div class="hero-modes">
+
+                            <a href="#" class="mode-btn">
+                                <span class="material-symbols-outlined">hourglass_top</span>
+                                <span class="mode-btn-label">60 min</span>
+                            </a>
+                            <a href="#" class="mode-btn">
+                                <span class="material-symbols-outlined">timer</span>
+                                <span class="mode-btn-label">30 min</span>
+                            </a>
+                            <a href="#" class="mode-btn">
+                                <span class="material-symbols-outlined">speed</span>
+                                <span class="mode-btn-label">15 min</span>
+                            </a>
+                            <a href="#" class="mode-btn">
+                                <span class="material-symbols-outlined">rocket</span>
+                                <span class="mode-btn-label">5 min</span>
+                            </a>
+                            <a href="#" class="mode-btn">
+                                <span class="material-symbols-outlined">alarm_smart_wake</span>
+                                <span class="mode-btn-label">Custom</span>
+                            </a>
+                        </div>
+                        <p class="hero-create-label hero-create-label--learn">Learn to play</p>
+                        <div class="hero-modes">
+                            <a href="#" class="mode-btn mode-btn--cool">
+                                <span class="material-symbols-outlined">bolt</span>
+                                <span class="mode-btn-label">Quickstart</span>
+                            </a>
+                            <a href="#" class="mode-btn mode-btn--cool">
+                                <span class="material-symbols-outlined">menu_book</span>
+                                <span class="mode-btn-label">Game guide</span>
+                            </a>
+                        </div>
+                    </div>
+                    <p class="hero-stat">
+                        <span class="stat-dot"></span>
+                        {{ total_games }} game{{ 's' if total_games != 1 else '' }} played
+                    </p>
+                </div>
+                <div class="hero-canvas-wrap">
+                    <canvas id="hero-canvas"></canvas>
+                    <div class="hero-fade"></div>
+                </div>
+            </section>
+
+            <!-- ── Objective ────────────────────────────────────────────────────── -->
+            <section class="explainer">
+                <span class="section-label">The objective</span>
+                <h2 class="section-headline">Own the board.</h2>
+                <p class="section-body">Every cell holds a paint value for each player — zero to five.
+                    Whoever painted a cell more owns it. Dominate sixty percent of the board
+                    and you win. Let the clock run out and you lose.</p>
+            </section>
+
+            <!-- ── Mechanic ─────────────────────────────────────────────────────── -->
+            <section class="explainer">
+                <span class="section-label">The mechanic</span>
+                <h2 class="section-headline">Your move<br>is a script.</h2>
+                <p class="section-body">Paint the board by writing code that controls your agent.
+                    Every script is a bet on what your opponent will do — write robust code to adapt,
+                    or efficient code to save words.</p>
+                <div class="code-window">
+                    <div class="code-bar">
+                        <span class="code-timer" id="demo-timer">14:35</span>
+                        <span class="code-cost" id="demo-cost"></span>
+                        <span class="code-bank" id="demo-bank"></span>
+                        <span class="code-eta" id="demo-eta"></span>
+                    </div>
+                    <div class="code-body" id="typewriter-out"></div>
+                </div>
+            </section>
+
+            <!-- ── CTA cards ─────────────────────────────────────────────────────── -->
+            <section class="cta-cards">
+                <a href="/new-game" class="cta-card">
+                    <div class="cta-tag">Start playing</div>
+                    <h3 class="cta-title">Create game</h3>
+                    <p class="cta-desc">Pick a time control, invite your friends, or share a link.</p>
+                    <span class="cta-arrow">→</span>
+                </a>
+                <a href="/my-games" class="cta-card">
+                    <div class="cta-tag">Past matches</div>
+                    <h3 class="cta-title">Review</h3>
+                    <p class="cta-desc">Browse every game you've played, turn by turn.</p>
+                    <span class="cta-arrow">→</span>
+                </a>
+            </section>
+
+        </div><!-- .container -->
+    </main>
+
+    <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+    <footer class="site-footer">
+        <div class="footer-inner container">
+            <span class="footer-logo">Satura</span>
+            <a href="/how-to-play">How to play</a>
+            <a href="/how-to-play">Language reference</a>
+        </div>
+    </footer>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── Profile dropdown ────────────────────────────────────────────────────── */
+
+    const profileBtn = document.getElementById('nav-profile-btn');
+    const dropdown   = document.getElementById('nav-dropdown');
+
+    if (profileBtn && dropdown) {
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = !dropdown.hidden;
+            dropdown.hidden = open;
+            profileBtn.setAttribute('aria-expanded', String(!open));
+        });
+
+        document.addEventListener('click', () => {
+            dropdown.hidden = true;
+            profileBtn.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+})();
+</script>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── Palette ─────────────────────────────────────────────────────────────── */
+
+    const PALETTES = {
+        solstice:   { warm: '#D2640E', cool: '#A82068' },
+        fieldstone: { warm: '#AC3E26', cool: '#2C4874' },
+        levant:     { warm: '#C48C1C', cool: '#661E6E' },
+        folio:      { warm: '#D4A800', cool: '#303482' },
+    };
+
+    function hexToRgb(hex) {
+        const h = hex.replace('#', '');
+        return [
+            parseInt(h.slice(0, 2), 16),
+            parseInt(h.slice(2, 4), 16),
+            parseInt(h.slice(4, 6), 16),
+        ];
+    }
+
+    const saved = localStorage.getItem('satura_palette') || 'solstice';
+    const palette = PALETTES[saved] || PALETTES.solstice;
+    const C1 = hexToRgb(palette.warm);
+    const C2 = hexToRgb(palette.cool);
+
+    /* ── cellRgb ─────────────────────────────────────────────────────────────── */
+
+    function cellRgb(p1, p2) {
+        const t = (p1 + p2) / 10;
+        if (t <= 0.001) return [255, 255, 255];
+        if (p1 >= 4.9 && p2 >= 4.9) return [0, 0, 0];
+        const ratio = p2 / (p1 + p2);
+        const mid = [
+            C1[0] + ratio * (C2[0] - C1[0]),
+            C1[1] + ratio * (C2[1] - C1[1]),
+            C1[2] + ratio * (C2[2] - C1[2]),
+        ];
+        let r, g, b;
+        if (t <= 0.5) {
+            const s = t * 2;
+            r = 255 + s * (mid[0] - 255);
+            g = 255 + s * (mid[1] - 255);
+            b = 255 + s * (mid[2] - 255);
+        } else {
+            const s = (t - 0.5) * 2;
+            r = mid[0] * (1 - s);
+            g = mid[1] * (1 - s);
+            b = mid[2] * (1 - s);
+        }
+        return [
+            Math.round(Math.max(0, Math.min(255, r))),
+            Math.round(Math.max(0, Math.min(255, g))),
+            Math.round(Math.max(0, Math.min(255, b))),
+        ];
+    }
+
+    /* ── Canvas: 16×16 grid, 6×6 swatch centred ─────────────────────────────── */
+
+    const canvas = document.getElementById('hero-canvas');
+    const ctx = canvas.getContext('2d');
+    const COLS = 16, ROWS = 16;
+    const SWATCH_ROW = 5, SWATCH_COL = 5; // top-left corner of centre 6×6 block
+
+    function resize() {
+        const wrap = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width  = wrap.width  * dpr;
+        canvas.height = wrap.height * dpr;
+        canvas.style.width  = wrap.width  + 'px';
+        canvas.style.height = wrap.height + 'px';
+        render();
+    }
+
+    function render() {
+        const W = canvas.width, H = canvas.height;
+        const cw = W / COLS, ch = H / ROWS;
+        const gap = (window.devicePixelRatio || 1);
+        ctx.fillStyle = '#2E2C2A';
+        ctx.fillRect(0, 0, W, H);
+
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                let rgb;
+                const dr = r - SWATCH_ROW;
+                const dc = c - SWATCH_COL;
+                if (dr >= 0 && dr <= 5 && dc >= 0 && dc <= 5) {
+                    rgb = cellRgb(dr, dc);
+                } else {
+                    rgb = [246, 245, 244]; // white cells outside swatch
+                }
+                ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+                ctx.fillRect(c * cw + gap / 2, r * ch + gap / 2, cw - gap, ch - gap);
+            }
+        }
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    /* ── Typewriter ──────────────────────────────────────────────────────────── */
+
+    const rawLines = [
+        '// safe move: check ops first',
+        'def safe_move(d) {',
+        '    $cost = get_friction($d)',
+        '    if $ops_remaining > $cost {',
+        '        move($d)',
+        '    }',
+        '}',
+        'call safe_move(UP)',
+    ];
+
+    const htmlLines = [
+        '<span class="cm">// safe move: check ops first</span>',
+        '<span class="kw">def</span> <span class="fn">safe_move</span>(d) {',
+        '    <span class="var">$cost</span> = <span class="fn">get_friction</span>(<span class="var">$d</span>)',
+        '    <span class="kw">if</span> <span class="var">$ops_remaining</span> &gt; <span class="var">$cost</span> {',
+        '        <span class="fn">move</span>(<span class="var">$d</span>)',
+        '    }',
+        '}',
+        '<span class="kw">call</span> <span class="fn">safe_move</span>(UP)',
+    ];
+
+    /* ── Word cost tokenizer (mirrors test.js) ───────────────────────────────── */
+
+    const COSTLY_RE = /\b(?:if|elif|else|for|while|halt|return|def|call|and|or|not|min|max|range|index|length|push|pop|move|paint|get_friction|has_agent|my_paint|opp_paint)\b|\$|==|!=|<=|>=|[+\-*\/%<>]|=/g;
+
+    function countWords(src) {
+        return (src.match(COSTLY_RE) ?? []).length;
+    }
+
+    /* ── Demo state ──────────────────────────────────────────────────────────── */
+
+    const BANK_START  = 7;
+    const BANK_RATE   = 1 / 2;  // words per second
+    const CLOCK_START = 14 * 60 + 35; // seconds
+
+    const timerEl = document.getElementById('demo-timer');
+    const costEl  = document.getElementById('demo-cost');
+    const bankEl  = document.getElementById('demo-bank');
+    const etaEl   = document.getElementById('demo-eta');
+
+    let demoBank      = BANK_START;
+    let demoClock     = CLOCK_START;
+    let demoWordCount = 0;
+    let lastTick      = performance.now();
+
+    function formatClock(secs) {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateBar() {
+        timerEl.textContent = formatClock(demoClock);
+        bankEl.innerHTML = `<strong>${Math.floor(demoBank)}</strong> banked`;
+
+        if (demoWordCount > 0) {
+            costEl.innerHTML = `<strong>${demoWordCount}</strong> words`;
+            const need = demoWordCount - demoBank;
+            if (need <= 0) {
+                etaEl.textContent = 'ready';
+                etaEl.className = 'code-eta code-eta--ready';
+            } else {
+                const secs = Math.ceil(need / BANK_RATE);
+                etaEl.textContent = secs < 60 ? `~${secs}s` : `~${Math.ceil(secs / 60)}m`;
+                etaEl.className = 'code-eta code-eta--waiting';
+            }
+        } else {
+            costEl.textContent = '';
+            etaEl.textContent = '';
+            etaEl.className = 'code-eta';
+        }
+    }
+
+    function tickDemo(now) {
+        const dt = Math.min((now - lastTick) / 1000, 0.1);
+        lastTick = now;
+        demoBank  = Math.min(demoBank + BANK_RATE * dt, 999);
+        demoClock = Math.max(demoClock - dt, 0);
+        updateBar();
+        requestAnimationFrame(tickDemo);
+    }
+
+    requestAnimationFrame(tickDemo);
+
+    /* ── Typewriter ──────────────────────────────────────────────────────────── */
+
+    const out = document.getElementById('typewriter-out');
+    let lineIdx = 0, charIdx = 0, done = [];
+
+    function currentRawText() {
+        const lines = [...done.map((_, i) => rawLines[i])];
+        if (lineIdx < rawLines.length && charIdx > 0) {
+            lines.push(rawLines[lineIdx].slice(0, charIdx));
+        }
+        return lines.join('\n');
+    }
+
+    function typeNext() {
+        if (lineIdx >= rawLines.length) {
+            setTimeout(() => {
+                done = []; lineIdx = 0; charIdx = 0;
+                demoWordCount = 0;
+                demoBank  = BANK_START;
+                demoClock = CLOCK_START;
+                out.innerHTML = '<span class="tw-cursor"></span>';
+                typeNext();
+            }, 3200);
+            return;
+        }
+        const raw = rawLines[lineIdx];
+        if (charIdx <= raw.length) {
+            const partial = charIdx < raw.length ? [raw.slice(0, charIdx)] : [htmlLines[lineIdx]];
+            out.innerHTML = [...done, ...partial].join('\n') + '<span class="tw-cursor"></span>';
+            demoWordCount = countWords(currentRawText());
+            charIdx++;
+            setTimeout(typeNext, raw.length === 0 ? 120 : Math.random() * 35 + 30);
+        } else {
+            done.push(htmlLines[lineIdx]);
+            lineIdx++;
+            charIdx = 0;
+            setTimeout(typeNext, rawLines[lineIdx - 1] === '' ? 70 : 160);
+        }
+    }
+
+    setTimeout(typeNext, 700);
+})();
+</script>
 </body>
 </html>
