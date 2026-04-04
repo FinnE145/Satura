@@ -50,7 +50,33 @@ def logout():
 
 @bp.route('/')
 def index():
-    return render_template('index.html')
+    total_games = Game.query.count()
+    return render_template('index.html', total_games=total_games)
+
+
+@bp.route('/new-game')
+def new_game():
+    return render_template('stub.html', page_title='New Game')
+
+
+@bp.route('/my-games')
+def my_games():
+    return render_template('stub.html', page_title='My Games')
+
+
+@bp.route('/how-to-play')
+def how_to_play():
+    return render_template('stub.html', page_title='How to Play')
+
+
+@bp.route('/profile')
+def profile():
+    return render_template('stub.html', page_title='Profile')
+
+
+@bp.route('/settings')
+def settings_page():
+    return render_template('stub.html', page_title='Settings')
 
 
 @bp.route('/games', methods=['POST'])
