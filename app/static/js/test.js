@@ -646,6 +646,7 @@ function applyPalette(btn) {
     const warm = btn.dataset.warm;
     const cool = btn.dataset.cool;
     activePalette = { name: btn.dataset.palette, warm, cool };
+    localStorage.setItem('satura_palette', activePalette.name);
     const root = document.documentElement;
 
     const warmBright = brighten(warm);
