@@ -384,9 +384,9 @@ function formatLogEntry(entry) {
 
     switch (entry.op) {
         case 'halt':
-            return op('halt', '');
+            return op('halt', entry.reason ? esc(entry.reason) : '');
         case 'reset':
-            return op('reset', '');
+            return op('reset', entry.reason ? esc(entry.reason) : '');
         case 'move':
             return op('move', `\u2192 ${to}`);
         case 'paint':

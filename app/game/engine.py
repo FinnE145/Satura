@@ -271,15 +271,15 @@ class Engine:
         outcome = "normal"
         try:
             execute(program, ctx, self.persisted_funcs)
-        except HaltSignal:
+        except HaltSignal as e:
             outcome = "halt"
-            ctx._log.append({"op": "halt"})
-        except ResetSignal:
+            ctx._log.append({"op": "halt", "reason": str(e)})
+        except ResetSignal as e:
             outcome = "reset"
             self.board.restore(board_snap)
             own.restore(own_snap)
             opp.restore(opp_snap)
-            ctx._log.append({"op": "reset"})
+            ctx._log.append({"op": "reset", "reason": str(e)})
 
         ops_consumed = ctx.op_limit - ctx.ops_remaining
         return outcome, ctx._log, ops_consumed
