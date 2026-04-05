@@ -21,6 +21,13 @@ If unsure, default to:
 
 If more detail is needed on general game info, refer to the specific section of `docs/game_guide.md` using the table of contents on lines 8-44. If more detail is needed on specific language implementation, refer to the right section of `docs/language_spec.md`. Load only necessary chunks into context, drop anything that is not necessary for the query or task.
 
+## Frontend
+When working on any HTML, CSS, or UI:
+- Always read and follow `docs/style_guide.md` before making changes.
+- Before writing any new CSS, check `docs/css_classes.md` to see if an existing class already applies.
+- Any new CSS class that could plausibly be reused elsewhere on the site must be written generically (not scoped to a single page or component).
+- Update `docs/css_classes.md` whenever a class is added, changed, or removed.
+
 ## Expectations
 - Follow all rules and constraints from the specs precisely.
 - Do not assume behavior not explicitly defined.
