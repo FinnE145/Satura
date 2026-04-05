@@ -79,6 +79,21 @@ def settings_page():
     return render_template('stub.html', page_title='Settings')
 
 
+@bp.route('/legal/terms')
+def legal_terms():
+    return render_template('terms_of_use.html')
+
+
+@bp.route('/legal/cookies')
+def legal_cookies():
+    return render_template('cookies.html')
+
+
+@bp.route('/legal/privacy')
+def legal_privacy():
+    return render_template('privacy-policy.html')
+
+
 @bp.route('/games', methods=['POST'])
 @login_required
 def create_game():
