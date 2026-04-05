@@ -209,3 +209,5 @@ __marimo__/
 # agent config
 # .agents/
 # CLAUDE.md
+
+.vscode/settings.json

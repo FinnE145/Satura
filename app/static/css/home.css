@@ -225,20 +225,50 @@ body {
     background: var(--accent-cool-tint);
 }
 
+/* ─── Page split ─────────────────────────────────────────────────────────────── */
+
+.page-split {
+    display: flex;
+    align-items: flex-start;
+}
+
+.page-left {
+    flex: 1;
+    max-width: 720px;
+    min-width: 0;
+    margin-left: max(0px, calc((100vw - 1440px) / 2));
+}
+
+.page-right {
+    width: 50vw;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    margin-top: -3.5em;
+    overflow: hidden;
+}
+
+.page-right #hero-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+
 /* ─── Hero ───────────────────────────────────────────────────────────────────── */
 
 .hero {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    display: block;
 }
 
 .hero-content {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 3rem 3rem 3rem 0;
+    padding: 3rem 0;
     gap: 1.5rem;
-    align-self: stretch;
     min-width: 0;
 }
 
@@ -342,27 +372,6 @@ body {
     50%       { opacity: 0.3; }
 }
 
-.hero-canvas-wrap {
-    aspect-ratio: 1;
-    width: clamp(280px, 45vw, 600px);
-    position: relative;
-    overflow: hidden;
-    margin-right: -2em;
-}
-
-#hero-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.hero-fade {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(to right, var(--bg) 0%, transparent 20%);
-}
 
 /* ─── Explainer ──────────────────────────────────────────────────────────────── */
 
@@ -526,7 +535,7 @@ body {
 }
 
 .cta-card:last-child .cta-tag {
-    color: var(--text-muted);
+    color: var(--accent-cool-bright);
 }
 
 .cta-title {
@@ -557,7 +566,7 @@ body {
 }
 
 .cta-card:last-child .cta-arrow {
-    color: var(--text-muted);
+    color: var(--accent-cool-bright);
 }
 
 .cta-card:hover .cta-arrow {
@@ -578,25 +587,33 @@ body {
     gap: 1.75rem;
 }
 
-.footer-logo {
-    font-family: var(--font-compact);
-    font-size: 0.65em;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: rgba(246, 245, 244, 0.25);
-    margin-right: auto;
+.site-footer .right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+}
+
+.site-footer .left {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
 }
 
 .site-footer a {
     font-family: var(--font-ui);
     font-size: 0.7em;
-    color: rgba(246, 245, 244, 0.25);
+    color: var(--text-subtle);
     text-decoration: none;
     transition: color 0.15s;
 }
 
-.site-footer a:hover {
-    color: var(--text-muted);
+.site-footer .right a:hover {
+    color: var(--accent-cool);
+}
+
+.site-footer .left a:hover {
+    color: var(--accent);
 }
 
 /* ─── Stub page ──────────────────────────────────────────────────────────────── */
@@ -643,16 +660,12 @@ body {
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 800px) {
-    .hero {
-        grid-template-columns: 1fr;
+    .page-right {
+        display: none;
     }
 
     .hero-content {
         padding: 2.5rem 0;
-    }
-
-    .hero-canvas-wrap {
-        display: none;
     }
 
     .cta-cards {

@@ -48,6 +48,8 @@
         </div>
     </nav>
 
+    <div class="page-split">
+    <div class="page-left">
     <main class="site-main">
         <div class="container">
 
@@ -102,10 +104,6 @@
                         {{ total_games }} game{{ 's' if total_games != 1 else '' }} played
                     </p>
                 </div>
-                <div class="hero-canvas-wrap">
-                    <canvas id="hero-canvas"></canvas>
-                    <div class="hero-fade"></div>
-                </div>
             </section>
 
             <!-- ── Objective ────────────────────────────────────────────────────── -->
@@ -135,31 +133,45 @@
                 </div>
             </section>
 
-            <!-- ── CTA cards ─────────────────────────────────────────────────────── -->
-            <section class="cta-cards">
-                <a href="/new-game" class="cta-card">
-                    <div class="cta-tag">Start playing</div>
-                    <h3 class="cta-title">Create game</h3>
-                    <p class="cta-desc">Pick a time control, invite your friends, or share a link.</p>
-                    <span class="cta-arrow">→</span>
-                </a>
-                <a href="/my-games" class="cta-card">
-                    <div class="cta-tag">Past matches</div>
-                    <h3 class="cta-title">Review</h3>
-                    <p class="cta-desc">Browse every game you've played, turn by turn.</p>
-                    <span class="cta-arrow">→</span>
-                </a>
-            </section>
-
         </div><!-- .container -->
     </main>
+    </div><!-- .page-left -->
+
+    <div class="page-right">
+        <canvas id="hero-canvas"></canvas>
+    </div>
+    </div><!-- .page-split -->
+
+    <!-- ── CTA cards ─────────────────────────────────────────────────────────────── -->
+    <div class="container">
+        <section class="cta-cards">
+            <a href="/new-game" class="cta-card">
+                <div class="cta-tag">Start playing</div>
+                <h3 class="cta-title">Create game</h3>
+                <p class="cta-desc">Pick a time control, invite your friends, or share a link.</p>
+                <span class="cta-arrow">→</span>
+            </a>
+            <a href="/about" class="cta-card">
+                <div class="cta-tag">About Satura</div>
+                <h3 class="cta-title">Learn more</h3>
+                <p class="cta-desc">Discover the process behind Satura.</p>
+                <span class="cta-arrow">→</span>
+            </a>
+        </section>
+    </div>
 
     <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
     <footer class="site-footer">
         <div class="footer-inner container">
-            <span class="footer-logo">Satura</span>
-            <a href="/how-to-play">How to play</a>
-            <a href="/how-to-play">Language reference</a>
+            <div class="left">
+                <a href="/about">About Satura</a>
+                <a href="/contact">Contact</a>
+            </div>
+            <div class="right">
+                <a href="/legal/terms">Terms of Use</a>
+                <a href="/legal/privacy">Privacy Policy</a>
+                <a href="/legal/cookies">Cookie Policy</a>
+            </div>
         </div>
     </footer>
 
@@ -247,12 +259,40 @@
         ];
     }
 
-    /* ── Canvas: 16×16 grid, 6×6 swatch centred ─────────────────────────────── */
+    /* ── Canvas: fixed 24×24px cells, 6×6 swatch centred ───────────────────── */
 
     const canvas = document.getElementById('hero-canvas');
     const ctx = canvas.getContext('2d');
-    const COLS = 16, ROWS = 16;
-    const SWATCH_ROW = 5, SWATCH_COL = 5; // top-left corner of centre 6×6 block
+    const CELL = 24; // CSS px per cell
+
+    // left-fade probabilities per column (col 0 = leftmost)
+    const FADE_PROBS  = [0.70, 0.55, 0.40, 0.20, 0.10, 0.05];
+    const FADE_COLS   = FADE_PROBS.length;
+    // container is max 1440px wide; board starts at 50vw, so container right
+    // edge is always at 720px from the board's left edge
+    const RIGHT_START = Math.round(720 / CELL); // col index where overflow begins
+
+    let COLS, ROWS, SWATCH_ROW, SWATCH_COL, greyMap;
+
+    function buildGreyMap() {
+        greyMap = [];
+        for (let r = 0; r < ROWS; r++) {
+            greyMap[r] = new Uint8Array(COLS);
+            for (let c = 0; c < COLS; c++) {
+                const dr = r - SWATCH_ROW, dc = c - SWATCH_COL;
+                if (dr >= 0 && dr < 6 && dc >= 0 && dc < 6) continue; // keep swatch
+
+                let prob = 0;
+                if (c < FADE_COLS) {
+                    prob = FADE_PROBS[c];
+                } else if (c >= RIGHT_START) {
+                    const distFromStart = c - RIGHT_START;
+                    prob = distFromStart < FADE_COLS ? FADE_PROBS[FADE_COLS - 1 - distFromStart] : 1.0;
+                }
+                if (prob > 0 && Math.random() < prob) greyMap[r][c] = 1;
+            }
+        }
+    }
 
     function resize() {
         const wrap = canvas.parentElement.getBoundingClientRect();
@@ -261,28 +301,38 @@
         canvas.height = wrap.height * dpr;
         canvas.style.width  = wrap.width  + 'px';
         canvas.style.height = wrap.height + 'px';
+        COLS = Math.ceil(wrap.width  / CELL);
+        ROWS = Math.ceil(wrap.height / CELL);
+        SWATCH_ROW = Math.floor((ROWS - 6) / 2);
+        const whiteEnd = Math.min(RIGHT_START, COLS);
+        SWATCH_COL = FADE_COLS + Math.floor((whiteEnd - FADE_COLS - 6) / 2);
+        buildGreyMap();
         render();
     }
 
     function render() {
         const W = canvas.width, H = canvas.height;
-        const cw = W / COLS, ch = H / ROWS;
-        const gap = (window.devicePixelRatio || 1);
+        const dpr = window.devicePixelRatio || 1;
+        const cellPx = CELL * dpr;
+        const gap = 0.5 * dpr;
         ctx.fillStyle = '#2E2C2A';
         ctx.fillRect(0, 0, W, H);
 
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 let rgb;
-                const dr = r - SWATCH_ROW;
-                const dc = c - SWATCH_COL;
-                if (dr >= 0 && dr <= 5 && dc >= 0 && dc <= 5) {
-                    rgb = cellRgb(dr, dc);
+                if (greyMap[r][c]) {
+                    rgb = [46, 44, 42]; // --bg: #2E2C2A
                 } else {
-                    rgb = [246, 245, 244]; // white cells outside swatch
+                    const dr = r - SWATCH_ROW, dc = c - SWATCH_COL;
+                    if (dr >= 0 && dr < 6 && dc >= 0 && dc < 6) {
+                        rgb = cellRgb(dr, dc);
+                    } else {
+                        rgb = [246, 245, 244];
+                    }
                 }
                 ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
-                ctx.fillRect(c * cw + gap / 2, r * ch + gap / 2, cw - gap, ch - gap);
+                ctx.fillRect(c * cellPx + gap / 2, r * cellPx + gap / 2, cellPx - gap, cellPx - gap);
             }
         }
     }
