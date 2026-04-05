@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cookie Policy – Satura</title>
-  <link rel="stylesheet" href="/static/css/site.css">
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Cookie Policy – Satura{% endblock %}
+
+{% block content %}
   <main class="prose">
     <h1>Cookie Policy</h1>
     <p class="meta">Last updated: April 4, 2026</p>
@@ -53,5 +49,4 @@
     <h2>8. Contact</h2>
     <p>If you have questions about this policy, you can reach us at <a href="mailto:privacy@satura.dev">privacy@satura.dev</a> or through our <a href="https://www.satura.dev/legal/contact">contact page</a>.</p>
   </main>
-</body>
-</html>
+{% endblock %}

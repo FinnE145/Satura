@@ -1,32 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Satura — Test Bench</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&family=Lora:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <header class="site-header">
-        <div class="header-inner">
-            <a href="/" class="brand">
-                <img
-                    src="{{ url_for('static', filename='satura_logo_mark_solstice.svg') }}"
-                    alt=""
-                    class="brand-mark"
-                    width="28" height="28"
-                >
-                <span class="brand-wordmark">Satura</span>
-            </a>
-            <span class="header-divider" aria-hidden="true"></span>
-            <span class="header-label">Test Bench</span>
-        </div>
-    </header>
+{% block title %}Satura — Test Bench{% endblock %}
 
+{% block content %}
     <main class="site-main">
         <div class="container">
 
@@ -139,7 +115,8 @@
 
         </div><!-- .container -->
     </main>
+{% endblock %}
 
+{% block scripts %}
     <script src="{{ url_for('static', filename='js/test.js') }}"></script>
-</body>
-</html>
+{% endblock %}

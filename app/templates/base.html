@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Satura{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
+    <nav class="site-nav">
+        <div class="nav-inner container">
+            <a href="/" class="brand">
+                <img
+                    src="{{ url_for('static', filename='satura_logo_mark_solstice.svg') }}"
+                    alt=""
+                    class="brand-mark"
+                    width="28" height="28"
+                >
+                <span class="brand-wordmark">Satura</span>
+            </a>
+            <div class="nav-links">
+                <a href="/new-game" class="nav-link">New game</a>
+                <a href="/my-games" class="nav-link">My games</a>
+                <a href="/how-to-play" class="nav-link">How to play</a>
+            </div>
+            <div class="nav-actions">
+                {% if current_user.is_authenticated %}
+                    <div class="nav-profile" id="nav-profile">
+                        <button type="button" class="nav-profile-btn" id="nav-profile-btn" aria-haspopup="true" aria-expanded="false">
+                            <span class="material-symbols-outlined">account_circle</span>
+                        </button>
+                        <div class="nav-dropdown" id="nav-dropdown" hidden>
+                            <a href="/profile" class="nav-dropdown-item">Profile</a>
+                            <a href="/account" class="nav-dropdown-item">Account</a>
+                            <a href="/settings" class="nav-dropdown-item">Settings</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="/login" class="btn btn--secondary btn--sm">Sign in</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+    <footer class="site-footer">
+        <div class="footer-inner container">
+            <div class="left">
+                <a href="/about">About Satura</a>
+                <a href="/contact">Contact</a>
+            </div>
+            <div class="right">
+                <a href="/legal/terms">Terms of Use</a>
+                <a href="/legal/privacy">Privacy Policy</a>
+                <a href="/legal/cookies">Cookie Policy</a>
+            </div>
+        </div>
+    </footer>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── Profile dropdown ────────────────────────────────────────────────────── */
+
+    const profileBtn = document.getElementById('nav-profile-btn');
+    const dropdown   = document.getElementById('nav-dropdown');
+
+    if (profileBtn && dropdown) {
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = !dropdown.hidden;
+            dropdown.hidden = open;
+            profileBtn.setAttribute('aria-expanded', String(!open));
+        });
+
+        document.addEventListener('click', () => {
+            dropdown.hidden = true;
+            profileBtn.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+})();
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
