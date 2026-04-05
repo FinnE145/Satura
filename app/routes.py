@@ -4,6 +4,8 @@
 #          app/lang/interpreter.py. Imported by: app/__init__.py.
 
 import uuid
+from datetime import datetime
+from pathlib import Path
 
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
@@ -13,6 +15,20 @@ from .game.session import create_session, get_session
 from config import Config
 
 bp = Blueprint('main', __name__)
+
+_LOG_DIR = Path(__file__).parent.parent
+
+
+def _log_contact(log_file, name, email, message):
+    entry = (
+        f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]\n"
+        f"Name:    {name}\n"
+        f"Email:   {email}\n"
+        f"Message:\n"
+        f"{message}\n"
+    )
+    with open(_LOG_DIR / log_file, 'a') as f:
+        f.write(entry + "\n\n")
 
 
 def _player_authorized(game, player):
@@ -45,7 +61,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('main.login'))
+    return redirect(url_for('main.index'))
 
 
 @bp.route('/')
@@ -77,6 +93,20 @@ def profile():
 @bp.route('/settings')
 def settings_page():
     return render_template('stub.html', page_title='Settings')
+
+
+@bp.route('/contact', methods=['GET', 'POST'])
+@bp.route('/legal/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        log_file = 'legal_contact.log' if request.path.startswith('/legal') else 'contact.log'
+        _log_contact(
+            log_file,
+            name=request.form.get('name', '').strip(),
+            email=request.form.get('email', '').strip(),
+            message=request.form.get('message', '').strip(),
+        )
+    return render_template('contact.html')
 
 
 @bp.route('/legal/terms')

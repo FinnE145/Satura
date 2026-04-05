@@ -120,6 +120,14 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text);
 }
 
+/* Form field label */
+.form-label {
+    font-family: var(--font-ui);
+    font-size: 1em;
+    font-weight: 500;
+    color: var(--text-subtle);
+}
+
 /* Small-caps label — section labels, category tags */
 .label {
     font-family: var(--font-ui);
@@ -1391,15 +1399,6 @@ body:has(.login-wrap) {
     margin-bottom: 1em;
 }
 
-.login-card label {
-    display: block;
-    font-size: 0.75em;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 0.45em;
-}
 
 .login-card input {
     display: block;
@@ -1440,6 +1439,53 @@ body:has(.login-wrap) {
     border-radius: var(--radius-sm);
     color: var(--error);
     font-size: 0.875em;
+}
+
+/* ─── Contact ────────────────────────────────────────────────────────────────── */
+
+.contact-form {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+}
+
+.contact-form .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45em;
+}
+
+
+.contact-form input,
+.contact-form textarea {
+    display: block;
+    width: 100%;
+    padding: 0.5em 0.75em;
+    background: var(--bg);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.9375em;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+    outline: none;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+    border-color: var(--accent-dim);
+}
+
+.contact-form textarea {
+    resize: vertical;
+    min-height: 8em;
+    font-family: var(--font-ui);
+}
+
+.contact-form .btn {
+    align-self: flex-start;
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
