@@ -535,8 +535,8 @@ def test_page():
 def test_create_session():
     """
     Create a throw-away in-memory session for the test bench.
-    No DB accounts required. Animation is skipped and both word banks
-    are pre-filled so the user can compile and deploy immediately.
+    No DB accounts required. Both word banks are pre-filled for quick
+    compile/deploy testing once the normal animation phase advances.
     """
     game_id = str(uuid.uuid4())
     session = create_session(
@@ -546,9 +546,6 @@ def test_create_session():
         clock_seconds=Config.TEST_CLOCK_SECONDS,
         word_rate=Config.TEST_WORD_RATE,
     )
-    # Skip the initial animation so the session is immediately in write phase
-    session._anim_deadline = 0
-    session._maybe_advance_animation()
     # Start with a pre-loaded bank; accrues at TEST_WORD_RATE from there
     session.engine._word_bank[1] = Config.TEST_WORD_BANK_START
     session.engine._word_bank[2] = Config.TEST_WORD_BANK_START

@@ -26,6 +26,7 @@ let currentWordCount = 0;
 let sessionReady = false;
 let compileState = null;   // null = dirty; {errors, warnings} = last compile result
 let deployConfirmPending = false; // warnings shown, waiting for second click
+const STEP_DELAY_MS = 500;
 
 // ── Word cost tokenizer ───────────────────────────────────────────────────────
 // Mirrors WORD_COSTS in app/lang/tokens.py — every match costs 1 word.
@@ -49,13 +50,13 @@ async function init() {
         sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
         sessionIdEl.title = gameId;
         setStatus('ready');
-        setPhase('write', true);
-        setSessionReady(true);
-        startBankPoll();
 
-        // Show blank board on first load
+        // Show the latest board and actual server phase immediately.
         const initState = await get(`/games/${gameId}/state`);
+        applySessionState(initState);
         renderBoard(initState);
+
+        startBankPoll();
     } catch (e) {
         setStatus('error');
         setPhase('error');
@@ -79,7 +80,7 @@ async function refreshBank() {
         lastBank = bank;
         lastRate = state.word_rate ?? (1 / 3);
         wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> words in bank`;
-        setPhase(state.phase, state.phase === 'write');
+        applySessionState(state);
         updateWordEta();
         updateDeployButton();
         updateWordShortageNotice();
@@ -151,6 +152,10 @@ btnDeploy.addEventListener('click', async () => {
 
         // Step 2: deploy
         clearOutput();
+        const preExecState = cloneBoardAndAgents(lastBoardState);
+        setPhase('exec1');
+        setSessionReady(false);
+
         const data = await post(`/games/${gameId}/deploy`, {
             player: 1,
             source: editor.value,
@@ -162,6 +167,9 @@ btnDeploy.addEventListener('click', async () => {
             deployConfirmPending = false;
             clearDiagnostics();
             renderDiagnostics(data);
+            // If deploy is rejected, remain in write phase.
+            setPhase('write', true);
+            setSessionReady(true);
             return;
         }
 
@@ -170,8 +178,8 @@ btnDeploy.addEventListener('click', async () => {
 
         // Fetch exec log, territory, and board from game state
         const state = await get(`/games/${gameId}/state`);
-        renderOutput(state);
-        renderBoard(state);
+        applySessionState(state);
+        await replayExecution(preExecState, state, 1);
 
         // Reset to a fresh session so the user can test again immediately
         await resetSession();
@@ -204,8 +212,11 @@ async function resetSession() {
         sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
         sessionIdEl.title = gameId;
         setStatus('ready');
-        setPhase('write', true);
-        setSessionReady(true);
+
+        const initState = await get(`/games/${gameId}/state`);
+        applySessionState(initState);
+        renderBoard(initState);
+
         startBankPoll();
     } catch (e) {
         setStatus('error');
@@ -378,6 +389,164 @@ function renderOutput(state) {
     }
 }
 
+async function replayExecution(preExecState, postExecState, actorPlayer = 1) {
+    if (!preExecState) {
+        renderOutput(postExecState);
+        renderBoard(postExecState);
+        return;
+    }
+
+    const replayBase = cloneBoardAndAgents(preExecState);
+    const replayState = cloneBoardAndAgents(preExecState);
+
+    renderBoard(replayState);
+    await renderOutputStepByStep(postExecState, async (entry) => {
+        const opDelta = estimateOpCost(entry, replayState, actorPlayer);
+        applyOperationToReplayState(replayState, entry, replayBase, actorPlayer);
+        renderBoard(replayState);
+        return opDelta;
+    });
+
+    // Ensure exact parity with server-authoritative final state.
+    renderBoard(postExecState);
+}
+
+async function renderOutputStepByStep(state, onStep) {
+    const log = state.exec_log ?? [];
+
+    if (log.length === 0) {
+        outcomeLabel.textContent = 'no ops';
+        outputBody.innerHTML = '';
+        outputBody.appendChild(el('span', 'empty-label',
+            'Script executed with no board operations.'));
+        return;
+    }
+
+    const consumed = state.exec_ops_consumed ?? log.length;
+    const limit = state.op_limit ?? '?';
+    let displayedOps = 0;
+    outcomeLabel.textContent = `${displayedOps} / ${limit} ops`;
+    outputBody.innerHTML = '';
+
+    for (let i = 0; i < log.length; i++) {
+        const entry = log[i];
+        if (!isInstantSensingOp(entry)) {
+            await delay(STEP_DELAY_MS);
+        }
+
+        const row = document.createElement('div');
+        row.className = 'log-entry';
+        row.innerHTML =
+            `<span class="log-idx">${String(i + 1).padStart(2, '0')}</span>` +
+            formatLogEntry(entry);
+        outputBody.appendChild(row);
+
+        if (onStep) {
+            const delta = await onStep(entry, i);
+            if (Number.isFinite(delta) && delta > 0) {
+                displayedOps = Math.min(consumed, displayedOps + delta);
+                outcomeLabel.textContent = `${displayedOps} / ${limit} ops`;
+            }
+        }
+    }
+
+    // Snap to authoritative total in case stepwise estimates differ.
+    outcomeLabel.textContent = `${consumed} / ${limit} ops`;
+
+    if (state.territory) {
+        const t = state.territory;
+        outputBody.appendChild(el('div', 'log-sep', ''));
+        outputBody.appendChild(el('div', 'log-summary',
+            `P1\u00a0${t.p1}\u2002\u00b7\u2002P2\u00a0${t.p2}\u2002\u00b7\u2002Black\u00a0${t.black}\u2002\u00b7\u2002Total\u00a0${t.total}`
+        ));
+    }
+}
+
+function isInstantSensingOp(entry) {
+    if (!entry || !entry.op) return false;
+    return entry.op === 'get_friction'
+        || entry.op === 'has_agent'
+        || entry.op === 'my_paint'
+        || entry.op === 'opp_paint';
+}
+
+function estimateOpCost(entry, replayState, actorPlayer) {
+    if (!entry) return 0;
+
+    switch (entry.op) {
+        case 'paint': {
+            const amount = Number(entry.amount ?? 0);
+            return Number.isFinite(amount) && amount > 0 ? 2 * amount : 0;
+        }
+        case 'move': {
+            if (!replayState || !Array.isArray(entry.to) || entry.to.length < 2) return 0;
+            const row = entry.to[0];
+            const col = entry.to[1];
+            const cell = replayState.board[row]?.[col];
+            if (!cell) return 0;
+            const total = cell.p1 + cell.p2;
+            if (total === 0) return 1;
+            if (total === 10) return 20;
+            return actorPlayer === 1 ? 2 * cell.p2 : 2 * cell.p1;
+        }
+        case 'get_friction':
+        case 'has_agent':
+        case 'my_paint':
+        case 'opp_paint':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+function cloneBoardAndAgents(state) {
+    if (!state || !state.board || !state.agents) return null;
+
+    return {
+        board: state.board.map((row) => row.map((cell) => ({ p1: cell.p1, p2: cell.p2 }))),
+        agents: {
+            '1': state.agents['1'] ? { row: state.agents['1'].row, col: state.agents['1'].col } : null,
+            '2': state.agents['2'] ? { row: state.agents['2'].row, col: state.agents['2'].col } : null,
+        },
+    };
+}
+
+function applyOperationToReplayState(replayState, entry, replayBase, actorPlayer) {
+    if (!replayState || !entry) return;
+
+    const playerKey = String(actorPlayer);
+    const targetAgent = replayState.agents[playerKey];
+
+    switch (entry.op) {
+        case 'move': {
+            if (!targetAgent || !Array.isArray(entry.to) || entry.to.length < 2) return;
+            targetAgent.row = entry.to[0];
+            targetAgent.col = entry.to[1];
+            return;
+        }
+        case 'paint': {
+            if (!Array.isArray(entry.at) || entry.at.length < 2) return;
+            const row = entry.at[0];
+            const col = entry.at[1];
+            const amount = Number(entry.amount ?? 0);
+            const cell = replayState.board[row]?.[col];
+            if (!cell) return;
+            if (actorPlayer === 1) cell.p1 += amount;
+            else cell.p2 += amount;
+            return;
+        }
+        case 'reset': {
+            const restored = cloneBoardAndAgents(replayBase);
+            if (!restored) return;
+            replayState.board = restored.board;
+            replayState.agents = restored.agents;
+            return;
+        }
+        default:
+            return;
+    }
+}
+
 function formatLogEntry(entry) {
     const at = entry.at ? `(${entry.at[1]},\u202f${entry.at[0]})` : '';
     const to = entry.to ? `(${entry.to[1]},\u202f${entry.to[0]})` : '';
@@ -526,6 +695,13 @@ function setStatus(state) {
 function setPhase(text, highlight = false) {
     sessionPhaseEl.textContent = text;
     sessionPhaseEl.className = highlight ? 'phase-pill phase-pill--write' : 'phase-pill';
+}
+
+function applySessionState(state) {
+    const phase = state?.phase ?? 'unknown';
+    const isWrite = phase === 'write';
+    setPhase(phase, isWrite);
+    setSessionReady(isWrite && state?.game_over !== true);
 }
 
 function setSessionReady(on) {
