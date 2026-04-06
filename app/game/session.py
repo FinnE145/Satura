@@ -14,8 +14,31 @@ class GameSession:
         self._anim_deadline: float | None = None
         self.game_over: bool = False
         self.winner: int | str | None = None
+        self.end_reason: str | None = None
         self._exec_log: list[dict] = []
         self._exec_ops: int = 0
+        self._last_exec_player: int | None = None
+        self._auto_player: int | None = None
+        self._auto_first_script: str | None = None
+        self._auto_repeat_script: str | None = None
+        self._auto_write_delay: float = 0.0
+        self._auto_write_ready_at: float | None = None
+        self._auto_deploy_count: int = 0
+        self._write_started_at: float | None = None
+
+    _SENSING_OPS = {"get_friction", "has_agent", "my_paint", "opp_paint"}
+
+    def configure_auto_writer(
+        self,
+        player: int,
+        first_script: str,
+        repeat_script: str,
+        write_delay_seconds: float,
+    ) -> None:
+        self._auto_player = player
+        self._auto_first_script = first_script
+        self._auto_repeat_script = repeat_script
+        self._auto_write_delay = max(0.0, write_delay_seconds)
 
     # ------------------------------------------------------------------ public API
 
@@ -23,6 +46,9 @@ class GameSession:
         """Lint only — no state change, no clock interaction."""
         if player != self.current_player or self.phase != "write":
             return {"ok": False, "errors": ["not your write phase"], "warnings": [], "word_count": 0}
+        if self.engine.clock_expired(player):
+            self._finish(3 - player, reason="timeout")
+            return {"ok": False, "errors": ["time expired"], "warnings": [], "word_count": 0}
         result = self.engine.compile(source)
         return {
             "ok": result.ok,
@@ -36,15 +62,18 @@ class GameSession:
         if player != self.current_player or self.phase != "write":
             return {"ok": False, "errors": ["not your write phase"], "warnings": []}
 
+        self._auto_write_ready_at = None
         self.engine.pause_clock(player)
+        self.engine.pause_word_accumulation(player)
 
         if self.engine.clock_expired(player):
-            self._finish(3 - player)
+            self._finish(3 - player, reason="timeout")
             return {"ok": False, "errors": ["time expired"], "warnings": []}
 
         result = self.engine.compile(source)
         if not result.ok:
             self.engine.resume_clock(player)
+            self.engine.resume_word_accumulation(player)
             return {
                 "ok": False,
                 "errors": [str(e) for e in result.errors],
@@ -53,9 +82,9 @@ class GameSession:
 
         if not self.engine.spend_words(player, result.word_count):
             self.engine.resume_clock(player)
+            self.engine.resume_word_accumulation(player)
             return {"ok": False, "errors": ["insufficient word bank"], "warnings": []}
 
-        self.engine.pause_word_accumulation(player)
         self._program[player] = result.program
         self._run_exec1()
         return {
@@ -68,11 +97,15 @@ class GameSession:
     def get_state(self) -> dict:
         """Auto-advance animation phases, then return full game state."""
         self._maybe_advance_animation()
+        self.check_clock_expired()
+        self._maybe_auto_deploy()
+        self.check_clock_expired()
         p1, p2, black, total = self.engine.board.territory()
         return {
             "game_id": self.game_id,
             "game_over": self.game_over,
             "winner": self.winner,
+            "end_reason": self.end_reason,
             "current_player": self.current_player,
             "phase": self.phase,
             "board": [
@@ -95,13 +128,16 @@ class GameSession:
             "word_rate": self.engine._word_rate,
             "exec_log": self._exec_log,
             "exec_ops_consumed": self._exec_ops,
+            "last_exec_player": self._last_exec_player,
+            "animation_step_duration": Config.ANIMATION_STEP_DURATION,
+            "phase_timer": self._phase_timer_payload(),
             "op_limit": self.engine.op_limit,
         }
 
     def check_clock_expired(self) -> bool:
         """Call during polling to detect write-phase timeout."""
         if self.phase == "write" and self.engine.clock_expired(self.current_player):
-            self._finish(3 - self.current_player)
+            self._finish(3 - self.current_player, reason="timeout")
             return True
         return False
 
@@ -109,6 +145,7 @@ class GameSession:
 
     def _run_exec2(self) -> None:
         self.phase = "exec2"
+        self._last_exec_player = self.current_player
         program = self._program[self.current_player]
         if program is not None:
             _, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, program)
@@ -118,16 +155,22 @@ class GameSession:
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_pre_write"
-            self._anim_deadline = time.monotonic() + Config.ANIMATION_DURATION
-            self.engine.resume_word_accumulation(self.current_player)
+            self._anim_deadline = time.monotonic() + self._animation_wait_seconds(self._exec_log)
+        self._write_started_at = None
 
     def _run_exec1(self) -> None:
         self.phase = "exec1"
+        self._last_exec_player = self.current_player
         _, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, self._program[self.current_player])
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_post_exec1"
-            self._anim_deadline = time.monotonic() + Config.ANIMATION_DURATION
+            self._anim_deadline = time.monotonic() + self._animation_wait_seconds(self._exec_log)
+        self._write_started_at = None
+
+    def _animation_wait_seconds(self, exec_log: list[dict]) -> float:
+        non_sensing_steps = sum(1 for entry in exec_log if entry.get("op") not in self._SENSING_OPS)
+        return non_sensing_steps * Config.ANIMATION_STEP_DURATION + 2.0
 
     def _maybe_advance_animation(self) -> None:
         if self._anim_deadline is None or time.monotonic() < self._anim_deadline:
@@ -135,23 +178,70 @@ class GameSession:
         if self.phase == "anim_pre_write":
             self.phase = "write"
             self._anim_deadline = None
+            self._write_started_at = time.monotonic()
             self.engine.resume_clock(self.current_player)
+            self.engine.resume_word_accumulation(self.current_player)
+            if self.current_player == self._auto_player:
+                self._auto_write_ready_at = time.monotonic() + self._auto_write_delay
         elif self.phase == "anim_post_exec1":
             self._anim_deadline = None
             self._switch_player()
             self._run_exec2()
 
+    def _phase_timer_payload(self) -> dict | None:
+        now = time.monotonic()
+        if self.phase in ("anim_pre_write", "anim_post_exec1") and self._anim_deadline is not None:
+            return {
+                "mode": "countdown",
+                "seconds": max(0.0, self._anim_deadline - now),
+            }
+        if self.phase == "write":
+            started_at = self._write_started_at if self._write_started_at is not None else now
+            return {
+                "mode": "countup",
+                "seconds": max(0.0, now - started_at),
+            }
+        return None
+
+    def _maybe_auto_deploy(self) -> None:
+        if self.game_over:
+            return
+        if self._auto_player is None or self.current_player != self._auto_player:
+            return
+        if self.phase != "write":
+            return
+        if self._auto_first_script is None or self._auto_repeat_script is None:
+            return
+
+        now = time.monotonic()
+        if self._auto_write_ready_at is None:
+            self._auto_write_ready_at = now + self._auto_write_delay
+            return
+        if now < self._auto_write_ready_at:
+            return
+
+        source = self._auto_first_script if self._auto_deploy_count == 0 else self._auto_repeat_script
+        result = self.deploy_script(self._auto_player, source)
+        if result.get("ok"):
+            self._auto_deploy_count += 1
+        elif "insufficient word bank" in result.get("errors", []):
+            self._auto_write_ready_at = time.monotonic() + 1.0
+
     def _check_win_stalemate(self) -> None:
         w = self.engine.check_winner()
         if w is not None:
-            self._finish(w)
+            self._finish(w, reason="territory")
             return
         if self.engine.check_stalemate():
-            self._finish("draw")
+            self._finish("draw", reason="stalemate")
 
-    def _finish(self, winner: int | str) -> None:
+    def _finish(self, winner: int | str, reason: str | None = None) -> None:
+        for player in (1, 2):
+            self.engine.pause_clock(player)
+            self.engine.pause_word_accumulation(player)
         self.game_over = True
         self.winner = winner
+        self.end_reason = reason
         self.phase = "finished"
         self._persist_result()
 

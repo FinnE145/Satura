@@ -57,9 +57,27 @@ class Config:
     OP_LIMIT        = TIME_CONTROL_PRESETS['5']['op_limit']
     CLOCK_SECONDS   = TIME_CONTROL_PRESETS['5']['clock_seconds']
     WORD_RATE       = TIME_CONTROL_PRESETS['5']['word_rate']      # words per second during live games
-    ANIMATION_DURATION = 15.0  # seconds for post-exec animation phase
+    ANIMATION_STEP_DURATION = 0.5  # seconds for each step in the animation to wait
 
     # ── Test bench overrides ──────────────────────────────────────────────────
-    TEST_CLOCK_SECONDS  = 3600.0
-    TEST_WORD_RATE      = 1 / 3   # one word every 3 seconds
+    TEST_CLOCK_SECONDS  = 7.0
+    TEST_WORD_RATE      = 1.0
     TEST_WORD_BANK_START = 10.0   # words pre-loaded at session start
+    TEST_BOT_WRITE_DELAY_SECONDS = 8.0
+    TEST_BOT_FIRST_SCRIPT = (
+        "while get_friction(RIGHT) != NULL and $ops_remaining > 1 {\n"
+        "    move(RIGHT)\n"
+        "}\n"
+        "while get_friction(DOWN) != NULL and $ops_remaining > 1 {\n"
+        "    move(DOWN)\n"
+        "}"
+    )
+    TEST_BOT_REPEAT_SCRIPT = (
+        "paint(1)\n"
+        "if get_friction(LEFT) == NULL {\n"
+        "    move(RIGHT)\n"
+        "    move(UP)\n"
+        "} else {\n"
+        "    move(LEFT)\n"
+        "}"
+    )

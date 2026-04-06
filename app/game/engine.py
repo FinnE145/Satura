@@ -214,13 +214,15 @@ class Engine:
         Deduct `word_count` words. Returns False if the bank is insufficient,
         in which case the script must not be deployed.
         """
+        was_accumulating = self._word_tick[player] is not None
         current = self.word_bank(player)
         if current < word_count:
             return False
         # Flush accumulated words, then deduct
         self.pause_word_accumulation(player)
         self._word_bank[player] -= word_count
-        self.resume_word_accumulation(player)
+        if was_accumulating:
+            self.resume_word_accumulation(player)
         return True
 
     # ---------------------------------------------------------------- compilation

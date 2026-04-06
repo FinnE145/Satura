@@ -356,6 +356,13 @@ class TestEngineWordBank:
         assert e.spend_words(1, 5) is True
         assert abs(e.word_bank(1) - 0.0) < 0.01
 
+    def test_spend_words_does_not_resume_when_paused(self):
+        e = Engine(size=4, op_limit=50, clock_seconds=30.0)
+        e._word_bank[1] = 5.0
+        assert e._word_tick[1] is None
+        assert e.spend_words(1, 3) is True
+        assert e._word_tick[1] is None
+
     def test_resume_idempotent(self):
         e = Engine(size=4, op_limit=50, clock_seconds=30.0)
         e.resume_word_accumulation(1)

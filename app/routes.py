@@ -549,6 +549,12 @@ def test_create_session():
     # Start with a pre-loaded bank; accrues at TEST_WORD_RATE from there
     session.engine._word_bank[1] = Config.TEST_WORD_BANK_START
     session.engine._word_bank[2] = Config.TEST_WORD_BANK_START
+    session.configure_auto_writer(
+        player=2,
+        first_script=Config.TEST_BOT_FIRST_SCRIPT,
+        repeat_script=Config.TEST_BOT_REPEAT_SCRIPT,
+        write_delay_seconds=Config.TEST_BOT_WRITE_DELAY_SECONDS,
+    )
     return jsonify({"game_id": game_id}), 201
 
 
