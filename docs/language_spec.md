@@ -554,7 +554,7 @@ move($mydir)   // variable also accepted
 
 - `dir` must be a `direction` value (`UP`, `DOWN`, `LEFT`, `RIGHT`). Passing `HERE` or any non-direction value is a **compile error** where detectable, otherwise a **runtime halt.**
 - Costs `get_friction(target_cell)` ops, evaluated at the moment of movement.
-- Moving outside the board boundary is a **runtime halt.**
+- Moving outside the board boundary causes a **runtime reset** (execution rollback).
 - Moving into a cell occupied by the opponent's agent is a **turn reset** (the moving agent's entire execution is undone).
 
 ### 11.2 paint(num)

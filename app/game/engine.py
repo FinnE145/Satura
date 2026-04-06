@@ -78,7 +78,7 @@ class ExecutionContext:
         try:
             cost = self._own.move(direction, self._board, self._opp)
         except MoveOutOfBounds as e:
-            raise HaltSignal(str(e)) from e
+            raise ResetSignal(str(e)) from e
         except MoveCollision as e:
             raise ResetSignal(str(e)) from e
         # Deduct after move; if over budget, ResetSignal triggers full rollback

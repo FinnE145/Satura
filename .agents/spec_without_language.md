@@ -20,6 +20,7 @@
 -   Move 1 cell
 -   No shared cells
 -   Collision → execution loss
+-   Moving outside board → execution reset
 
 ## Friction System
 

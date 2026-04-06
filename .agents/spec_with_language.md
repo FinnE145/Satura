@@ -19,7 +19,7 @@
 
 -   Agents cannot occupy same cell
 -   Moving into opponent → reset
--   Moving outside board → halt
+-   Moving outside board → reset
 
 ### Friction (movement cost)
 

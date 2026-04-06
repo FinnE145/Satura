@@ -188,6 +188,7 @@ Script executions can end in three ways:
 Conditions that cause a **reset:**
 - Op budget exceeded
 - Agent collides with opponent agent (moving agent resets)
+- Agent moves outside the board boundary
 - Painting a black cell
 - Painting more than a cell can accept
 
@@ -595,7 +596,7 @@ move($mydir)   // variable also accepted
 
 - Costs `get_friction(target_cell)` ops.
 - Attempting to move into a cell occupied by the opponent's agent resets the turn.
-- Attempting to move outside the board is a runtime halt.
+- Attempting to move outside the board resets the turn.
 
 ### paint(num)
 

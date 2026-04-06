@@ -74,14 +74,14 @@ class TestBoardMove:
         ctx.board_move("RIGHT")
         assert ctx.ops_remaining == 49  # blank cell costs 1
 
-    def test_move_out_of_bounds_raises_halt(self):
+    def test_move_out_of_bounds_raises_reset(self):
         ctx, _, own, _ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
+        with pytest.raises(ResetSignal):
             ctx.board_move("UP")
 
     def test_move_out_of_bounds_no_position_change(self):
         ctx, _, own, _ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
+        with pytest.raises(ResetSignal):
             ctx.board_move("UP")
         assert (own.row, own.col) == (0, 0)
 
