@@ -1,0 +1,47 @@
+{% extends "settings_base.html" %}
+
+{% block title %}Satura — Profile{% endblock %}
+
+{% block settings_content %}
+<article class="card settings-card">
+    <header class="card-header">
+        <h1 class="card-title">Profile</h1>
+    </header>
+    <div class="settings-card-body">
+        <div class="settings-profile-head">
+            <h2 class="heading-display">{{ current_user.username }}</h2>
+            <p class="text-subtle">Friends: 0</p>
+        </div>
+
+        <div class="settings-stats-grid">
+            <div class="settings-stat-cell">
+                <span class="label">Win/Loss</span>
+                <strong>{{ stats.wins }}-{{ stats.losses }}</strong>
+            </div>
+            <div class="settings-stat-cell">
+                <span class="label">Games Played</span>
+                <strong>{{ stats.games_played }}</strong>
+            </div>
+        </div>
+    </div>
+</article>
+
+<article class="card settings-card">
+    <header class="card-header">
+        <h2 class="card-title">Recent Games</h2>
+    </header>
+    <div class="settings-card-body settings-games-list" role="list">
+        {% for row in stats.recent_games %}
+        <div class="settings-game-row" role="listitem">
+            <div class="settings-game-thumb" aria-hidden="true"></div>
+            <div class="settings-game-meta">
+                <p><span class="label">Opponent</span> {{ row.opponent }}</p>
+                <p><span class="label">Turns</span> {{ row.turns }}</p>
+                <p><span class="label">Result</span> {{ row.result }} — {{ row.why }}</p>
+            </div>
+            <a href="/games/{{ row.game_id }}" class="settings-game-link">View game</a>
+        </div>
+        {% endfor %}
+    </div>
+</article>
+{% endblock %}

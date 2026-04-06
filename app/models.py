@@ -14,9 +14,17 @@ class Account(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     created_at    = db.Column(db.DateTime, nullable=False,
                               default=lambda: datetime.now(timezone.utc))
+    disabled      = db.Column(db.Boolean, nullable=False, default=False)
+    deleted       = db.Column(db.Boolean, nullable=False, default=False)
 
     games_as_p1 = db.relationship('Game', foreign_keys='Game.player1_id', backref='player1')
     games_as_p2 = db.relationship('Game', foreign_keys='Game.player2_id', backref='player2')
+    settings = db.relationship(
+        'AccountSettings',
+        back_populates='account',
+        uselist=False,
+        cascade='all, delete-orphan',
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -40,3 +48,17 @@ class Game(db.Model):
     created_at  = db.Column(db.DateTime, nullable=False,
                             default=lambda: datetime.now(timezone.utc))
     finished_at = db.Column(db.DateTime, nullable=True)
+
+
+class AccountSettings(db.Model):
+    __tablename__ = 'account_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, unique=True)
+    default_time_control = db.Column(db.String(16), nullable=False, default='15')
+    custom_minutes = db.Column(db.Integer, nullable=True)
+    default_player = db.Column(db.String(8), nullable=False, default='random')
+    default_board_size = db.Column(db.Integer, nullable=False, default=16)
+    palette = db.Column(db.String(16), nullable=False, default='solstice')
+
+    account = db.relationship('Account', back_populates='settings')

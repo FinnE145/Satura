@@ -4,19 +4,70 @@
 #          app/lang/interpreter.py. Imported by: app/__init__.py.
 
 import uuid
+import re
 from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy import or_
 from . import db
-from .models import Game, Account
+from .models import Game, Account, AccountSettings
 from .game.session import create_session, get_session
 from config import Config
 
 bp = Blueprint('main', __name__)
 
 _LOG_DIR = Path(__file__).parent.parent
+_PALETTES = ('solstice', 'fieldstone', 'levant', 'folio')
+_PALETTE_CONFIG = {
+    'solstice': {'warm': '#D2640E', 'cool': '#A82068'},
+    'fieldstone': {'warm': '#AC3E26', 'cool': '#2C4874'},
+    'levant': {'warm': '#C48C1C', 'cool': '#661E6E'},
+    'folio': {'warm': '#D4A800', 'cool': '#303482'},
+}
+
+
+def _hex_to_rgb(hex_color):
+    value = hex_color.strip().lstrip('#')
+    if len(value) != 6:
+        return (0, 0, 0)
+    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _rgba(hex_color, alpha):
+    r, g, b = _hex_to_rgb(hex_color)
+    return f'rgba({r}, {g}, {b}, {alpha})'
+
+
+def _active_palette_for_user():
+    palette_name = Config.DEFAULT_PALETTE
+    if current_user.is_authenticated:
+        user_settings = _get_or_create_settings(current_user)
+        if user_settings.palette in _PALETTES:
+            palette_name = user_settings.palette
+
+    base = _PALETTE_CONFIG.get(palette_name, _PALETTE_CONFIG['solstice'])
+    warm = base['warm']
+    cool = base['cool']
+    return {
+        'name': palette_name,
+        'warm': warm,
+        'cool': cool,
+        'warm_tint': _rgba(warm, '0.10'),
+        'warm_dim': _rgba(warm, '0.65'),
+        'cool_tint': _rgba(cool, '0.10'),
+        'cool_dim': _rgba(cool, '0.65'),
+        'mark_file': f'satura_logo_mark_{palette_name}.svg',
+    }
+
+
+@bp.app_context_processor
+def inject_theme_context():
+    palette = _active_palette_for_user()
+    return {
+        'active_palette': palette,
+    }
 
 
 def _log_contact(log_file, name, email, message):
@@ -38,6 +89,121 @@ def _player_authorized(game, player):
     if player == 2:
         return current_user.id == game.player2_id
     return False
+
+
+def _valid_email(email):
+    if not email:
+        return False
+    return bool(re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email))
+
+
+def _get_or_create_settings(account):
+    if account.settings is not None:
+        return account.settings
+
+    settings = AccountSettings(
+        account=account,
+        default_time_control=Config.DEFAULT_TIME_CONTROL,
+        custom_minutes=Config.DEFAULT_CUSTOM_MINUTES,
+        default_player=Config.DEFAULT_PLAYER_CHOICE,
+        default_board_size=Config.BOARD_SIZE,
+        palette=Config.DEFAULT_PALETTE,
+    )
+    db.session.add(settings)
+    db.session.commit()
+    return settings
+
+
+def _closest_board_size(value):
+    stops = tuple(Config.BOARD_SIZE_STOPS)
+    if value in stops:
+        return value
+    return min(stops, key=lambda stop: abs(stop - value))
+
+
+def _player_slot_for_game(account_id, game):
+    if game.player1_id == account_id:
+        return 1
+    if game.player2_id == account_id:
+        return 2
+    return None
+
+
+def _make_recent_games(account):
+    all_games = (
+        Game.query
+        .filter(or_(Game.player1_id == account.id, Game.player2_id == account.id))
+        .order_by(Game.finished_at.desc(), Game.created_at.desc())
+        .all()
+    )
+    finished = [game for game in all_games if game.status == 'finished']
+
+    wins = 0
+    losses = 0
+    for game in finished:
+        user_slot = _player_slot_for_game(account.id, game)
+        if user_slot is None or game.winner is None:
+            continue
+        if game.winner == user_slot:
+            wins += 1
+        elif game.winner in (1, 2):
+            losses += 1
+
+    rows = []
+    for game in finished[:6]:
+        user_slot = _player_slot_for_game(account.id, game)
+        opponent = game.player2 if user_slot == 1 else game.player1
+        opponent_name = opponent.username if opponent is not None else 'Unassigned'
+
+        if game.winner is None:
+            result = 'Draw'
+            why = 'Stalemate'
+        elif user_slot == game.winner:
+            result = 'Won'
+            why = 'Board control at finish'
+        else:
+            result = 'Lost'
+            why = 'Opponent reached control threshold'
+
+        rows.append({
+            'opponent': opponent_name,
+            'turns': '--',
+            'result': result,
+            'why': why,
+            'game_id': game.id,
+        })
+
+    while len(rows) < 4:
+        idx = len(rows) + 1
+        rows.append({
+            'opponent': '—',
+            'turns': '--',
+            'result': '—',
+            'why': 'Data pending',
+            'game_id': f'placeholder-{idx}',
+        })
+
+    return {
+        'wins': wins,
+        'losses': losses,
+        'games_played': len(finished),
+        'recent_games': rows,
+    }
+
+
+def _unique_deleted_username(account_id):
+    base = Config.DELETED_USERNAME
+    existing = Account.query.filter(Account.username == base, Account.id != account_id).first()
+    if existing is None:
+        return base
+
+    suffix = 1
+    while True:
+        candidate = f'{base}#{account_id}-{suffix}'
+        clash = Account.query.filter(Account.username == candidate, Account.id != account_id).first()
+        if clash is None:
+            return candidate
+        suffix += 1
 
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -85,14 +251,152 @@ def how_to_play():
     return render_template('stub.html', page_title='How to Play')
 
 
-@bp.route('/profile')
-def profile():
-    return render_template('stub.html', page_title='Profile')
+@bp.route('/settings/profile')
+@login_required
+def settings_profile():
+    stats = _make_recent_games(current_user)
+    return render_template('settings_profile.html', settings_nav='profile', stats=stats)
 
 
-@bp.route('/settings')
-def settings_page():
-    return render_template('stub.html', page_title='Settings')
+@bp.route('/settings/account', methods=['GET', 'POST'])
+@login_required
+def settings_account():
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        if action == 'change_username':
+            new_username = request.form.get('username', '').strip()
+            if not new_username:
+                flash('Username cannot be empty.')
+            elif new_username != current_user.username and Account.query.filter_by(username=new_username).first():
+                flash('That username is already in use.')
+            else:
+                current_user.username = new_username
+                db.session.commit()
+                flash('Username updated.')
+
+        elif action == 'change_email':
+            new_email = request.form.get('email', '').strip()
+            if not _valid_email(new_email):
+                flash('Please enter a valid email address.')
+            elif new_email != (current_user.email or '') and Account.query.filter_by(email=new_email).first():
+                flash('That email is already in use.')
+            else:
+                current_user.email = new_email
+                db.session.commit()
+                flash('Email updated.')
+
+        elif action == 'change_password':
+            current_password = request.form.get('current_password', '')
+            new_password = request.form.get('new_password', '')
+            confirm_password = request.form.get('confirm_password', '')
+
+            if not current_user.check_password(current_password):
+                flash('Current password is incorrect.')
+            elif len(new_password) < 6:
+                flash('New password must be at least 6 characters.')
+            elif new_password != confirm_password:
+                flash('New password and confirmation do not match.')
+            else:
+                current_user.set_password(new_password)
+                db.session.commit()
+                flash('Password updated.')
+
+        elif action == 'disable_account':
+            current_user.disabled = True
+            db.session.commit()
+            flash('Account disabled flag set.')
+
+        elif action == 'delete_account':
+            confirmation = request.form.get('confirm_username', '').strip()
+            if confirmation != current_user.username:
+                flash('Username confirmation did not match.')
+            else:
+                current_user.deleted = True
+                current_user.disabled = True
+                current_user.email = None
+                current_user.set_password(str(uuid.uuid4()))
+                current_user.username = _unique_deleted_username(current_user.id)
+                # TODO: remove user-owned script/function rows once those tables exist;
+                # keep shared game history and opponent-authored artifacts.
+                db.session.commit()
+                logout_user()
+                flash('Account deleted and anonymized.')
+                return redirect(url_for('main.login'))
+
+    return render_template('settings_account.html', settings_nav='account')
+
+
+@bp.route('/settings/game', methods=['GET', 'POST'])
+@login_required
+def settings_game():
+    settings = _get_or_create_settings(current_user)
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        if action == 'save_defaults':
+            time_control = request.form.get('time_control', Config.DEFAULT_TIME_CONTROL)
+            if time_control not in Config.TIME_CONTROL_PRESETS and time_control != 'custom':
+                flash('Invalid time control option.')
+            else:
+                custom_minutes = settings.custom_minutes
+                if time_control == 'custom':
+                    try:
+                        custom_minutes = int(request.form.get('custom_minutes', Config.DEFAULT_CUSTOM_MINUTES))
+                    except (TypeError, ValueError):
+                        custom_minutes = Config.DEFAULT_CUSTOM_MINUTES
+                    custom_minutes = max(1, min(custom_minutes, 180))
+                else:
+                    custom_minutes = None
+
+                default_player = request.form.get('default_player', Config.DEFAULT_PLAYER_CHOICE)
+                if default_player not in ('p1', 'p2', 'random'):
+                    default_player = Config.DEFAULT_PLAYER_CHOICE
+
+                try:
+                    board_size = int(request.form.get('default_board_size', Config.BOARD_SIZE))
+                except (TypeError, ValueError):
+                    board_size = Config.BOARD_SIZE
+                board_size = _closest_board_size(board_size)
+
+                settings.default_time_control = time_control
+                settings.custom_minutes = custom_minutes
+                settings.default_player = default_player
+                settings.default_board_size = board_size
+                db.session.commit()
+                flash('Game defaults saved.')
+
+            return redirect(url_for('main.settings_game', _anchor='defaults'))
+
+        if action == 'save_palette':
+            palette = request.form.get('palette', Config.DEFAULT_PALETTE)
+            if palette not in _PALETTES:
+                flash('Invalid palette selection.')
+            else:
+                settings.palette = palette
+                db.session.commit()
+                flash('Appearance saved.')
+            return redirect(url_for('main.settings_game', _anchor='appearance'))
+
+    return render_template(
+        'settings_game.html',
+        settings_nav='game',
+        settings=settings,
+        board_size_stops=Config.BOARD_SIZE_STOPS,
+        time_controls=('60', '30', '15', '5', 'custom'),
+    )
+
+
+@bp.route('/settings/feedback')
+@login_required
+def settings_feedback():
+    return render_template('settings_feedback.html', settings_nav='feedback')
+
+
+@bp.route('/settings/about-legal')
+@login_required
+def settings_about_legal():
+    return render_template('settings_about_legal.html', settings_nav='about-legal')
 
 
 @bp.route('/contact', methods=['GET', 'POST'])
@@ -106,6 +410,9 @@ def contact():
             email=request.form.get('email', '').strip(),
             message=request.form.get('message', '').strip(),
         )
+        if request.form.get('form_source') == 'settings-feedback' and current_user.is_authenticated:
+            flash('Thanks for the feedback.')
+            return redirect(url_for('main.settings_feedback'))
     return render_template('contact.html')
 
 
