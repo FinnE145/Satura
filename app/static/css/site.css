@@ -708,6 +708,45 @@ a[aria-disabled='true'] {
     transition: opacity 0.15s;
 }
 
+/* End-of-game modal */
+
+.game-over-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+}
+
+.game-over-modal[hidden] {
+    display: none;
+}
+
+.game-over-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 14, 13, 0.72);
+}
+
+.game-over-modal__card {
+    position: relative;
+    width: min(100%, 30rem);
+    border-color: var(--border-mid);
+    box-shadow: 0 1.1rem 2.4rem rgba(0, 0, 0, 0.46);
+}
+
+.game-over-modal__body {
+    padding: 1.125em 1.25em;
+}
+
+.game-over-modal__message {
+    margin: 0;
+    font-size: 1.02em;
+    line-height: 1.55;
+    color: var(--text);
+}
+
 .stub-back:hover {
     opacity: 0.7;
 }
@@ -1092,10 +1131,32 @@ a[aria-disabled='true'] {
     transition: background 0.2s, color 0.2s;
 }
 
-.phase-pill--write {
+.phase-pill--p1 {
     background: var(--accent-tint);
     color: var(--accent);
     border-color: var(--accent-tint-25);
+}
+
+.phase-pill--p2 {
+    background: var(--accent-cool-tint);
+    color: var(--accent-cool);
+    border-color: var(--accent-cool-tint-25);
+}
+
+.phase-pill--write {
+    font-weight: 600;
+}
+
+.phase-pill--p1.phase-pill--write {
+    background: var(--accent-tint);
+    color: var(--accent-bright);
+    border-color: var(--accent-bright-dim);
+}
+
+.phase-pill--p2.phase-pill--write {
+    background: var(--accent-cool-tint);
+    color: var(--accent-cool-bright);
+    border-color: var(--accent-cool-bright-dim);
 }
 
 .session-bar-spacer {

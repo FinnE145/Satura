@@ -45,8 +45,8 @@
                 <div class="card-header">
                     <h2 class="card-title">Board</h2>
                     <span class="board-legend" id="board-legend">
-                        <span class="board-legend-item board-legend-item--p1">P1</span>
-                        <span class="board-legend-item board-legend-item--p2">P2</span>
+                        <span class="board-legend-item board-legend-item--p1" id="board-legend-p1">P1 --:--</span>
+                        <span class="board-legend-item board-legend-item--p2" id="board-legend-p2">P2 --:--</span>
                     </span>
                 </div>
                 <div class="board-wrap">
@@ -82,6 +82,23 @@
             </div>
 
         </div><!-- .results-row -->
+
+        <!-- End-of-game modal -->
+        <div class="game-over-modal" id="game-over-modal" role="dialog" aria-modal="true"
+            aria-labelledby="game-over-title" hidden>
+            <div class="game-over-modal__backdrop" id="game-over-backdrop"></div>
+            <div class="card game-over-modal__card" role="document">
+                <div class="card-header">
+                    <h2 class="card-title" id="game-over-title">Game Over</h2>
+                </div>
+                <div class="card-body game-over-modal__body">
+                    <p class="game-over-modal__message text-small-sans" id="game-over-message"></p>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn--secondary" id="game-over-dismiss">Close</button>
+                </div>
+            </div>
+        </div>
 
     </div><!-- .container -->
 </main>

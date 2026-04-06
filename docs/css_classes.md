@@ -173,7 +173,9 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.session-bar-spacer` | flex spacer that pushes subsequent items right |
 | `.session-id` | monospace session UUID display |
 | `.phase-pill` | rounded pill showing the current game phase |
-| `.phase-pill--write` | warm accent variant for the write phase |
+| `.phase-pill--p1` | warm accent variant for P1-controlled phases |
+| `.phase-pill--p2` | cool accent variant for P2-controlled phases |
+| `.phase-pill--write` | stronger emphasis modifier for write phases (with P1/P2 colour) |
 | `.word-bank` | word-bank count display in the session bar |
 | `.workspace` | 55/45 grid: script editor left, board right |
 | `.editor-card` | flex column card wrapping the script editor |
@@ -186,7 +188,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.script-editor` | full-height monospace textarea for script input |
 | `.board-card` | flex column card wrapping the game board |
 | `.board-legend` | flex row legend showing both player colours |
-| `.board-legend-item` | pill legend item (use with `--p1` or `--p2`) |
+| `.board-legend-item` | pill legend item showing player label and remaining clock (use with `--p1` or `--p2`) |
 | `.board-legend-item--p1` | warm accent pill |
 | `.board-legend-item--p2` | cool accent pill |
 | `.board-wrap` | padded inner container for the board grid |
@@ -213,6 +215,11 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.log-detail` | detail/argument text in a log entry |
 | `.log-sep` | thin horizontal rule separating log sections |
 | `.log-summary` | small summary line at the end of a log block |
+| `.game-over-modal` | full-screen overlay wrapper for end-of-game popup |
+| `.game-over-modal__backdrop` | dimmed click-to-dismiss backdrop behind popup card |
+| `.game-over-modal__card` | centered modal card container |
+| `.game-over-modal__body` | inner body padding wrapper for modal content |
+| `.game-over-modal__message` | outcome message text for win/loss/stalemate popup |
 
 ### Login page
 | Class | Description |

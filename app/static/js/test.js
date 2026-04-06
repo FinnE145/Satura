@@ -3,6 +3,8 @@
 const statusDot = document.getElementById('status-dot');
 const sessionIdEl = document.getElementById('session-id');
 const sessionPhaseEl = document.getElementById('session-phase');
+const boardLegendP1El = document.getElementById('board-legend-p1');
+const boardLegendP2El = document.getElementById('board-legend-p2');
 const wordBankEl = document.getElementById('word-bank');
 const wordCostEl = document.getElementById('word-cost');
 const wordEtaEl = document.getElementById('word-eta');
@@ -13,11 +15,16 @@ const diagBadge = document.getElementById('diag-badge');
 const diagBody = document.getElementById('diagnostics-body');
 const outputBody = document.getElementById('output-body');
 const outcomeLabel = document.getElementById('outcome-label');
+const gameOverModal = document.getElementById('game-over-modal');
+const gameOverMessage = document.getElementById('game-over-message');
+const gameOverDismissBtn = document.getElementById('game-over-dismiss');
+const gameOverBackdrop = document.getElementById('game-over-backdrop');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let gameId = null;
 let bankPollTimer = null;
+let clockRenderTimer = null;
 const fallbackPalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' };
 const bodyPalette = document.body?.dataset;
 let activePalette = {
@@ -32,7 +39,19 @@ let currentWordCount = 0;
 let sessionReady = false;
 let compileState = null;   // null = dirty; {errors, warnings} = last compile result
 let deployConfirmPending = false; // warnings shown, waiting for second click
-const STEP_DELAY_MS = 500;
+let clockSnapshot = null;
+let phaseSnapshot = null;
+let lastReplayKey = null;
+let replayInFlight = false;
+let stepDelayMs = 500;
+let gameOverModalShown = false;
+
+if (gameOverDismissBtn) {
+    gameOverDismissBtn.addEventListener('click', hideGameOverModal);
+}
+if (gameOverBackdrop) {
+    gameOverBackdrop.addEventListener('click', hideGameOverModal);
+}
 
 // ── Word cost tokenizer ───────────────────────────────────────────────────────
 // Mirrors WORD_COSTS in app/lang/tokens.py — every match costs 1 word.
@@ -61,6 +80,8 @@ async function init() {
         const initState = await get(`/games/${gameId}/state`);
         applySessionState(initState);
         renderBoard(initState);
+        markReplaySeen(initState);
+        startClockRender();
 
         startBankPoll();
     } catch (e) {
@@ -73,13 +94,16 @@ async function init() {
 // ── Word bank polling ─────────────────────────────────────────────────────────
 
 function startBankPoll() {
-    if (bankPollTimer) clearInterval(bankPollTimer);
+    if (bankPollTimer) {
+        clearInterval(bankPollTimer);
+        bankPollTimer = null;
+    }
     refreshBank();
     bankPollTimer = setInterval(refreshBank, 2000);
 }
 
 async function refreshBank() {
-    if (!gameId) return;
+    if (!gameId || !bankPollTimer) return;
     try {
         const state = await get(`/games/${gameId}/state`);
         const bank = state.word_bank?.[1] ?? 0;
@@ -87,6 +111,11 @@ async function refreshBank() {
         lastRate = state.word_rate ?? (1 / 3);
         wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> words in bank`;
         applySessionState(state);
+        await replayPolledExecution(state);
+        if (state?.game_over === true && bankPollTimer) {
+            clearInterval(bankPollTimer);
+            bankPollTimer = null;
+        }
         updateWordEta();
         updateDeployButton();
         updateWordShortageNotice();
@@ -159,7 +188,7 @@ btnDeploy.addEventListener('click', async () => {
         // Step 2: deploy
         clearOutput();
         const preExecState = cloneBoardAndAgents(lastBoardState);
-        setPhase('exec1');
+        setPhase('P1 Exec 1');
         setSessionReady(false);
 
         const data = await post(`/games/${gameId}/deploy`, {
@@ -174,7 +203,7 @@ btnDeploy.addEventListener('click', async () => {
             clearDiagnostics();
             renderDiagnostics(data);
             // If deploy is rejected, remain in write phase.
-            setPhase('write', true);
+            setPhase('P1 Write', true);
             setSessionReady(true);
             return;
         }
@@ -185,10 +214,13 @@ btnDeploy.addEventListener('click', async () => {
         // Fetch exec log, territory, and board from game state
         const state = await get(`/games/${gameId}/state`);
         applySessionState(state);
-        await replayExecution(preExecState, state, 1);
-
-        // Reset to a fresh session so the user can test again immediately
-        await resetSession();
+        replayInFlight = true;
+        try {
+            await replayExecution(preExecState, state, 1);
+        } finally {
+            replayInFlight = false;
+        }
+        markReplaySeen(state);
     } catch (e) {
         renderNetworkError(diagBadge, diagBody, e.message);
     } finally {
@@ -197,39 +229,6 @@ btnDeploy.addEventListener('click', async () => {
         updateWordShortageNotice();
     }
 });
-
-async function resetSession() {
-    clearInterval(bankPollTimer);
-    gameId = null;
-    compileState = null;
-    deployConfirmPending = false;
-
-    setStatus('pending');
-    setPhase('resetting');
-    setSessionReady(false);
-    wordBankEl.textContent = '';
-
-    // Brief pause so the "resetting" state is visible
-    await delay(600);
-
-    try {
-        const data = await post('/test/session');
-        gameId = data.game_id;
-        sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
-        sessionIdEl.title = gameId;
-        setStatus('ready');
-
-        const initState = await get(`/games/${gameId}/state`);
-        applySessionState(initState);
-        renderBoard(initState);
-
-        startBankPoll();
-    } catch (e) {
-        setStatus('error');
-        setPhase('error');
-        sessionIdEl.textContent = 'failed to reset';
-    }
-}
 
 // ── Compile button state ──────────────────────────────────────────────────────
 
@@ -437,7 +436,7 @@ async function renderOutputStepByStep(state, onStep) {
     for (let i = 0; i < log.length; i++) {
         const entry = log[i];
         if (!isInstantSensingOp(entry)) {
-            await delay(STEP_DELAY_MS);
+            await delay(stepDelayMs);
         }
 
         const row = document.createElement('div');
@@ -699,15 +698,225 @@ function setStatus(state) {
 }
 
 function setPhase(text, highlight = false) {
+    phaseSnapshot = null;
     sessionPhaseEl.textContent = text;
     sessionPhaseEl.className = highlight ? 'phase-pill phase-pill--write' : 'phase-pill';
+}
+
+function phasePillClass(isWrite, player) {
+    const classes = ['phase-pill'];
+    if (player === 1) {
+        classes.push('phase-pill--p1');
+    } else if (player === 2) {
+        classes.push('phase-pill--p2');
+    }
+    if (isWrite) {
+        classes.push('phase-pill--write');
+    }
+    return classes.join(' ');
 }
 
 function applySessionState(state) {
     const phase = state?.phase ?? 'unknown';
     const isWrite = phase === 'write';
-    setPhase(phase, isWrite);
-    setSessionReady(isWrite && state?.game_over !== true);
+    const isP1Turn = Number(state?.current_player ?? 0) === 1;
+    updateStepDelayFromState(state);
+    updatePhaseSnapshot(state);
+    updateClockSnapshot(state);
+    setSessionReady(isWrite && isP1Turn && state?.game_over !== true);
+    maybeShowGameOverModal(state);
+}
+
+function maybeShowGameOverModal(state) {
+    if (!state || state.game_over !== true || gameOverModalShown || !gameOverModal || !gameOverMessage) {
+        return;
+    }
+    gameOverModalShown = true;
+
+    const winner = state.winner;
+    const reason = state.end_reason;
+    if (reason === 'timeout') {
+        gameOverMessage.textContent = winner === 1
+            ? 'Win by timeout: P2 ran out of write time.'
+            : 'Loss by timeout: P1 ran out of write time.';
+    } else if (reason === 'territory') {
+        gameOverMessage.textContent = winner === 1
+            ? 'Win by board control: P1 reached the territory threshold.'
+            : 'Loss by board control: P2 reached the territory threshold.';
+    } else if (reason === 'stalemate' || winner === 'draw') {
+        gameOverMessage.textContent = 'Stalemate: neither player can still mathematically reach the territory threshold.';
+    } else {
+        gameOverMessage.textContent = winner === 1
+            ? 'Game over: P1 wins.'
+            : winner === 2
+                ? 'Game over: P2 wins.'
+                : 'Game over: draw.';
+    }
+    gameOverModal.hidden = false;
+}
+
+function hideGameOverModal() {
+    if (!gameOverModal) return;
+    gameOverModal.hidden = true;
+}
+
+function updateStepDelayFromState(state) {
+    const stepSeconds = Number(state?.animation_step_duration);
+    if (!Number.isFinite(stepSeconds) || stepSeconds <= 0) {
+        return;
+    }
+    stepDelayMs = Math.round(stepSeconds * 1000);
+}
+
+function updatePhaseSnapshot(state) {
+    const baseLabel = formatPhaseLabel(state);
+    const timer = state?.phase_timer;
+    const player = Number(state?.current_player ?? 0);
+
+    if (!timer || !timer.mode || !Number.isFinite(Number(timer.seconds))) {
+        phaseSnapshot = null;
+        sessionPhaseEl.textContent = baseLabel;
+        sessionPhaseEl.className = phasePillClass(state?.phase === 'write', player);
+        return;
+    }
+
+    phaseSnapshot = {
+        label: baseLabel,
+        mode: timer.mode,
+        seconds: Number(timer.seconds),
+        sampledAt: performance.now(),
+        isWrite: state?.phase === 'write',
+        player,
+    };
+    renderPhaseIndicator();
+}
+
+function renderPhaseIndicator() {
+    if (!phaseSnapshot) {
+        return;
+    }
+
+    const elapsed = Math.max(0, (performance.now() - phaseSnapshot.sampledAt) / 1000);
+    let timerText = '';
+    if (phaseSnapshot.mode === 'countdown') {
+        timerText = formatClock(Math.max(0, phaseSnapshot.seconds - elapsed));
+    } else if (phaseSnapshot.mode === 'countup') {
+        timerText = `+${formatClock(phaseSnapshot.seconds + elapsed)}`;
+    }
+
+    sessionPhaseEl.textContent = timerText ? `${phaseSnapshot.label} ${timerText}` : phaseSnapshot.label;
+    sessionPhaseEl.className = phasePillClass(phaseSnapshot.isWrite, phaseSnapshot.player);
+}
+
+function formatPhaseLabel(state) {
+    const phase = state?.phase ?? 'unknown';
+    const player = Number(state?.current_player ?? 0);
+    const side = player === 1 ? 'P1' : player === 2 ? 'P2' : null;
+
+    if (!side) {
+        return phase;
+    }
+
+    if (phase === 'anim_post_exec1' || phase === 'exec1') {
+        return `${side} Exec 1`;
+    }
+    if (phase === 'anim_pre_write' || phase === 'exec2') {
+        return `${side} Exec 2`;
+    }
+    if (phase === 'write') {
+        return `${side} Write`;
+    }
+    return phase;
+}
+
+function updateClockSnapshot(state) {
+    if (!state || !state.clock) {
+        return;
+    }
+    clockSnapshot = {
+        p1: Number(state.clock?.[1] ?? state.clock?.['1'] ?? 0),
+        p2: Number(state.clock?.[2] ?? state.clock?.['2'] ?? 0),
+        phase: state.phase,
+        currentPlayer: Number(state.current_player ?? 1),
+        gameOver: state.game_over === true,
+        sampledAt: performance.now(),
+    };
+    renderSessionClock();
+}
+
+function startClockRender() {
+    if (clockRenderTimer) return;
+    clockRenderTimer = setInterval(() => {
+        renderSessionClock();
+        renderPhaseIndicator();
+    }, 250);
+}
+
+function renderSessionClock() {
+    if (!boardLegendP1El || !boardLegendP2El) return;
+
+    if (!clockSnapshot) {
+        boardLegendP1El.textContent = 'P1 --:--';
+        boardLegendP2El.textContent = 'P2 --:--';
+        return;
+    }
+
+    let p1 = clockSnapshot.p1;
+    let p2 = clockSnapshot.p2;
+
+    if (!clockSnapshot.gameOver && clockSnapshot.phase === 'write') {
+        const elapsed = Math.max(0, (performance.now() - clockSnapshot.sampledAt) / 1000);
+        if (clockSnapshot.currentPlayer === 1) {
+            p1 = Math.max(0, p1 - elapsed);
+        } else {
+            p2 = Math.max(0, p2 - elapsed);
+        }
+    }
+
+    boardLegendP1El.textContent = `P1 ${formatClock(p1)}`;
+    boardLegendP2El.textContent = `P2 ${formatClock(p2)}`;
+}
+
+function formatClock(seconds) {
+    const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function replayKeyForState(state) {
+    const log = state?.exec_log ?? [];
+    const actor = Number(state?.last_exec_player ?? state?.current_player ?? 0);
+    const consumed = Number(state?.exec_ops_consumed ?? 0);
+    return `${actor}|${consumed}|${JSON.stringify(log)}`;
+}
+
+function markReplaySeen(state) {
+    lastReplayKey = replayKeyForState(state);
+}
+
+async function replayPolledExecution(state) {
+    if (!state || replayInFlight) {
+        return;
+    }
+
+    const key = replayKeyForState(state);
+    if (key === lastReplayKey) {
+        if (lastBoardState !== state) {
+            renderBoard(state);
+        }
+        return;
+    }
+
+    const actor = Number(state?.last_exec_player ?? state?.current_player ?? 1);
+    const preExecState = cloneBoardAndAgents(lastBoardState);
+    replayInFlight = true;
+    try {
+        await replayExecution(preExecState, state, actor === 2 ? 2 : 1);
+    } finally {
+        replayInFlight = false;
+    }
+    markReplaySeen(state);
 }
 
 function setSessionReady(on) {
