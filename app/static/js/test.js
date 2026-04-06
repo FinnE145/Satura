@@ -18,7 +18,13 @@ const outcomeLabel = document.getElementById('outcome-label');
 
 let gameId = null;
 let bankPollTimer = null;
-let activePalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' }; // Solstice default
+const fallbackPalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' };
+const bodyPalette = document.body?.dataset;
+let activePalette = {
+    name: bodyPalette?.activePalette || fallbackPalette.name,
+    warm: bodyPalette?.paletteWarm || fallbackPalette.warm,
+    cool: bodyPalette?.paletteCool || fallbackPalette.cool,
+};
 let lastBoardState = null;
 let lastBank = 0;
 let lastRate = 1 / 3;
@@ -761,109 +767,6 @@ async function get(url) {
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// ── Palette ───────────────────────────────────────────────────────────────────
-
-const brandMark = document.querySelector('.brand-mark');
-const paletteBtns = document.querySelectorAll('.palette-btn');
-
-function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function hexToHsl(hex) {
-    let r = parseInt(hex.slice(1, 3), 16) / 255;
-    let g = parseInt(hex.slice(3, 5), 16) / 255;
-    let b = parseInt(hex.slice(5, 7), 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const l = (max + min) / 2;
-    if (max === min) return [0, 0, l * 100];
-    const d = max - min;
-    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    let h = max === r ? (g - b) / d + (g < b ? 6 : 0)
-        : max === g ? (b - r) / d + 2
-            : (r - g) / d + 4;
-    return [h / 6 * 360, s * 100, l * 100];
-}
-
-function hslToHex(h, s, l) {
-    h /= 360; s /= 100; l /= 100;
-    const hue2rgb = (p, q, t) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-    };
-    let r, g, b;
-    if (s === 0) {
-        r = g = b = l;
-    } else {
-        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        const p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1 / 3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1 / 3);
-    }
-    const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function brighten(hex, amount = 18) {
-    const [h, s, l] = hexToHsl(hex);
-    return hslToHex(h, s, Math.min(l + amount, 92));
-}
-
-function applyPalette(btn) {
-    const warm = btn.dataset.warm;
-    const cool = btn.dataset.cool;
-    activePalette = { name: btn.dataset.palette, warm, cool };
-    localStorage.setItem('satura_palette', activePalette.name);
-    const root = document.documentElement;
-
-    const warmBright = brighten(warm);
-    const coolBright = brighten(cool);
-
-    root.style.setProperty('--accent', warm);
-    root.style.setProperty('--accent-tint', hexToRgba(warm, 0.10));
-    root.style.setProperty('--accent-dim', hexToRgba(warm, 0.65));
-    root.style.setProperty('--accent-cool', cool);
-    root.style.setProperty('--accent-cool-dim', hexToRgba(cool, 0.65));
-    root.style.setProperty('--accent-cool-tint', hexToRgba(cool, 0.10));
-
-    root.style.setProperty('--accent-bright', warmBright);
-    root.style.setProperty('--accent-bright-dim', hexToRgba(warmBright, 0.65));
-    root.style.setProperty('--accent-bright-tint', hexToRgba(warmBright, 0.10));
-    root.style.setProperty('--accent-cool-bright', coolBright);
-    root.style.setProperty('--accent-cool-bright-dim', hexToRgba(coolBright, 0.65));
-    root.style.setProperty('--accent-cool-bright-tint', hexToRgba(coolBright, 0.10));
-
-    // Swap the header logo mark to match
-    brandMark.src = btn.querySelector('.palette-mark').src;
-
-    // Re-render board with new palette colours
-    if (lastBoardState) renderBoard(lastBoardState);
-
-    // Update button active states
-    paletteBtns.forEach(b => {
-        const active = b === btn;
-        b.style.borderColor = active ? warm : '';
-        b.style.background = active ? hexToRgba(warm, 0.10) : '';
-        b.style.color = active ? warm : '';
-    });
-}
-
-paletteBtns.forEach(btn => btn.addEventListener('click', () => applyPalette(btn)));
-
-// Apply user's active palette first; fallback to local storage, then Solstice.
-const serverPalette = document.body?.dataset?.activePalette;
-const storedPalette = localStorage.getItem('satura_palette');
-const preferredPalette = serverPalette || storedPalette || 'solstice';
-applyPalette(document.querySelector(`[data-palette="${preferredPalette}"]`) || document.querySelector('[data-palette="solstice"]'));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

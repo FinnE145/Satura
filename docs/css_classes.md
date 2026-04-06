@@ -175,7 +175,6 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.phase-pill` | rounded pill showing the current game phase |
 | `.phase-pill--write` | warm accent variant for the write phase |
 | `.word-bank` | word-bank count display in the session bar |
-| `.palette-label` | tiny uppercase "Palette" label (shares styles with `.session-bar-key`) |
 | `.workspace` | 55/45 grid: script editor left, board right |
 | `.editor-card` | flex column card wrapping the script editor |
 | `.script-meta` | flex row showing word cost and ETA above the editor |
@@ -214,10 +213,6 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.log-detail` | detail/argument text in a log entry |
 | `.log-sep` | thin horizontal rule separating log sections |
 | `.log-summary` | small summary line at the end of a log block |
-| `.palette-bar` | flex row containing the palette selector |
-| `.palette-options` | flex row of `.palette-btn` elements |
-| `.palette-btn` | bordered button showing palette name + colour mark |
-| `.palette-mark` | small coloured square inside a `.palette-btn` |
 
 ### Login page
 | Class | Description |

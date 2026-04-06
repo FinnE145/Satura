@@ -3,120 +3,90 @@
 {% block title %}Satura — Test Bench{% endblock %}
 
 {% block content %}
-    <main class="site-main">
-        <div class="container">
+<main class="site-main">
+    <div class="container">
 
-            <!-- Session status bar -->
-            <div class="session-bar" role="status" aria-live="polite">
-                <span class="status-dot" id="status-dot" aria-hidden="true"></span>
-                <span class="session-bar-group">
-                    <span class="session-bar-key">Session</span>
-                    <code class="session-id" id="session-id" title="">—</code>
-                </span>
-                <span class="session-bar-sep" aria-hidden="true">·</span>
-                <span class="phase-pill" id="session-phase">initialising</span>
-                <span class="session-bar-spacer"></span>
-                <span class="word-bank" id="word-bank"></span>
-            </div>
+        <!-- Session status bar -->
+        <div class="session-bar" role="status" aria-live="polite">
+            <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+            <span class="session-bar-group">
+                <span class="session-bar-key">Session</span>
+                <code class="session-id" id="session-id" title="">—</code>
+            </span>
+            <span class="session-bar-sep" aria-hidden="true">·</span>
+            <span class="phase-pill" id="session-phase">initialising</span>
+            <span class="session-bar-spacer"></span>
+            <span class="word-bank" id="word-bank"></span>
+        </div>
 
-            <!-- Palette selector -->
-            <div class="palette-bar">
-                <span class="palette-label">Palette</span>
-                <div class="palette-options">
-                    <button type="button" class="palette-btn" data-palette="solstice" data-warm="#D2640E" data-cool="#A82068">
-                        <img src="{{ url_for('static', filename='satura_logo_mark_solstice.svg') }}" alt="" class="palette-mark">
-                        <span>Solstice</span>
-                    </button>
-                    <button type="button" class="palette-btn" data-palette="fieldstone" data-warm="#AC3E26" data-cool="#2C4874">
-                        <img src="{{ url_for('static', filename='satura_logo_mark_fieldstone.svg') }}" alt="" class="palette-mark">
-                        <span>Fieldstone</span>
-                    </button>
-                    <button type="button" class="palette-btn" data-palette="levant" data-warm="#C48C1C" data-cool="#661E6E">
-                        <img src="{{ url_for('static', filename='satura_logo_mark_levant.svg') }}" alt="" class="palette-mark">
-                        <span>Levant</span>
-                    </button>
-                    <button type="button" class="palette-btn" data-palette="folio" data-warm="#D4A800" data-cool="#303482">
-                        <img src="{{ url_for('static', filename='satura_logo_mark_folio.svg') }}" alt="" class="palette-mark">
-                        <span>Folio</span>
-                    </button>
+        <!-- Workspace: editor + board -->
+        <div class="workspace">
+
+            <!-- Editor card -->
+            <div class="card editor-card">
+                <div class="card-header">
+                    <h2 class="card-title">Script</h2>
+                    <span class="script-meta">
+                        <span class="word-cost" id="word-cost"></span>
+                        <span class="word-eta" id="word-eta"></span>
+                    </span>
+                </div>
+                <textarea class="script-editor" id="script-editor" spellcheck="false" autocomplete="off"
+                    autocorrect="off" autocapitalize="off" placeholder="// write your script here"
+                    aria-label="Script editor"></textarea>
+                <div class="card-footer">
+                    <button class="btn btn--ghost" id="btn-compile" disabled>Compile</button>
+                    <button class="btn btn--accent" id="btn-deploy" disabled>Deploy</button>
                 </div>
             </div>
 
-            <!-- Workspace: editor + board -->
-            <div class="workspace">
-
-                <!-- Editor card -->
-                <div class="card editor-card">
-                    <div class="card-header">
-                        <h2 class="card-title">Script</h2>
-                        <span class="script-meta">
-                            <span class="word-cost" id="word-cost"></span>
-                            <span class="word-eta" id="word-eta"></span>
-                        </span>
-                    </div>
-                    <textarea
-                        class="script-editor"
-                        id="script-editor"
-                        spellcheck="false"
-                        autocomplete="off"
-                        autocorrect="off"
-                        autocapitalize="off"
-                        placeholder="// write your script here"
-                        aria-label="Script editor"
-                    ></textarea>
-                    <div class="card-footer">
-                        <button class="btn btn--ghost" id="btn-compile" disabled>Compile</button>
-                        <button class="btn btn--accent" id="btn-deploy" disabled>Deploy</button>
-                    </div>
+            <!-- Board card -->
+            <div class="card board-card">
+                <div class="card-header">
+                    <h2 class="card-title">Board</h2>
+                    <span class="board-legend" id="board-legend">
+                        <span class="board-legend-item board-legend-item--p1">P1</span>
+                        <span class="board-legend-item board-legend-item--p2">P2</span>
+                    </span>
                 </div>
-
-                <!-- Board card -->
-                <div class="card board-card">
-                    <div class="card-header">
-                        <h2 class="card-title">Board</h2>
-                        <span class="board-legend" id="board-legend">
-                            <span class="board-legend-item board-legend-item--p1">P1</span>
-                            <span class="board-legend-item board-legend-item--p2">P2</span>
-                        </span>
-                    </div>
-                    <div class="board-wrap">
-                        <div class="board-grid" id="board-grid"></div>
-                    </div>
+                <div class="board-wrap">
+                    <div class="board-grid" id="board-grid"></div>
                 </div>
+            </div>
 
-            </div><!-- .workspace -->
+        </div><!-- .workspace -->
 
-            <!-- Results row: diagnostics + output -->
-            <div class="results-row">
+        <!-- Results row: diagnostics + output -->
+        <div class="results-row">
 
-                <!-- Diagnostics -->
-                <div class="card result-card" id="diagnostics-card">
-                    <div class="card-header">
-                        <h2 class="card-title">Diagnostics</h2>
-                        <span class="badge" id="diag-badge" aria-live="polite"></span>
-                    </div>
-                    <div class="card-body" id="diagnostics-body">
-                        <span class="empty-label">No diagnostics</span>
-                    </div>
+            <!-- Diagnostics -->
+            <div class="card result-card" id="diagnostics-card">
+                <div class="card-header">
+                    <h2 class="card-title">Diagnostics</h2>
+                    <span class="badge" id="diag-badge" aria-live="polite"></span>
                 </div>
-
-                <!-- Output -->
-                <div class="card result-card" id="output-card">
-                    <div class="card-header">
-                        <h2 class="card-title">Output</h2>
-                        <span class="outcome-label" id="outcome-label"></span>
-                    </div>
-                    <div class="card-body" id="output-body">
-                        <span class="empty-label">No output yet</span>
-                    </div>
+                <div class="card-body" id="diagnostics-body">
+                    <span class="empty-label">No diagnostics</span>
                 </div>
+            </div>
 
-            </div><!-- .results-row -->
+            <!-- Output -->
+            <div class="card result-card" id="output-card">
+                <div class="card-header">
+                    <h2 class="card-title">Output</h2>
+                    <span class="outcome-label" id="outcome-label"></span>
+                </div>
+                <div class="card-body" id="output-body">
+                    <span class="empty-label">No output yet</span>
+                </div>
+            </div>
 
-        </div><!-- .container -->
-    </main>
+        </div><!-- .results-row -->
+
+    </div><!-- .container -->
+</main>
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/test.js') }}"></script>
+<script src="{{ url_for('static', filename='js/test.js') }}"></script>
 {% endblock %}

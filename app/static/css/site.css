@@ -1058,8 +1058,7 @@ a[aria-disabled='true'] {
     gap: 0.5em;
 }
 
-.session-bar-key,
-.palette-label {
+.session-bar-key {
     font-size: 0.7em;
     font-weight: 500;
     letter-spacing: 0.06em;
@@ -1446,53 +1445,6 @@ a[aria-disabled='true'] {
     color: var(--text-muted);
     padding: 0.25em 0 0.125em;
     letter-spacing: 0.01em;
-}
-
-/* Palette selector */
-
-.palette-bar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.875em;
-    margin-bottom: 1.5em;
-}
-
-/* .palette-label — merged with .session-bar-key */
-
-.palette-options {
-    display: flex;
-    gap: 0.375em;
-}
-
-.palette-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45em;
-    font-family: var(--font-ui);
-    font-size: 0.8125em;
-    font-weight: 500;
-    color: var(--text-muted);
-    background: transparent;
-    border: 1px solid var(--border-mid);
-    border-radius: var(--radius-sm);
-    padding: 0.35em 0.75em 0.35em 0.45em;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.palette-btn:hover {
-    background: var(--bg-hover);
-    color: var(--text);
-    border-color: var(--text-tint-22);
-}
-
-.palette-mark {
-    display: block;
-    width: 1.125em;
-    height: 1.125em;
-    border-radius: 0.1em;
-    flex-shrink: 0;
 }
 
 /* ─── Legal prose ────────────────────────────────────────────────────────────── */
