@@ -185,6 +185,8 @@ Script executions can end in three ways:
 | Halt | Script stops early via `halt` keyword or runtime error. All actions taken up to that point stand. |
 | Reset | Entire execution is undone. Board returns to its state before the execution began. Words are still spent. |
 
+`break` is loop-local control flow, not an execution outcome. It exits only the innermost loop and then execution continues normally after that loop.
+
 Conditions that cause a **reset:**
 - Op budget exceeded
 - Agent collides with opponent agent (moving agent resets)
@@ -366,7 +368,7 @@ A word is any keyword, operator, or board function that appears in the script. S
 
 | Category | Word cost |
 |---|---|
-| Keywords | `if`, `elif`, `else`, `for`, `while`, `halt`, `return`, `def` — each counts as 1 word |
+| Keywords | `if`, `elif`, `else`, `for`, `while`, `break`, `halt`, `return`, `def` — each counts as 1 word |
 | Operators | `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `+`, `-`, `*`, `/`, `%`, `and`, `or`, `not`, `min`, `max` — each counts as 1 word |
 | Language mechanics | `call`, `$`, `range`, `index`, `length`, `push`, `pop` — each counts as 1 word. `$` is required before every variable name (built-in or user-defined) and counts as 1 word per occurrence. `in` (for-loop keyword) and `list` (empty list constructor) are free. |
 | Board operations | `get_friction`, `has_agent`, `my_paint`, `opp_paint`, `paint`, `move` — each counts as 1 word |
@@ -465,6 +467,20 @@ while $ops_remaining > 10 {
     move(UP)
 }
 ```
+
+### break
+
+Exits the innermost enclosing `for` or `while` loop. Counts as 1 word.
+
+```c
+for $i in range(10) {
+    if $i == 3 { break }
+    paint(1)
+}
+// execution continues here after break
+```
+
+Using `break` outside a loop is a compile error.
 
 ### halt
 

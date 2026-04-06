@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Flag, auto
 from .nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -121,6 +121,7 @@ class Compiler:
         # Set during check() — reset per scope
         self._var_types:  dict[str, Type] = {}
         self._in_function: bool           = False
+        self._loop_depth: int             = 0
 
     # ------------------------------------------------------------------ public
 
@@ -157,6 +158,7 @@ class Compiler:
         # Pass 4 — full semantic walk.
         self._var_types   = global_types
         self._in_function = False
+        self._loop_depth  = 0
         for s in program.stmts:
             self._check_stmt(s)
 
@@ -423,13 +425,25 @@ class Compiler:
                     self._type_of(s.iterable, self._var_types), Type.LIST,
                     "for loop iterable", s.iterable.line, s.iterable.col,
                 )
-            for inner in s.body:
-                self._check_stmt(inner)
+            self._loop_depth += 1
+            try:
+                for inner in s.body:
+                    self._check_stmt(inner)
+            finally:
+                self._loop_depth -= 1
 
         elif isinstance(s, While):
             self._check_expr(s.cond)
-            for inner in s.body:
-                self._check_stmt(inner)
+            self._loop_depth += 1
+            try:
+                for inner in s.body:
+                    self._check_stmt(inner)
+            finally:
+                self._loop_depth -= 1
+
+        elif isinstance(s, Break):
+            if self._loop_depth == 0:
+                self._error("'break' used outside a loop", s.line, s.col)
 
         elif isinstance(s, Return):
             if not self._in_function:
@@ -447,16 +461,19 @@ class Compiler:
             # Enter isolated function scope — save and restore surrounding state
             outer_types   = self._var_types
             outer_in_func = self._in_function
+            outer_loop_depth = self._loop_depth
 
             param_types       = {p: ANY for p in s.params}
             self._var_types   = self._compute_var_types(s.body, param_types)
             self._in_function = True
+            self._loop_depth  = 0
 
             for inner in s.body:
                 self._check_stmt(inner)
 
             self._var_types   = outer_types
             self._in_function = outer_in_func
+            self._loop_depth  = outer_loop_depth
 
         # Halt — nothing to check
 

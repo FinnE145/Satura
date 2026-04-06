@@ -85,7 +85,7 @@
 ## Control Flow
 
 -   if / elif / else
--   for, while, halt
+-   for, while, break, halt
 
 ## Functions
 

@@ -392,6 +392,15 @@ class TestEngineCompile:
         result = self.e.compile("")
         assert result.ok is True
 
+    def test_break_in_loop_compiles(self):
+        result = self.e.compile("for $i in range(3) { break }")
+        assert result.ok is True
+
+    def test_break_outside_loop_is_compile_error(self):
+        result = self.e.compile("break")
+        assert result.ok is False
+        assert any("'break' used outside a loop" in str(e) for e in result.errors)
+
 
 # ================================================================== Engine.run_execution
 
@@ -460,6 +469,14 @@ class TestRunExecution:
 
         assert outcome == "halt"
         assert e.board.cell(1, 1).p1 == 4  # NOT rolled back
+
+    def test_break_exits_loop_and_completes_normally(self):
+        compile_result = self.e.compile("for $i in range(5) { if $i == 2 { break } paint(1) }")
+        assert compile_result.ok
+        outcome, log, _ = self.e.run_execution(1, compile_result.program)
+        assert outcome == "normal"
+        paint_ops = [entry for entry in log if entry.get("op") == "paint"]
+        assert len(paint_ops) == 2
 
 
 # ================================================================== Engine.check_winner

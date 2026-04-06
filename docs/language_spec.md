@@ -40,7 +40,7 @@ $x = 5  // inline comment
 The following identifiers are reserved and may not be used as variable or function names:
 
 ```
-if  elif  else  for  while  halt  return  def  call  in
+if  elif  else  for  while  break  halt  return  def  call  in
 and  or  not  min  max  range  index  length  push  pop  list
 ```
 
@@ -134,7 +134,7 @@ A word is any keyword, operator, or board function that appears in the script. T
 |---|---|---|
 | Conditional keywords | `if`, `elif`, `else` | 1 each |
 | Loop keywords | `for`, `while` | 1 each |
-| Flow keywords | `halt`, `return`, `def` | 1 each |
+| Flow keywords | `halt`, `break`, `return`, `def` | 1 each |
 | Call keyword | `call` | 1 |
 | Variable sigil | `$` | 1 per occurrence |
 | Assignment operator | `=` | 1 |
@@ -389,13 +389,23 @@ while condition {
 
 `while` costs **1 word.** Condition rules are the same as `if`.
 
-### 7.5 halt
+### 7.5 break
+
+```
+break
+```
+
+`break` costs **1 word.** Immediately exits the innermost enclosing `for` or `while` loop. Execution then continues with the first statement after that loop.
+
+`break` is valid only inside loop bodies. Using `break` outside a `for`/`while` loop is a **compile error.**
+
+### 7.6 halt
 
 ```
 halt
 ```
 
-`halt` costs **1 word.** Immediately stops execution. All actions taken up to this point **stand** (are not undone). See Section 12 for the distinction between halt and reset.
+`halt` costs **1 word.** Immediately stops the entire script execution. All actions taken up to this point **stand** (are not undone). See Section 12 for the distinction between halt and reset.
 
 ---
 
@@ -667,6 +677,7 @@ Compile errors prevent the script from being deployed. They do not cost words or
 - Syntax errors (malformed statements, mismatched braces, etc.)
 - Uninitialized variable read (where statically detectable)
 - `return` outside a function body
+- `break` outside a loop body
 - Nested `def` inside a function body or block
 - Assignment to a built-in variable (`$directions`, `$locations`, `$ops_remaining`, `$op_limit`)
 - `$` followed by an unrecognized or unassigned name (where statically detectable)
@@ -695,6 +706,7 @@ statement       = def_stmt
                 | if_stmt
                 | for_stmt
                 | while_stmt
+                | break_stmt
                 | halt_stmt
                 | return_stmt
                 | ";" ;
@@ -719,6 +731,8 @@ range_expr      = "range" "(" expression
                   ( "," expression ( "," expression )? )? ")" ;
 
 while_stmt      = "while" expression block ;
+
+break_stmt      = "break" ";"? ;
 
 halt_stmt       = "halt" ";"? ;
 

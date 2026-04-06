@@ -1,6 +1,6 @@
 from .tokens import Token, TokenType
 from .nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -119,6 +119,10 @@ class Parser:
             tok = self._expect(TokenType.HALT, "expected 'halt'")
             self._match(TokenType.SEMICOLON)
             return Halt(line=tok.line, col=tok.col)
+        if self._check(TokenType.BREAK):
+            tok = self._expect(TokenType.BREAK, "expected 'break'")
+            self._match(TokenType.SEMICOLON)
+            return Break(line=tok.line, col=tok.col)
         if self._check(TokenType.RETURN):
             return self._parse_return()
 

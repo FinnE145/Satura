@@ -216,6 +216,18 @@ class TestDeployScript:
         # Word tick should be None (paused) after deploy
         assert s.engine._word_tick[1] is None
 
+    def test_deploy_break_script_succeeds(self):
+        s = _in_write(player=1)
+        result = _deploy(s, "for $i in range(3) { break }")
+        assert result["ok"] is True
+
+    def test_deploy_break_script_logs_normal_exec1(self):
+        s = _in_write(player=1)
+        _deploy(s, "for $i in range(3) { break }")
+        assert s.phase == "anim_post_exec1"
+        assert not any(entry.get("op") == "halt" for entry in s._exec_log)
+        assert not any(entry.get("op") == "reset" for entry in s._exec_log)
+
 
 # ================================================================== get_state
 

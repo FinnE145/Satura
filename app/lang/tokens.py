@@ -21,6 +21,7 @@ class TokenType(Enum):
     FOR          = auto()
     WHILE        = auto()
     HALT         = auto()
+    BREAK        = auto()
     RETURN       = auto()
     DEF          = auto()
     CALL         = auto()
@@ -101,6 +102,7 @@ KEYWORDS: dict[str, TokenType] = {
     "for":          TokenType.FOR,
     "while":        TokenType.WHILE,
     "halt":         TokenType.HALT,
+    "break":        TokenType.BREAK,
     "return":       TokenType.RETURN,
     "def":          TokenType.DEF,
     "call":         TokenType.CALL,
@@ -141,6 +143,7 @@ WORD_COSTS: dict[TokenType, int] = {
     TokenType.FOR:          1,
     TokenType.WHILE:        1,
     TokenType.HALT:         1,
+    TokenType.BREAK:        1,
     TokenType.RETURN:       1,
     TokenType.DEF:          1,
     TokenType.CALL:         1,

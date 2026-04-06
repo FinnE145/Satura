@@ -58,6 +58,11 @@ class Halt:
     col:  int = 0
 
 @dataclass
+class Break:
+    line: int = 0
+    col:  int = 0
+
+@dataclass
 class Return:
     value: Expr | None    # None means bare `return`, which returns 0
     line:  int = 0

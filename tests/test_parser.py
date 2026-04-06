@@ -2,7 +2,7 @@ import pytest
 from app.lang.lexer import tokenize
 from app.lang.parser import parse, ParseError
 from app.lang.nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -226,6 +226,23 @@ class TestHalt:
     def test_halt_position(self):
         node = stmt("halt")
         assert node.line == 1 and node.col == 1
+
+
+class TestBreak:
+    def test_break(self):
+        assert isinstance(stmt("break"), Break)
+
+    def test_break_semicolon(self):
+        assert isinstance(stmt("break;"), Break)
+
+    def test_break_position(self):
+        node = stmt("break")
+        assert node.line == 1 and node.col == 1
+
+    def test_break_inside_loop(self):
+        node = stmt("for $i in range(5) { break }")
+        assert isinstance(node, For)
+        assert isinstance(node.body[0], Break)
 
 
 # --------------------------------------------------------------- for loops

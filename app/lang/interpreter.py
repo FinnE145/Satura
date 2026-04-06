@@ -1,7 +1,7 @@
 from __future__ import annotations
 import copy
 from .nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -29,6 +29,10 @@ from .signals import HaltSignal, ResetSignal
 class _ReturnSignal(Exception):
     def __init__(self, value):
         self.value = value
+
+
+class _BreakSignal(Exception):
+    pass
 
 
 # --------------------------------------------------------------------------- runtime helpers
@@ -156,16 +160,25 @@ class _Interpreter:
         elif isinstance(stmt, For):
             for val in self._iter(stmt.iterable, env):
                 env[stmt.var] = val       # globally scoped; persists after loop
-                for s in stmt.body:
-                    self._exec(s, env)
+                try:
+                    for s in stmt.body:
+                        self._exec(s, env)
+                except _BreakSignal:
+                    break
 
         elif isinstance(stmt, While):
             while _check_bool(self._eval(stmt.cond, env), "while condition"):
-                for s in stmt.body:
-                    self._exec(s, env)
+                try:
+                    for s in stmt.body:
+                        self._exec(s, env)
+                except _BreakSignal:
+                    break
 
         elif isinstance(stmt, Halt):
             raise HaltSignal("halt")
+
+        elif isinstance(stmt, Break):
+            raise _BreakSignal()
 
         elif isinstance(stmt, Return):
             val = 0 if stmt.value is None else self._eval(stmt.value, env)

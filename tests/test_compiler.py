@@ -122,6 +122,25 @@ class TestReturnErrors:
         assert errors("def f() { if $ops_remaining > 0 { return 1 } }") == []
 
 
+class TestBreakErrors:
+    def test_break_at_top_level(self):
+        msgs = error_messages("break")
+        assert any("'break' used outside a loop" in m for m in msgs)
+
+    def test_break_inside_function_without_loop(self):
+        msgs = error_messages("def f() { break }")
+        assert any("'break' used outside a loop" in m for m in msgs)
+
+    def test_break_inside_for_is_fine(self):
+        assert errors("for $i in range(5) { break }") == []
+
+    def test_break_inside_while_is_fine(self):
+        assert errors("while 1 { break }") == []
+
+    def test_break_inside_nested_loop_is_fine(self):
+        assert errors("for $i in range(3) { for $j in range(3) { break } }") == []
+
+
 # ---------------------------------------------------------- nested def errors
 
 class TestNestedDefErrors:

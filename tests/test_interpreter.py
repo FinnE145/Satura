@@ -469,6 +469,45 @@ class TestWhile:
         _raises_halt("while 2 { paint(1) }")
 
 
+class TestBreak:
+    def test_break_exits_for_loop(self):
+        ctx = _mock_ctx()
+        _run("for $i in range(5) { if $i == 2 { break } paint($i) }", ctx)
+        assert ctx.board_paint.call_count == 2
+        ctx.board_paint.assert_any_call(0)
+        ctx.board_paint.assert_any_call(1)
+
+    def test_break_exits_while_loop(self):
+        ctx = _mock_ctx()
+        _run("$i = 0\nwhile $i < 5 { if $i == 3 { break } paint($i)\n$i = $i + 1 }", ctx)
+        assert ctx.board_paint.call_count == 3
+        ctx.board_paint.assert_any_call(0)
+        ctx.board_paint.assert_any_call(1)
+        ctx.board_paint.assert_any_call(2)
+
+    def test_break_only_exits_innermost_loop(self):
+        ctx = _mock_ctx()
+        _run(
+            "for $i in range(2) { "
+            "for $j in range(3) { if $j == 1 { break } paint(1) } "
+            "paint(2) "
+            "}",
+            ctx,
+        )
+        assert ctx.board_paint.call_count == 4
+        assert ctx.board_paint.mock_calls == [
+            mcall.board_paint(1),
+            mcall.board_paint(2),
+            mcall.board_paint(1),
+            mcall.board_paint(2),
+        ]
+
+    def test_break_preserves_actions_before_break(self):
+        ctx = _mock_ctx()
+        _run("paint(5)\nfor $i in range(1) { break }", ctx)
+        ctx.board_paint.assert_called_once_with(5)
+
+
 # ================================================================== halt
 
 class TestHalt:
