@@ -1,30 +1,30 @@
 // ── DOM references ────────────────────────────────────────────────────────────
 
-const statusDot      = document.getElementById('status-dot');
-const sessionIdEl    = document.getElementById('session-id');
+const statusDot = document.getElementById('status-dot');
+const sessionIdEl = document.getElementById('session-id');
 const sessionPhaseEl = document.getElementById('session-phase');
-const wordBankEl     = document.getElementById('word-bank');
-const wordCostEl     = document.getElementById('word-cost');
-const wordEtaEl      = document.getElementById('word-eta');
-const editor         = document.getElementById('script-editor');
-const btnCompile     = document.getElementById('btn-compile');
-const btnDeploy      = document.getElementById('btn-deploy');
-const diagBadge      = document.getElementById('diag-badge');
-const diagBody       = document.getElementById('diagnostics-body');
-const outputBody     = document.getElementById('output-body');
-const outcomeLabel   = document.getElementById('outcome-label');
+const wordBankEl = document.getElementById('word-bank');
+const wordCostEl = document.getElementById('word-cost');
+const wordEtaEl = document.getElementById('word-eta');
+const editor = document.getElementById('script-editor');
+const btnCompile = document.getElementById('btn-compile');
+const btnDeploy = document.getElementById('btn-deploy');
+const diagBadge = document.getElementById('diag-badge');
+const diagBody = document.getElementById('diagnostics-body');
+const outputBody = document.getElementById('output-body');
+const outcomeLabel = document.getElementById('outcome-label');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let gameId              = null;
-let bankPollTimer       = null;
-let activePalette       = { name: 'solstice', warm: '#D2640E', cool: '#A82068' }; // Solstice default
-let lastBoardState      = null;
-let lastBank            = 0;
-let lastRate            = 1 / 3;
-let currentWordCount    = 0;
-let sessionReady        = false;
-let compileState        = null;   // null = dirty; {errors, warnings} = last compile result
+let gameId = null;
+let bankPollTimer = null;
+let activePalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' }; // Solstice default
+let lastBoardState = null;
+let lastBank = 0;
+let lastRate = 1 / 3;
+let currentWordCount = 0;
+let sessionReady = false;
+let compileState = null;   // null = dirty; {errors, warnings} = last compile result
 let deployConfirmPending = false; // warnings shown, waiting for second click
 
 // ── Word cost tokenizer ───────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ async function refreshBank() {
     if (!gameId) return;
     try {
         const state = await get(`/games/${gameId}/state`);
-        const bank  = state.word_bank?.[1] ?? 0;
+        const bank = state.word_bank?.[1] ?? 0;
         lastBank = bank;
         lastRate = state.word_rate ?? (1 / 3);
         wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> words in bank`;
@@ -112,7 +112,7 @@ async function runCompile() {
         player: 1,
         source: editor.value,
     });
-    compileState        = { errors: data.errors ?? [], warnings: data.warnings ?? [] };
+    compileState = { errors: data.errors ?? [], warnings: data.warnings ?? [] };
     deployConfirmPending = false;
     return data;
 }
@@ -165,7 +165,7 @@ btnDeploy.addEventListener('click', async () => {
             return;
         }
 
-        compileState         = null;
+        compileState = null;
         deployConfirmPending = false;
 
         // Fetch exec log, territory, and board from game state
@@ -187,7 +187,7 @@ btnDeploy.addEventListener('click', async () => {
 async function resetSession() {
     clearInterval(bankPollTimer);
     gameId = null;
-    compileState         = null;
+    compileState = null;
     deployConfirmPending = false;
 
     setStatus('pending');
@@ -217,18 +217,18 @@ async function resetSession() {
 // ── Compile button state ──────────────────────────────────────────────────────
 
 editor.addEventListener('input', () => {
-    const src        = editor.value;
+    const src = editor.value;
     const hasContent = src.trim().length > 0;
-    btnCompile.classList.toggle('btn--ghost',     !hasContent);
-    btnCompile.classList.toggle('btn--secondary',  hasContent);
+    btnCompile.classList.toggle('btn--ghost', !hasContent);
+    btnCompile.classList.toggle('btn--secondary', hasContent);
 
-    currentWordCount     = countWords(src);
-    compileState         = null;
+    currentWordCount = countWords(src);
+    compileState = null;
     deployConfirmPending = false;
 
     const wc = currentWordCount;
     wordCostEl.textContent = wc > 0 ? `${wc} word${wc !== 1 ? 's' : ''}` : '';
-    wordCostEl.className   = wc > 0 ? 'word-cost word-cost--active' : 'word-cost';
+    wordCostEl.className = wc > 0 ? 'word-cost word-cost--active' : 'word-cost';
     updateWordEta();
     updateDeployButton();
     updateWordShortageNotice();
@@ -238,22 +238,22 @@ function updateWordEta() {
     const cost = currentWordCount;
     if (cost === 0) {
         wordEtaEl.textContent = '';
-        wordEtaEl.className   = 'word-eta';
+        wordEtaEl.className = 'word-eta';
         return;
     }
     if (lastBank >= cost) {
         wordEtaEl.textContent = 'ready';
-        wordEtaEl.className   = 'word-eta word-eta--ready';
+        wordEtaEl.className = 'word-eta word-eta--ready';
         return;
     }
     if (lastRate <= 0) {
         wordEtaEl.textContent = '';
-        wordEtaEl.className   = 'word-eta';
+        wordEtaEl.className = 'word-eta';
         return;
     }
     const secs = Math.ceil((cost - lastBank) / lastRate);
     wordEtaEl.textContent = secs < 60 ? `~${secs}s` : `~${Math.ceil(secs / 60)}m`;
-    wordEtaEl.className   = 'word-eta word-eta--waiting';
+    wordEtaEl.className = 'word-eta word-eta--waiting';
 }
 
 // ── Tab key support in editor ─────────────────────────────────────────────────
@@ -262,7 +262,7 @@ editor.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
         e.preventDefault();
         const start = editor.selectionStart;
-        const end   = editor.selectionEnd;
+        const end = editor.selectionEnd;
         editor.value =
             editor.value.slice(0, start) + '    ' + editor.value.slice(end);
         editor.selectionStart = editor.selectionEnd = start + 4;
@@ -273,29 +273,29 @@ editor.addEventListener('keydown', (e) => {
 
 function clearDiagnostics() {
     diagBadge.textContent = '';
-    diagBadge.className   = 'badge';
-    diagBody.innerHTML    = '<span class="empty-label">No diagnostics</span>';
+    diagBadge.className = 'badge';
+    diagBody.innerHTML = '<span class="empty-label">No diagnostics</span>';
 }
 
 function clearOutput() {
     outcomeLabel.textContent = '';
-    outputBody.innerHTML     = '<span class="empty-label">No output yet</span>';
+    outputBody.innerHTML = '<span class="empty-label">No output yet</span>';
 }
 
 function renderDiagnostics(data, confirmPrompt = false) {
-    const errors   = data.errors   ?? [];
+    const errors = data.errors ?? [];
     const warnings = data.warnings ?? [];
-    const total    = errors.length + warnings.length;
+    const total = errors.length + warnings.length;
 
     diagBody.innerHTML = '';
 
     if (total === 0) {
         diagBadge.textContent = 'OK';
-        diagBadge.className   = 'badge badge--ok';
+        diagBadge.className = 'badge badge--ok';
         diagBody.appendChild(el('div', 'diag-ok', 'Compiled successfully.'));
     } else {
         diagBadge.textContent = String(total);
-        diagBadge.className   = errors.length > 0 ? 'badge badge--error' : 'badge badge--warn';
+        diagBadge.className = errors.length > 0 ? 'badge badge--error' : 'badge badge--warn';
         errors.forEach(msg => diagBody.appendChild(diagItem('error', msg)));
         warnings.forEach(msg => diagBody.appendChild(diagItem('warn', msg)));
         if (confirmPrompt) {
@@ -313,8 +313,8 @@ function updateWordShortageNotice() {
 
     if (currentWordCount > 0 && lastBank < currentWordCount) {
         const needed = currentWordCount - Math.floor(lastBank);
-        const secs   = lastRate > 0 ? Math.ceil((currentWordCount - lastBank) / lastRate) : null;
-        const eta    = secs != null ? (secs < 60 ? ` (~${secs}s)` : ` (~${Math.ceil(secs / 60)}m)`) : '';
+        const secs = lastRate > 0 ? Math.ceil((currentWordCount - lastBank) / lastRate) : null;
+        const eta = secs != null ? (secs < 60 ? ` (~${secs}s)` : ` (~${Math.ceil(secs / 60)}m)`) : '';
         const notice = diagItem('warn', `Not enough words — need ${needed} more${eta}.`);
         notice.id = 'diag-word-shortage';
         // Insert at top if diagnostics body only has the empty label, else append
@@ -328,7 +328,7 @@ function updateWordShortageNotice() {
 
 function diagItem(type, msg) {
     const icon = type === 'error' ? '\u2715' : '\u26a0';
-    const div  = document.createElement('div');
+    const div = document.createElement('div');
     div.className = `diag-item diag-item--${type}`;
     div.innerHTML =
         `<span class="diag-icon">${icon}</span>` +
@@ -338,8 +338,8 @@ function diagItem(type, msg) {
 
 function renderNetworkError(badge, body, msg) {
     badge.textContent = '!';
-    badge.className   = 'badge badge--error';
-    body.innerHTML    = '';
+    badge.className = 'badge badge--error';
+    body.innerHTML = '';
     body.appendChild(diagItem('error', 'Network error: ' + msg));
 }
 
@@ -348,21 +348,21 @@ function renderOutput(state) {
 
     if (log.length === 0) {
         outcomeLabel.textContent = 'no ops';
-        outputBody.innerHTML     = '';
+        outputBody.innerHTML = '';
         outputBody.appendChild(el('span', 'empty-label',
             'Script executed with no board operations.'));
         return;
     }
 
     const consumed = state.exec_ops_consumed ?? log.length;
-    const limit    = state.op_limit ?? '?';
+    const limit = state.op_limit ?? '?';
     outcomeLabel.textContent = `${consumed} / ${limit} ops`;
-    outputBody.innerHTML     = '';
+    outputBody.innerHTML = '';
 
     log.forEach((entry, i) => {
         const row = document.createElement('div');
-        row.className   = 'log-entry';
-        row.innerHTML   =
+        row.className = 'log-entry';
+        row.innerHTML =
             `<span class="log-idx">${String(i + 1).padStart(2, '0')}</span>` +
             formatLogEntry(entry);
         outputBody.appendChild(row);
@@ -370,7 +370,7 @@ function renderOutput(state) {
 
     // Territory summary
     if (state.territory) {
-        const t   = state.territory;
+        const t = state.territory;
         outputBody.appendChild(el('div', 'log-sep', ''));
         outputBody.appendChild(el('div', 'log-summary',
             `P1\u00a0${t.p1}\u2002\u00b7\u2002P2\u00a0${t.p2}\u2002\u00b7\u2002Black\u00a0${t.black}\u2002\u00b7\u2002Total\u00a0${t.total}`
@@ -406,9 +406,9 @@ function formatLogEntry(entry) {
 
 function op(cssType, detail, label) {
     const opLabel = label ?? cssType;
-    const cls     = cssType ? `log-op log-op--${cssType}` : 'log-op';
+    const cls = cssType ? `log-op log-op--${cssType}` : 'log-op';
     return `<span class="${cls}">${esc(opLabel)}</span>` +
-           `<span class="log-detail">${detail}</span>`;
+        `<span class="log-detail">${detail}</span>`;
 }
 
 function fmtResult(v) {
@@ -431,13 +431,13 @@ function cellBg(cell) {
     const { p1, p2 } = cell;
     const total = p1 + p2;
 
-    if (total === 0)  return 'rgb(255, 255, 255)';
+    if (total === 0) return 'rgb(255, 255, 255)';
     if (total === 10) return 'rgb(0, 0, 0)';
 
     const c1 = hexToRgb(activePalette.warm);
     const c2 = hexToRgb(activePalette.cool);
 
-    const t     = total / 10;
+    const t = total / 10;
     const ratio = p2 / total;
 
     // mid: blend between c1 and c2 by p2 ratio
@@ -484,9 +484,9 @@ function cellBg(cell) {
 
 function renderBoard(state) {
     lastBoardState = state;
-    const board  = state.board;
+    const board = state.board;
     const agents = state.agents;
-    const size   = board.length;
+    const size = board.length;
 
     boardGrid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
     boardGrid.innerHTML = '';
@@ -525,23 +525,23 @@ function setStatus(state) {
 
 function setPhase(text, highlight = false) {
     sessionPhaseEl.textContent = text;
-    sessionPhaseEl.className   = highlight ? 'phase-pill phase-pill--write' : 'phase-pill';
+    sessionPhaseEl.className = highlight ? 'phase-pill phase-pill--write' : 'phase-pill';
 }
 
 function setSessionReady(on) {
-    sessionReady        = on;
+    sessionReady = on;
     btnCompile.disabled = !on;
     updateDeployButton();
 }
 
 function setBothButtonsDisabled(disabled) {
     btnCompile.disabled = disabled;
-    btnDeploy.disabled  = disabled;
+    btnDeploy.disabled = disabled;
 }
 
 function updateDeployButton() {
-    const hasErrors    = compileState !== null && compileState.errors.length > 0;
-    const wordsShort   = currentWordCount > 0 && lastBank < currentWordCount;
+    const hasErrors = compileState !== null && compileState.errors.length > 0;
+    const wordsShort = currentWordCount > 0 && lastBank < currentWordCount;
     btnDeploy.disabled = !sessionReady || hasErrors || wordsShort;
 }
 
@@ -549,7 +549,7 @@ function updateDeployButton() {
 
 function el(tag, className, text) {
     const node = document.createElement(tag);
-    node.className   = className;
+    node.className = className;
     node.textContent = text;
     return node;
 }
@@ -566,7 +566,7 @@ async function post(url, body) {
     const opts = { method: 'POST' };
     if (body !== undefined) {
         opts.headers = { 'Content-Type': 'application/json' };
-        opts.body    = JSON.stringify(body);
+        opts.body = JSON.stringify(body);
     }
     const resp = await fetch(url, opts);
     if (!resp.ok) {
@@ -588,8 +588,8 @@ function delay(ms) {
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
-const brandMark    = document.querySelector('.brand-mark');
-const paletteBtns  = document.querySelectorAll('.palette-btn');
+const brandMark = document.querySelector('.brand-mark');
+const paletteBtns = document.querySelectorAll('.palette-btn');
 
 function hexToRgba(hex, alpha) {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -608,8 +608,8 @@ function hexToHsl(hex) {
     const d = max - min;
     const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     let h = max === r ? (g - b) / d + (g < b ? 6 : 0)
-          : max === g ? (b - r) / d + 2
-          :             (r - g) / d + 4;
+        : max === g ? (b - r) / d + 2
+            : (r - g) / d + 4;
     return [h / 6 * 360, s * 100, l * 100];
 }
 
@@ -652,18 +652,18 @@ function applyPalette(btn) {
     const warmBright = brighten(warm);
     const coolBright = brighten(cool);
 
-    root.style.setProperty('--accent',          warm);
-    root.style.setProperty('--accent-tint',     hexToRgba(warm, 0.10));
-    root.style.setProperty('--accent-dim',      hexToRgba(warm, 0.65));
-    root.style.setProperty('--accent-cool',     cool);
-    root.style.setProperty('--accent-cool-dim',  hexToRgba(cool, 0.65));
+    root.style.setProperty('--accent', warm);
+    root.style.setProperty('--accent-tint', hexToRgba(warm, 0.10));
+    root.style.setProperty('--accent-dim', hexToRgba(warm, 0.65));
+    root.style.setProperty('--accent-cool', cool);
+    root.style.setProperty('--accent-cool-dim', hexToRgba(cool, 0.65));
     root.style.setProperty('--accent-cool-tint', hexToRgba(cool, 0.10));
 
-    root.style.setProperty('--accent-bright',           warmBright);
-    root.style.setProperty('--accent-bright-dim',       hexToRgba(warmBright, 0.65));
-    root.style.setProperty('--accent-bright-tint',      hexToRgba(warmBright, 0.10));
-    root.style.setProperty('--accent-cool-bright',      coolBright);
-    root.style.setProperty('--accent-cool-bright-dim',  hexToRgba(coolBright, 0.65));
+    root.style.setProperty('--accent-bright', warmBright);
+    root.style.setProperty('--accent-bright-dim', hexToRgba(warmBright, 0.65));
+    root.style.setProperty('--accent-bright-tint', hexToRgba(warmBright, 0.10));
+    root.style.setProperty('--accent-cool-bright', coolBright);
+    root.style.setProperty('--accent-cool-bright-dim', hexToRgba(coolBright, 0.65));
     root.style.setProperty('--accent-cool-bright-tint', hexToRgba(coolBright, 0.10));
 
     // Swap the header logo mark to match
@@ -675,16 +675,19 @@ function applyPalette(btn) {
     // Update button active states
     paletteBtns.forEach(b => {
         const active = b === btn;
-        b.style.borderColor  = active ? warm : '';
-        b.style.background   = active ? hexToRgba(warm, 0.10) : '';
-        b.style.color        = active ? warm : '';
+        b.style.borderColor = active ? warm : '';
+        b.style.background = active ? hexToRgba(warm, 0.10) : '';
+        b.style.color = active ? warm : '';
     });
 }
 
 paletteBtns.forEach(btn => btn.addEventListener('click', () => applyPalette(btn)));
 
-// Apply Solstice on load
-applyPalette(document.querySelector('[data-palette="solstice"]'));
+// Apply user's active palette first; fallback to local storage, then Solstice.
+const serverPalette = document.body?.dataset?.activePalette;
+const storedPalette = localStorage.getItem('satura_palette');
+const preferredPalette = serverPalette || storedPalette || 'solstice';
+applyPalette(document.querySelector(`[data-palette="${preferredPalette}"]`) || document.querySelector('[data-palette="solstice"]'));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

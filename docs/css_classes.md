@@ -51,6 +51,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.btn--ghost` | neutral grey border — low-priority or destructive actions |
 | `.btn--secondary` | cool-coloured border — sign in, secondary CTAs |
 | `.btn--accent` | warm-coloured border — primary CTA |
+| `.btn--warn` | warning-coloured border action (yellow) |
+| `.btn--danger` | error-coloured border action (red) |
 | `.icon-btn` | stacked icon + label button — mode selectors, tool pickers |
 | `.icon-btn-label` | tiny label below the icon inside `.icon-btn` |
 
@@ -75,6 +77,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 |---|---|
 | `.error-msg` | red-tinted box with border — form validation errors |
 | `.empty-label` | small italic placeholder when a list or panel is empty |
+| `.is-disabled` | generic disabled-state utility (reduced opacity); use with `a` for non-interactive disabled links |
 
 ### Prose
 | Class | Description |
@@ -226,3 +229,41 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.contact-form` | flex column form with consistent field gaps |
+
+### Settings hub
+| Class | Description |
+|---|---|
+| `.settings-layout` | main two-column grid: sidebar + content panel |
+| `.settings-sidebar-stack` | sticky vertical stack for multiple sidebar cards |
+| `.settings-sidebar` | sticky card wrapper for settings navigation |
+| `.settings-sidebar-logout` | compact card wrapper for logout action under nav sidebar |
+| `.settings-logout-btn` | full-width borderless logout button with left-aligned icon + text inside logout sidebar card |
+| `.settings-nav` | vertical nav list container inside sidebar |
+| `.settings-nav-item` | single sidebar link row with icon + label and outlined default state |
+| `.settings-nav-item--active` | active sidebar row with warm accent outline (tint only on hover) |
+| `.settings-nav-sep` | horizontal divider between sidebar groups |
+| `.settings-main` | right-column stack for screen cards and flash messages |
+| `.settings-flash` | compact neutral status message block |
+| `.settings-card` | settings content card wrapper |
+| `.settings-card[id]` | adds top scroll margin for hash-anchor navigation under sticky nav |
+| `.settings-card-body` | standard inner padding for settings card content |
+| `.settings-card-body--palette` | extra padding variant for appearance/palette section |
+| `.settings-stack` | vertical stack utility used in settings cards |
+| `.settings-profile-head` | top row in profile card (name + friends count) |
+| `.settings-stats-grid` | 2-column stat summary grid |
+| `.settings-stat-cell` | bordered stat tile in the profile summary |
+| `.settings-games-list` | vertical list for recent-game entries |
+| `.settings-game-row` | row layout for thumbnail, metadata, and action button |
+| `.settings-game-thumb` | blank thumbnail placeholder rectangle for past games |
+| `.settings-game-meta` | stacked metadata block in each game row |
+| `.settings-game-nav-link` | game-section sidebar link used for hash-based tab syncing |
+| `.settings-game-link` | compact link-style action for opening a game record |
+| `.settings-form` | form scope for non-textarea controls (select/range/number) |
+| `.settings-slider` | themed range slider used for board size selection |
+| `.settings-inline-form` | inline form wrapper for single-button actions |
+| `.settings-delete-form` | spacing modifier for destructive account form |
+| `.settings-palette-form` | stacked appearance form wrapper |
+| `.settings-palette-grid` | 2x2 responsive grid of palette options |
+| `.settings-palette-card` | selectable palette card/button with SVG preview |
+| `.settings-palette-card--active` | selected palette card state |
+| `.settings-link-list` | vertical list of legal/about links |

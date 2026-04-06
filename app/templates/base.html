@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Satura{% endblock %}</title>
-    <link rel="icon" href="{{ url_for('static', filename='satura_logo_mark_solstice.svg') }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', filename=active_palette.mark_file) }}" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&family=Lora:wght@400;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&family=Lora:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
     {% block head %}{% endblock %}
 </head>
-<body>
+
+<body data-active-palette="{{ active_palette.name }}" data-palette-warm="{{ active_palette.warm }}"
+    data-palette-cool="{{ active_palette.cool }}">
 
     <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
     <nav class="site-nav">
         <div class="nav-inner container">
             <a href="/" class="brand">
-                <img
-                    src="{{ url_for('static', filename='satura_logo_mark_solstice.svg') }}"
-                    alt="Satura Logo"
-                    class="brand-mark"
-                    width="28" height="28"
-                >
+                <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura Logo"
+                    class="brand-mark" width="28" height="28">
                 <span class="brand-wordmark">Satura</span>
             </a>
             <div class="nav-links">
@@ -33,18 +35,12 @@
             </div>
             <div class="nav-actions">
                 {% if current_user.is_authenticated %}
-                    <div class="nav-profile" id="nav-profile">
-                        <button type="button" class="nav-profile-btn" id="nav-profile-btn" aria-haspopup="true" aria-expanded="false">
-                            <span class="material-symbols-outlined">account_circle</span>
-                        </button>
-                        <div class="nav-dropdown" id="nav-dropdown" hidden>
-                            <a href="/profile" class="nav-dropdown-item">Profile</a>
-                            <a href="/account" class="nav-dropdown-item">Account</a>
-                            <a href="/settings" class="nav-dropdown-item">Settings</a>
-                        </div>
-                    </div>
+                <a href="{{ url_for('main.settings_profile') }}" class="nav-profile-btn"
+                    aria-label="Open profile settings" title="Profile settings">
+                    <span class="material-symbols-outlined">account_circle</span>
+                </a>
                 {% else %}
-                    <a href="/login" class="btn btn--secondary btn--sm">Sign in</a>
+                <a href="/login" class="btn btn--secondary btn--sm">Sign in</a>
                 {% endif %}
             </div>
         </div>
@@ -67,32 +63,47 @@
         </div>
     </footer>
 
-<script>
-(function () {
-    'use strict';
+    <script>
+        (function () {
+            'use strict';
 
-    /* ── Profile dropdown ────────────────────────────────────────────────────── */
+            const root = document.documentElement;
+            const body = document.body;
+            const warm = body?.dataset?.paletteWarm;
+            const cool = body?.dataset?.paletteCool;
 
-    const profileBtn = document.getElementById('nav-profile-btn');
-    const dropdown   = document.getElementById('nav-dropdown');
+            if (!warm || !cool) {
+                return;
+            }
 
-    if (profileBtn && dropdown) {
-        profileBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const open = !dropdown.hidden;
-            dropdown.hidden = open;
-            profileBtn.setAttribute('aria-expanded', String(!open));
-        });
+            function hexToRgba(hex, alpha) {
+                const clean = String(hex).replace('#', '');
+                if (clean.length !== 6) {
+                    return 'rgba(0, 0, 0, ' + alpha + ')';
+                }
+                const r = parseInt(clean.slice(0, 2), 16);
+                const g = parseInt(clean.slice(2, 4), 16);
+                const b = parseInt(clean.slice(4, 6), 16);
+                return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+            }
 
-        document.addEventListener('click', () => {
-            dropdown.hidden = true;
-            profileBtn.setAttribute('aria-expanded', 'false');
-        });
-    }
+            root.style.setProperty('--accent', warm);
+            root.style.setProperty('--accent-tint', hexToRgba(warm, 0.10));
+            root.style.setProperty('--accent-dim', hexToRgba(warm, 0.65));
+            root.style.setProperty('--accent-cool', cool);
+            root.style.setProperty('--accent-cool-tint', hexToRgba(cool, 0.10));
+            root.style.setProperty('--accent-cool-dim', hexToRgba(cool, 0.65));
 
-})();
-</script>
+            root.style.setProperty('--accent-bright', warm);
+            root.style.setProperty('--accent-bright-tint', hexToRgba(warm, 0.10));
+            root.style.setProperty('--accent-bright-dim', hexToRgba(warm, 0.65));
+            root.style.setProperty('--accent-cool-bright', cool);
+            root.style.setProperty('--accent-cool-bright-tint', hexToRgba(cool, 0.10));
+            root.style.setProperty('--accent-cool-bright-dim', hexToRgba(cool, 0.65));
+        })();
+    </script>
 
-{% block scripts %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
+
 </html>
