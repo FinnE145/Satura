@@ -27,6 +27,36 @@ _PALETTE_CONFIG = {
     'folio': {'warm': '#D4A800', 'cool': '#303482'},
 }
 
+# UI accents are decoupled from canonical game palette values so app chrome can
+# keep readable contrast without changing board rendering or SVG palette assets.
+_UI_ACCENT_CONFIG = {
+    'solstice': {
+        'warm': '#D2640E',
+        'warm_bright': '#F07828',
+        'cool': '#C93E8F',
+        'cool_bright': '#D85EA8',
+    },
+    'fieldstone': {
+        # Keep warm close to shared UI warm, with a slight lift for this darker palette.
+        'warm': '#BE4F2B',
+        'warm_bright': '#D76A45',
+        'cool': '#4F76A8',
+        'cool_bright': '#6E93C1',
+    },
+    'levant': {
+        'warm': '#D2640E',
+        'warm_bright': '#F07828',
+        'cool': '#8A3FA2',
+        'cool_bright': '#A965BF',
+    },
+    'folio': {
+        'warm': '#D2640E',
+        'warm_bright': '#F07828',
+        'cool': '#4F5CC0',
+        'cool_bright': '#7380D7',
+    },
+}
+
 
 def _hex_to_rgb(hex_color):
     value = hex_color.strip().lstrip('#')
@@ -48,8 +78,16 @@ def _active_palette_for_user():
             palette_name = user_settings.palette
 
     base = _PALETTE_CONFIG.get(palette_name, _PALETTE_CONFIG['solstice'])
+    ui_accents = _UI_ACCENT_CONFIG.get(
+        palette_name,
+        _UI_ACCENT_CONFIG['solstice'],
+    )
     warm = base['warm']
     cool = base['cool']
+    ui_warm = ui_accents['warm']
+    ui_warm_bright = ui_accents['warm_bright']
+    ui_cool = ui_accents['cool']
+    ui_cool_bright = ui_accents['cool_bright']
     return {
         'name': palette_name,
         'warm': warm,
@@ -58,6 +96,18 @@ def _active_palette_for_user():
         'warm_dim': _rgba(warm, '0.65'),
         'cool_tint': _rgba(cool, '0.10'),
         'cool_dim': _rgba(cool, '0.65'),
+        'ui_warm': ui_warm,
+        'ui_warm_tint': _rgba(ui_warm, '0.10'),
+        'ui_warm_dim': _rgba(ui_warm, '0.65'),
+        'ui_warm_bright': ui_warm_bright,
+        'ui_warm_bright_tint': _rgba(ui_warm_bright, '0.10'),
+        'ui_warm_bright_dim': _rgba(ui_warm_bright, '0.65'),
+        'ui_cool': ui_cool,
+        'ui_cool_tint': _rgba(ui_cool, '0.10'),
+        'ui_cool_dim': _rgba(ui_cool, '0.65'),
+        'ui_cool_bright': ui_cool_bright,
+        'ui_cool_bright_tint': _rgba(ui_cool_bright, '0.10'),
+        'ui_cool_bright_dim': _rgba(ui_cool_bright, '0.65'),
         'mark_file': f'satura_logo_mark_{palette_name}.svg',
     }
 

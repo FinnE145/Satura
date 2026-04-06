@@ -18,7 +18,9 @@
 </head>
 
 <body data-active-palette="{{ active_palette.name }}" data-palette-warm="{{ active_palette.warm }}"
-    data-palette-cool="{{ active_palette.cool }}">
+    data-palette-cool="{{ active_palette.cool }}" data-ui-warm="{{ active_palette.ui_warm }}"
+    data-ui-warm-bright="{{ active_palette.ui_warm_bright }}" data-ui-cool="{{ active_palette.ui_cool }}"
+    data-ui-cool-bright="{{ active_palette.ui_cool_bright }}">
 
     <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
     <nav class="site-nav">
@@ -71,6 +73,10 @@
             const body = document.body;
             const warm = body?.dataset?.paletteWarm;
             const cool = body?.dataset?.paletteCool;
+            const uiWarm = body?.dataset?.uiWarm || warm;
+            const uiWarmBright = body?.dataset?.uiWarmBright || uiWarm;
+            const uiCool = body?.dataset?.uiCool || cool;
+            const uiCoolBright = body?.dataset?.uiCoolBright || uiCool;
 
             if (!warm || !cool) {
                 return;
@@ -87,19 +93,19 @@
                 return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
             }
 
-            root.style.setProperty('--accent', warm);
-            root.style.setProperty('--accent-tint', hexToRgba(warm, 0.10));
-            root.style.setProperty('--accent-dim', hexToRgba(warm, 0.65));
-            root.style.setProperty('--accent-cool', cool);
-            root.style.setProperty('--accent-cool-tint', hexToRgba(cool, 0.10));
-            root.style.setProperty('--accent-cool-dim', hexToRgba(cool, 0.65));
+            root.style.setProperty('--accent', uiWarm);
+            root.style.setProperty('--accent-tint', hexToRgba(uiWarm, 0.10));
+            root.style.setProperty('--accent-dim', hexToRgba(uiWarm, 0.65));
+            root.style.setProperty('--accent-cool', uiCool);
+            root.style.setProperty('--accent-cool-tint', hexToRgba(uiCool, 0.10));
+            root.style.setProperty('--accent-cool-dim', hexToRgba(uiCool, 0.65));
 
-            root.style.setProperty('--accent-bright', warm);
-            root.style.setProperty('--accent-bright-tint', hexToRgba(warm, 0.10));
-            root.style.setProperty('--accent-bright-dim', hexToRgba(warm, 0.65));
-            root.style.setProperty('--accent-cool-bright', cool);
-            root.style.setProperty('--accent-cool-bright-tint', hexToRgba(cool, 0.10));
-            root.style.setProperty('--accent-cool-bright-dim', hexToRgba(cool, 0.65));
+            root.style.setProperty('--accent-bright', uiWarmBright);
+            root.style.setProperty('--accent-bright-tint', hexToRgba(uiWarmBright, 0.10));
+            root.style.setProperty('--accent-bright-dim', hexToRgba(uiWarmBright, 0.65));
+            root.style.setProperty('--accent-cool-bright', uiCoolBright);
+            root.style.setProperty('--accent-cool-bright-tint', hexToRgba(uiCoolBright, 0.10));
+            root.style.setProperty('--accent-cool-bright-dim', hexToRgba(uiCoolBright, 0.65));
         })();
     </script>
 

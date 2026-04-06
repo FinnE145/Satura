@@ -21,21 +21,21 @@
     --border: rgba(246, 245, 244, 0.08);
     --border-mid: rgba(246, 245, 244, 0.14);
 
-    /* Solstice palette — primary accent (dark bg) */
+    /* Solstice defaults for app chrome accents on dark backgrounds */
     --accent: #D2640E;
     --accent-tint: rgba(210, 100, 14, 0.10);
     --accent-dim: rgba(210, 100, 14, 0.65);
-    --accent-cool: #A82068;
-    --accent-cool-dim: rgba(168, 32, 104, 0.65);
-    --accent-cool-tint: rgba(168, 32, 104, 0.10);
+    --accent-cool: #C93E8F;
+    --accent-cool-dim: rgba(201, 62, 143, 0.65);
+    --accent-cool-tint: rgba(201, 62, 143, 0.10);
 
     /* Bright variants — for use on lighter card backgrounds */
     --accent-bright: #F07828;
     --accent-bright-dim: rgba(240, 120, 40, 0.65);
     --accent-bright-tint: rgba(240, 120, 40, 0.10);
-    --accent-cool-bright: #CC3888;
-    --accent-cool-bright-dim: rgba(204, 56, 136, 0.65);
-    --accent-cool-bright-tint: rgba(204, 56, 136, 0.10);
+    --accent-cool-bright: #D85EA8;
+    --accent-cool-bright-dim: rgba(216, 94, 168, 0.65);
+    --accent-cool-bright-tint: rgba(216, 94, 168, 0.10);
 
     /* Semantic */
     --error: #D95F5F;

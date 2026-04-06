@@ -13,6 +13,8 @@ Global dark mode throughout the entire app.
 
 Accent colour usage follows a strict hierarchy. Colour means something is alive or chosen — never decorative. Idle and structural elements stay entirely within the grey palette. Interactive elements show the accent colour as a border or underline in their default state, graduating to a subtle tint fill on hover, active, or selected states.
 
+App chrome accents use dedicated UI warm/cool values (including bright variants) supplied by the theme context. These UI values should remain visually close to each palette's canonical colours while staying readable on the dark background. Gameplay board colours and SVG palette assets remain fixed to canonical palette values.
+
 ---
 
 ## Colour — Player Palettes
