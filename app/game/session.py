@@ -1,7 +1,32 @@
 import time
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from .engine import Engine
 from config import Config
+
+
+@dataclass
+class PendingLobby:
+    game_id: str
+    settings: dict
+    player1_id: int
+    player1_username: str
+    player2_id: int | None = None
+    player2_username: str | None = None
+    player1_ready: bool = False
+    player2_ready: bool = False
+
+    def lobby_status(self) -> dict:
+        return {
+            "player1_username": self.player1_username,
+            "player2_joined": self.player2_id is not None,
+            "player2_username": self.player2_username,
+            "player1_ready": self.player1_ready,
+            "player2_ready": self.player2_ready,
+            "both_ready": self.player1_ready and self.player2_ready and self.player2_id is not None,
+            "started": False,
+            "settings": self.settings,
+        }
 
 
 class GameSession:
@@ -26,8 +51,15 @@ class GameSession:
         self._auto_deploy_count: int = 0
         self._write_started_at: float | None = None
         self._opening_pre_write_pending: bool = True
+        self._multiplayer: bool = False
+        self._player_ids: dict[int, int | None] = {1: None, 2: None}
 
     _SENSING_OPS = {"get_friction", "has_agent", "my_paint", "opp_paint"}
+
+    def set_multiplayer_players(self, p1_id: int, p2_id: int) -> None:
+        self._multiplayer = True
+        self._player_ids[1] = p1_id
+        self._player_ids[2] = p2_id
 
     def configure_auto_writer(
         self,
@@ -43,8 +75,10 @@ class GameSession:
 
     # ------------------------------------------------------------------ public API
 
-    def compile_script(self, player: int, source: str) -> dict:
+    def compile_script(self, player: int, source: str, user_id: int | None = None) -> dict:
         """Lint only — no state change, no clock interaction."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "errors": ["forbidden"], "warnings": [], "word_count": 0}
         if player != self.current_player or self.phase != "write":
             return {"ok": False, "errors": ["not your write phase"], "warnings": [], "word_count": 0}
         if self.engine.clock_expired(player):
@@ -58,8 +92,10 @@ class GameSession:
             "word_count": result.word_count,
         }
 
-    def deploy_script(self, player: int, source: str) -> dict:
+    def deploy_script(self, player: int, source: str, user_id: int | None = None) -> dict:
         """Compile, spend words, store program, run exec1, enter post-exec1 animation."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "errors": ["forbidden"], "warnings": []}
         if player != self.current_player or self.phase != "write":
             return {"ok": False, "errors": ["not your write phase"], "warnings": []}
 
@@ -284,6 +320,26 @@ class GameSession:
 # ------------------------------------------------------------------ module registry
 
 _sessions: dict[str, "GameSession"] = {}
+_pending_lobbies: dict[str, PendingLobby] = {}
+
+
+def create_lobby(game_id: str, settings: dict, player1_id: int, username: str) -> PendingLobby:
+    lobby = PendingLobby(
+        game_id=game_id,
+        settings=settings,
+        player1_id=player1_id,
+        player1_username=username,
+    )
+    _pending_lobbies[game_id] = lobby
+    return lobby
+
+
+def get_lobby(game_id: str) -> PendingLobby | None:
+    return _pending_lobbies.get(game_id)
+
+
+def remove_lobby(game_id: str) -> None:
+    _pending_lobbies.pop(game_id, None)
 
 
 def create_session(

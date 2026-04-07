@@ -14,7 +14,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
 from .models import Game, Account, AccountSettings
-from .game.session import create_session, get_session
+from .game.session import create_session, get_session, create_lobby, get_lobby, remove_lobby
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -751,14 +751,22 @@ def test_new():
         preset_icons=preset_icons,
         board_size_stops=Config.BOARD_SIZE_STOPS,
         default_preset='5',
+        username=current_user.username if current_user.is_authenticated else '',
     )
 
 
 @bp.route('/test/<game_id>')
 def test_page(game_id):
-    if get_session(game_id) is None:
+    session = get_session(game_id)
+    if session is None:
         return render_template('stub.html', page_title='Test game not found'), 404
-    return render_template('test.html', game_id=game_id)
+    player_num = None
+    if session._multiplayer and current_user.is_authenticated:
+        if session._player_ids.get(1) == current_user.id:
+            player_num = 1
+        elif session._player_ids.get(2) == current_user.id:
+            player_num = 2
+    return render_template('test.html', game_id=game_id, player_num=player_num, multiplayer=session._multiplayer)
 
 
 @bp.route('/test/session', methods=['POST'])
@@ -800,6 +808,156 @@ def test_create_session():
     return jsonify({'game_id': game_id}), 201
 
 
+@bp.route('/test/lobby', methods=['POST'])
+@login_required
+def test_create_lobby():
+    """Create a pending multiplayer lobby. Returns game_id immediately; session is created only when both players ready."""
+    data = request.get_json(silent=True) or {}
+    try:
+        parsed = _parse_test_session_config(data)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    game_id = str(uuid.uuid4())
+    create_lobby(game_id, parsed, current_user.id, current_user.username)
+    return jsonify({'game_id': game_id}), 201
+
+
+@bp.route('/test/<game_id>/join', methods=['GET'])
+def test_join_page(game_id):
+    lobby = get_lobby(game_id)
+    if lobby is None:
+        return render_template('stub.html', page_title='Game not found'), 404
+    return render_template(
+        'test_join.html',
+        game_id=game_id,
+        settings=lobby.settings,
+        p1_username=lobby.player1_username,
+    )
+
+
+@bp.route('/test/<game_id>/join', methods=['POST'])
+@login_required
+def test_join(game_id):
+    lobby = get_lobby(game_id)
+    if lobby is None:
+        return jsonify({'error': 'game not found'}), 404
+    if current_user.id == lobby.player1_id:
+        return jsonify({'error': 'cannot join your own game'}), 400
+    if lobby.player2_id is not None and lobby.player2_id != current_user.id:
+        return jsonify({'error': 'game is full'}), 409
+    lobby.player2_id = current_user.id
+    lobby.player2_username = current_user.username
+    return jsonify({'ok': True}), 200
+
+
+@bp.route('/test/<game_id>/settings', methods=['PATCH'])
+@login_required
+def test_update_lobby_settings(game_id):
+    lobby = get_lobby(game_id)
+    if lobby is None:
+        return jsonify({'error': 'game not found'}), 404
+    if current_user.id != lobby.player1_id:
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json(silent=True) or {}
+    try:
+        parsed = _parse_test_session_config(data)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    lobby.settings = parsed
+    return jsonify({'ok': True})
+
+
+@bp.route('/test/<game_id>/lobby', methods=['GET'])
+def test_lobby_status(game_id):
+    lobby = get_lobby(game_id)
+    session = get_session(game_id)
+    if session is not None and session._multiplayer:
+        return jsonify({
+            "player2_joined": True,
+            "player2_username": None,
+            "player1_ready": True,
+            "player2_ready": True,
+            "both_ready": True,
+            "started": True,
+        })
+    if lobby is not None:
+        return jsonify(lobby.lobby_status())
+    return jsonify({'error': 'game not found'}), 404
+
+
+@bp.route('/test/<game_id>/ready', methods=['POST'])
+@login_required
+def test_ready(game_id):
+    lobby = get_lobby(game_id)
+    if lobby is None:
+        return jsonify({'error': 'game not found'}), 404
+    if current_user.id == lobby.player1_id:
+        lobby.player1_ready = not lobby.player1_ready
+        ready = lobby.player1_ready
+    elif current_user.id == lobby.player2_id:
+        lobby.player2_ready = not lobby.player2_ready
+        ready = lobby.player2_ready
+    else:
+        return jsonify({'error': 'forbidden'}), 403
+
+    status = lobby.lobby_status()
+    if status['both_ready']:
+        _start_lobby_game(game_id, lobby)
+        return jsonify({'ready': True, 'both_ready': True})
+    return jsonify({'ready': ready, 'both_ready': False})
+
+
+@bp.route('/test/<game_id>/leave', methods=['POST'])
+@login_required
+def test_leave(game_id):
+    lobby = get_lobby(game_id)
+    if lobby is None:
+        return jsonify({'error': 'game not found'}), 404
+    if current_user.id != lobby.player2_id:
+        return jsonify({'error': 'forbidden'}), 403
+    lobby.player2_id = None
+    lobby.player2_username = None
+    lobby.player2_ready = False
+    lobby.player1_ready = False
+    return jsonify({'ok': True})
+
+
+@bp.route('/test/<game_id>/close', methods=['POST'])
+@login_required
+def test_close(game_id):
+    lobby = get_lobby(game_id)
+    if lobby is None:
+        return jsonify({'error': 'game not found'}), 404
+    if current_user.id != lobby.player1_id:
+        return jsonify({'error': 'forbidden'}), 403
+    remove_lobby(game_id)
+    return jsonify({'ok': True})
+
+
+def _start_lobby_game(game_id: str, lobby) -> None:
+    """Create a real GameSession from a ready lobby, then remove the lobby."""
+    parsed = lobby.settings
+    session = create_session(
+        game_id=game_id,
+        size=parsed['size'],
+        op_limit=parsed['op_limit'],
+        clock_seconds=parsed['clock_seconds'],
+        word_rate=parsed['word_rate'],
+        starting_player=parsed['starting_player'],
+    )
+    session.engine._word_bank[1] = parsed['p1_starting_words']
+    session.engine._word_bank[2] = parsed['p2_starting_words']
+    session.engine._word_tick[1] = None
+    session.engine._word_tick[2] = None
+    session.engine._clock_remaining[1] = parsed['p1_clock_seconds']
+    session.engine._clock_remaining[2] = parsed['p2_clock_seconds']
+    session.engine._clock_tick[1] = None
+    session.engine._clock_tick[2] = None
+    session.set_multiplayer_players(lobby.player1_id, lobby.player2_id)
+    remove_lobby(game_id)
+
+
 @bp.route('/game/<game_id>/state', methods=['GET'])
 def game_state(game_id):
     """
@@ -833,7 +991,8 @@ def test_compile_script(game_id):
     if player not in (1, 2):
         return jsonify({'error': 'player must be 1 or 2'}), 400
 
-    result = session.compile_script(player, source)
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.compile_script(player, source, user_id=user_id)
     return jsonify(result)
 
 
@@ -850,7 +1009,8 @@ def test_deploy_script(game_id):
     if player not in (1, 2):
         return jsonify({'error': 'player must be 1 or 2'}), 400
 
-    result = session.deploy_script(player, source)
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.deploy_script(player, source, user_id=user_id)
     status = 200 if result.get('ok') else 422
     return jsonify(result), status
 
