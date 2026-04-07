@@ -22,9 +22,20 @@
         }
     }
 
-    const form = document.getElementById('test-create-form');
+    const createRoot = document.getElementById('test-create-root');
+    const myUsername = createRoot?.dataset?.username || '';
+    const startingOptMe = document.getElementById('starting-opt-me');
+    const startingOptOpp = document.getElementById('starting-opt-opp');
+
     const errorBox = document.getElementById('test-create-error');
     const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));
+    const copyLinkBtn = document.getElementById('copy-link-btn');
+    const lobbyPanel = document.getElementById('lobby-panel');
+    const joinDot = document.getElementById('join-dot');
+    const joinLabel = document.getElementById('join-label');
+    const lobbyActions = document.getElementById('lobby-actions');
+    const newLinkBtn = document.getElementById('new-link-btn');
+    const p1ReadyBtn = document.getElementById('p1-ready-btn');
 
     const fields = {
         clock_seconds: document.getElementById('clock_seconds'),
@@ -38,7 +49,6 @@
         p1_starting_words: document.getElementById('p1_starting_words'),
         p2_starting_words: document.getElementById('p2_starting_words'),
         starting_player: document.getElementById('starting_player'),
-        start_button: document.getElementById('start-test-game'),
         accommodations_section: document.getElementById('accommodations-section'),
     };
 
@@ -51,11 +61,12 @@
     ];
 
     let selectedPreset = 'custom';
+    let currentGameId = null;
+    let pollInterval = null;
+    let p1IsReady = false;
 
     function setError(message) {
-        if (!errorBox) {
-            return;
-        }
+        if (!errorBox) return;
         if (!message) {
             errorBox.hidden = true;
             errorBox.textContent = '';
@@ -72,7 +83,8 @@
 
     function readCoreValues() {
         return {
-            clock_seconds: toNumber(fields.clock_seconds.value),
+            // clock field is in minutes; convert to seconds for the server
+            clock_seconds: toNumber(fields.clock_seconds.value) * 60,
             board_size: toNumber(fields.board_size.value),
             op_limit: toNumber(fields.op_limit.value),
             word_rate: toNumber(fields.word_rate.value),
@@ -81,10 +93,9 @@
     }
 
     function applyCoreValues(values) {
-        if (!values) {
-            return;
-        }
-        fields.clock_seconds.value = String(values.clock_seconds);
+        if (!values) return;
+        // clock_seconds from preset is in seconds; display in minutes
+        fields.clock_seconds.value = String(+(values.clock_seconds / 60));
         fields.board_size.value = String(values.board_size);
         fields.op_limit.value = String(values.op_limit);
         fields.word_rate.value = String(values.word_rate);
@@ -102,18 +113,14 @@
     function syncCoreDisabledState() {
         const disableCore = selectedPreset !== 'custom';
         coreInputs.forEach((input) => {
-            if (input) {
-                input.disabled = disableCore;
-            }
+            if (input) input.disabled = disableCore;
         });
     }
 
     function selectPreset(preset, options) {
         const opts = options || {};
         const keepValues = Boolean(opts.keepValues);
-        if (preset !== 'custom' && !presets[preset]) {
-            return;
-        }
+        if (preset !== 'custom' && !presets[preset]) return;
 
         selectedPreset = preset;
         if (!keepValues && preset !== 'custom') {
@@ -128,20 +135,19 @@
         fields.accommodations_section.hidden = !enabled;
 
         if (enabled && selectedPreset !== 'custom') {
-            // Preserve the values from the selected preset while switching into custom mode.
             selectPreset('custom', { keepValues: true });
         }
 
-        if (!enabled) {
-            return;
-        }
+        if (!enabled) return;
 
         const core = readCoreValues();
+        // core.clock_seconds is in seconds; accommodation fields are in minutes
+        const clockMins = core.clock_seconds != null ? +(core.clock_seconds / 60) : '';
         if (fields.p1_clock_seconds.value === '') {
-            fields.p1_clock_seconds.value = String(core.clock_seconds ?? '');
+            fields.p1_clock_seconds.value = String(clockMins);
         }
         if (fields.p2_clock_seconds.value === '') {
-            fields.p2_clock_seconds.value = String(core.clock_seconds ?? '');
+            fields.p2_clock_seconds.value = String(clockMins);
         }
         if (fields.p1_starting_words.value === '') {
             fields.p1_starting_words.value = String(core.starting_words ?? '');
@@ -151,10 +157,7 @@
         }
     }
 
-    async function handleSubmit(event) {
-        event.preventDefault();
-        setError('');
-
+    function buildPayload() {
         const payload = {
             preset: selectedPreset,
             accommodations_enabled: fields.accommodations_enabled.checked,
@@ -170,24 +173,104 @@
         }
 
         if (fields.accommodations_enabled.checked) {
-            payload.p1_clock_seconds = toNumber(fields.p1_clock_seconds.value);
-            payload.p2_clock_seconds = toNumber(fields.p2_clock_seconds.value);
+            // clock fields are in minutes in the DOM; convert to seconds for the server
+            payload.p1_clock_seconds = toNumber(fields.p1_clock_seconds.value) * 60;
+            payload.p2_clock_seconds = toNumber(fields.p2_clock_seconds.value) * 60;
             payload.p1_starting_words = toNumber(fields.p1_starting_words.value);
             payload.p2_starting_words = toNumber(fields.p2_starting_words.value);
             payload.starting_player = fields.starting_player.value;
         }
 
-        fields.start_button.disabled = true;
+        return payload;
+    }
+
+    function stopPolling() {
+        if (pollInterval !== null) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    }
+
+    function startLobbyPoll(gameId) {
+        stopPolling();
+        pollInterval = setInterval(() => pollLobby(gameId), 1000);
+    }
+
+    function updateStartingPlayerOptions(joinerUsername) {
+        if (startingOptMe) {
+            startingOptMe.textContent = myUsername ? `Me (${myUsername})` : 'Me';
+        }
+        if (startingOptOpp) {
+            startingOptOpp.textContent = joinerUsername ? `Opponent (${joinerUsername})` : 'Opponent';
+        }
+    }
+
+    async function pollLobby(gameId) {
         try {
-            const response = await fetch('/test/session', {
+            const resp = await fetch(`/test/${encodeURIComponent(gameId)}/lobby`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            if (data.started || data.both_ready) {
+                stopPolling();
+                window.location.href = `/test/${encodeURIComponent(gameId)}`;
+                return;
+            }
+
+            if (data.player2_joined) {
+                const name = data.player2_username || 'Player 2';
+                joinDot.className = data.player2_ready
+                    ? 'status-dot status-dot--ready'
+                    : 'status-dot status-dot--pending';
+                joinLabel.textContent = data.player2_ready ? `${name} ready` : `${name} joined`;
+                lobbyActions.hidden = false;
+                updateStartingPlayerOptions(data.player2_username);
+            }
+        } catch (_) {
+            // network error — silently retry next interval
+        }
+    }
+
+    async function handleCopyLink() {
+        setError('');
+        copyLinkBtn.disabled = true;
+
+        // Close old lobby if re-generating
+        if (currentGameId) {
+            try {
+                await fetch(`/test/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
+            } catch (_) {}
+        }
+
+        // Reset lobby UI state
+        stopPolling();
+        p1IsReady = false;
+        if (p1ReadyBtn) {
+            p1ReadyBtn.textContent = 'Ready';
+            p1ReadyBtn.disabled = false;
+        }
+        if (joinDot) joinDot.className = 'status-dot status-dot--pending';
+        if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
+        if (lobbyActions) lobbyActions.hidden = true;
+        updateStartingPlayerOptions(null);
+
+        const payload = buildPayload();
+
+        try {
+            const response = await fetch('/test/lobby', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
+            if (response.status === 401) {
+                window.location.href = '/login?next=/test/new';
+                return;
+            }
+
             const data = await response.json();
             if (!response.ok) {
-                setError(data.error || 'Failed to create test game.');
+                setError(data.error || 'Failed to create game.');
                 return;
             }
 
@@ -196,24 +279,97 @@
                 setError('Server did not return a game id.');
                 return;
             }
-            window.location.href = `/test/${encodeURIComponent(gameId)}`;
+
+            currentGameId = gameId;
+            const joinUrl = `${location.origin}/test/${encodeURIComponent(gameId)}/join`;
+            try {
+                await navigator.clipboard.writeText(joinUrl);
+            } catch (_) {
+                // Clipboard may fail in non-secure context — show the link as fallback
+                setError(`Copy this link: ${joinUrl}`);
+            }
+
+            if (lobbyPanel) lobbyPanel.hidden = false;
+            startLobbyPoll(gameId);
         } catch (error) {
-            setError(error?.message || 'Network error while creating test game.');
+            setError(error?.message || 'Network error while creating game.');
         } finally {
-            fields.start_button.disabled = false;
+            copyLinkBtn.disabled = false;
         }
+    }
+
+    async function handleReady() {
+        if (!currentGameId) return;
+        p1ReadyBtn.disabled = true;
+        try {
+            const resp = await fetch(`/test/${encodeURIComponent(currentGameId)}/ready`, {
+                method: 'POST',
+            });
+            if (resp.status === 401) {
+                window.location.href = '/login?next=/test/new';
+                return;
+            }
+            if (!resp.ok) return;
+            const data = await resp.json();
+            p1IsReady = data.ready;
+            p1ReadyBtn.textContent = p1IsReady ? 'Cancel ready' : 'Ready';
+            if (data.both_ready) {
+                stopPolling();
+                window.location.href = `/test/${encodeURIComponent(currentGameId)}`;
+            }
+        } catch (_) {
+        } finally {
+            p1ReadyBtn.disabled = false;
+        }
+    }
+
+    async function handleNewLink() {
+        await handleCopyLink();
+    }
+
+    let settingsPatchTimer = null;
+
+    function schedulePatchSettings() {
+        if (!currentGameId) return;
+        clearTimeout(settingsPatchTimer);
+        settingsPatchTimer = setTimeout(async () => {
+            if (!currentGameId) return;
+            try {
+                await fetch(`/test/${encodeURIComponent(currentGameId)}/settings`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildPayload()),
+                });
+            } catch (_) {}
+        }, 300);
     }
 
     presetButtons.forEach((button) => {
         button.addEventListener('click', () => {
             selectPreset(button.dataset.preset || 'custom');
             syncAccommodations();
+            schedulePatchSettings();
         });
     });
 
-    fields.accommodations_enabled.addEventListener('change', syncAccommodations);
-    form.addEventListener('submit', handleSubmit);
+    fields.accommodations_enabled.addEventListener('change', () => {
+        syncAccommodations();
+        schedulePatchSettings();
+    });
+
+    coreInputs.forEach((input) => {
+        if (input) input.addEventListener('input', schedulePatchSettings);
+    });
+
+    [fields.p1_clock_seconds, fields.p2_clock_seconds, fields.p1_starting_words, fields.p2_starting_words, fields.starting_player].forEach((input) => {
+        if (input) input.addEventListener('input', schedulePatchSettings);
+    });
+
+    if (copyLinkBtn) copyLinkBtn.addEventListener('click', handleCopyLink);
+    if (p1ReadyBtn) p1ReadyBtn.addEventListener('click', handleReady);
+    if (newLinkBtn) newLinkBtn.addEventListener('click', handleNewLink);
 
     selectPreset(defaultPreset);
     syncAccommodations();
+    updateStartingPlayerOptions(null);
 })();
