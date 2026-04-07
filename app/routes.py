@@ -5,6 +5,7 @@
 
 import uuid
 import re
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -171,6 +172,138 @@ def _closest_board_size(value):
     return min(stops, key=lambda stop: abs(stop - value))
 
 
+def _coerce_int(value, *, field, minimum=None, maximum=None, allowed=None):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{field} must be an integer')
+
+    if allowed is not None and parsed not in allowed:
+        allowed_text = ', '.join(str(item) for item in sorted(allowed))
+        raise ValueError(f'{field} must be one of: {allowed_text}')
+    if minimum is not None and parsed < minimum:
+        raise ValueError(f'{field} must be at least {minimum}')
+    if maximum is not None and parsed > maximum:
+        raise ValueError(f'{field} must be at most {maximum}')
+    return parsed
+
+
+def _coerce_float(value, *, field, minimum=None, maximum=None):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{field} must be a number')
+
+    if minimum is not None and parsed < minimum:
+        raise ValueError(f'{field} must be at least {minimum}')
+    if maximum is not None and parsed > maximum:
+        raise ValueError(f'{field} must be at most {maximum}')
+    return parsed
+
+
+def _coerce_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ('1', 'true', 'yes', 'on')
+    return bool(value)
+
+
+def _parse_test_session_config(payload):
+    presets = Config.TIME_CONTROL_PRESETS
+    preset = str(payload.get('preset', '5'))
+    if preset != 'custom' and preset not in presets:
+        raise ValueError('preset must be one of 60, 30, 15, 5, custom')
+
+    base = dict(presets.get(preset, presets['5']))
+    if preset == 'custom':
+        base['clock_seconds'] = _coerce_float(
+            payload.get('clock_seconds'),
+            field='clock_seconds',
+            minimum=10.0,
+            maximum=21600.0,
+        )
+        base['board_size'] = _coerce_int(
+            payload.get('board_size'),
+            field='board_size',
+            allowed=set(Config.BOARD_SIZE_STOPS),
+        )
+        base['op_limit'] = _coerce_int(
+            payload.get('op_limit'),
+            field='op_limit',
+            minimum=1,
+            maximum=200,
+        )
+        base['word_rate'] = _coerce_float(
+            payload.get('word_rate'),
+            field='word_rate',
+            minimum=0.1,
+            maximum=10.0,
+        )
+        base['starting_words'] = _coerce_float(
+            payload.get('starting_words'),
+            field='starting_words',
+            minimum=0.0,
+            maximum=500.0,
+        )
+
+    accommodations_enabled = _coerce_bool(payload.get('accommodations_enabled', False))
+    if accommodations_enabled:
+        p1_clock_seconds = _coerce_float(
+            payload.get('p1_clock_seconds', base['clock_seconds']),
+            field='p1_clock_seconds',
+            minimum=10.0,
+            maximum=21600.0,
+        )
+        p2_clock_seconds = _coerce_float(
+            payload.get('p2_clock_seconds', base['clock_seconds']),
+            field='p2_clock_seconds',
+            minimum=10.0,
+            maximum=21600.0,
+        )
+        p1_starting_words = _coerce_float(
+            payload.get('p1_starting_words', base['starting_words']),
+            field='p1_starting_words',
+            minimum=0.0,
+            maximum=500.0,
+        )
+        p2_starting_words = _coerce_float(
+            payload.get('p2_starting_words', base['starting_words']),
+            field='p2_starting_words',
+            minimum=0.0,
+            maximum=500.0,
+        )
+        starting_player_raw = payload.get('starting_player', 1)
+        if isinstance(starting_player_raw, str) and starting_player_raw.strip().lower() == 'random':
+            starting_player = random.choice((1, 2))
+        else:
+            starting_player = _coerce_int(
+                starting_player_raw,
+                field='starting_player',
+                allowed={1, 2},
+            )
+    else:
+        p1_clock_seconds = base['clock_seconds']
+        p2_clock_seconds = base['clock_seconds']
+        p1_starting_words = base['starting_words']
+        p2_starting_words = base['starting_words']
+        starting_player = 1
+
+    return {
+        'preset': preset,
+        'size': base['board_size'],
+        'op_limit': base['op_limit'],
+        'clock_seconds': base['clock_seconds'],
+        'word_rate': base['word_rate'],
+        'starting_player': starting_player,
+        'p1_clock_seconds': p1_clock_seconds,
+        'p2_clock_seconds': p2_clock_seconds,
+        'p1_starting_words': p1_starting_words,
+        'p2_starting_words': p2_starting_words,
+        'accommodations_enabled': accommodations_enabled,
+    }
+
+
 def _player_slot_for_game(account_id, game):
     if game.player1_id == account_id:
         return 1
@@ -287,8 +420,23 @@ def index():
 
 
 @bp.route('/new-game')
-def new_game():
+def new_game_legacy():
+    return redirect(url_for('main.game_new'))
+
+
+@bp.route('/game/new')
+@login_required
+def game_new():
     return render_template('stub.html', page_title='New Game')
+
+
+@bp.route('/game/<game_id>')
+@login_required
+def game_page(game_id):
+    game = db.session.get(Game, game_id)
+    if game is None:
+        return render_template('stub.html', page_title='Game not found'), 404
+    return render_template('stub.html', page_title=f'Game {game_id[:8]}')
 
 
 @bp.route('/my-games')
@@ -482,6 +630,7 @@ def legal_privacy():
 
 
 @bp.route('/games', methods=['POST'])
+@bp.route('/game', methods=['POST'])
 @login_required
 def create_game():
     """
@@ -511,9 +660,9 @@ def create_game():
     return jsonify({"game_id": game.id}), 201
 
 
-@bp.route('/games/<game_id>/compile', methods=['POST'])
+@bp.route('/game/<game_id>/compile', methods=['POST'])
 @login_required
-def compile_script(game_id):
+def game_compile_script(game_id):
     """
     Lint a script without advancing game state.
 
@@ -523,9 +672,13 @@ def compile_script(game_id):
     Returns:
         { "ok": bool, "errors": [...], "warnings": [...], "word_count": int }
     """
+    game = db.session.get(Game, game_id)
+    if game is None:
+        return jsonify({"error": "game not found"}), 404
+
     session = get_session(game_id)
     if session is None:
-        return jsonify({"error": "game not found"}), 404
+        return jsonify({"error": "game session not found"}), 404
 
     data = request.get_json(silent=True) or {}
     player = data.get('player')
@@ -534,18 +687,16 @@ def compile_script(game_id):
     if player not in (1, 2):
         return jsonify({"error": "player must be 1 or 2"}), 400
 
-    game = db.session.get(Game, game_id)
-    if game is not None:
-        if not current_user.is_authenticated or not _player_authorized(game, player):
-            return jsonify({"error": "forbidden"}), 403
+    if not _player_authorized(game, player):
+        return jsonify({"error": "forbidden"}), 403
 
     result = session.compile_script(player, source)
     return jsonify(result)
 
 
-@bp.route('/games/<game_id>/deploy', methods=['POST'])
+@bp.route('/game/<game_id>/deploy', methods=['POST'])
 @login_required
-def deploy_script(game_id):
+def game_deploy_script(game_id):
     """
     Deploy a script, ending the current write phase.
 
@@ -555,9 +706,13 @@ def deploy_script(game_id):
     Returns:
         { "ok": bool, "errors": [...], "warnings": [...], "game_over": bool, "winner": ... }
     """
+    game = db.session.get(Game, game_id)
+    if game is None:
+        return jsonify({"error": "game not found"}), 404
+
     session = get_session(game_id)
     if session is None:
-        return jsonify({"error": "game not found"}), 404
+        return jsonify({"error": "game session not found"}), 404
 
     data = request.get_json(silent=True) or {}
     player = data.get('player')
@@ -566,10 +721,8 @@ def deploy_script(game_id):
     if player not in (1, 2):
         return jsonify({"error": "player must be 1 or 2"}), 400
 
-    game = db.session.get(Game, game_id)
-    if game is not None:
-        if not current_user.is_authenticated or not _player_authorized(game, player):
-            return jsonify({"error": "forbidden"}), 403
+    if not _player_authorized(game, player):
+        return jsonify({"error": "forbidden"}), 403
 
     result = session.deploy_script(player, source)
     status = 200 if result.get('ok') else 422
@@ -577,8 +730,35 @@ def deploy_script(game_id):
 
 
 @bp.route('/test')
-def test_page():
-    return render_template('test.html')
+def test_page_legacy():
+    return redirect(url_for('main.test_new'))
+
+
+@bp.route('/test/new')
+def test_new():
+    preset_order = ('60', '30', '15', '5')
+    preset_icons = {
+        '60': 'hourglass_top',
+        '30': 'timer',
+        '15': 'speed',
+        '5': 'rocket',
+        'custom': 'alarm_smart_wake',
+    }
+    return render_template(
+        'test_new.html',
+        presets=Config.TIME_CONTROL_PRESETS,
+        preset_order=preset_order,
+        preset_icons=preset_icons,
+        board_size_stops=Config.BOARD_SIZE_STOPS,
+        default_preset='5',
+    )
+
+
+@bp.route('/test/<game_id>')
+def test_page(game_id):
+    if get_session(game_id) is None:
+        return render_template('stub.html', page_title='Test game not found'), 404
+    return render_template('test.html', game_id=game_id)
 
 
 @bp.route('/test/session', methods=['POST'])
@@ -588,36 +768,101 @@ def test_create_session():
     No DB accounts required. Both word banks are pre-filled for quick
     compile/deploy testing once the normal animation phase advances.
     """
+    data = request.get_json(silent=True) or {}
+    try:
+        parsed = _parse_test_session_config(data)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
     game_id = str(uuid.uuid4())
     session = create_session(
         game_id=game_id,
-        size=Config.BOARD_SIZE,
-        op_limit=Config.OP_LIMIT,
-        clock_seconds=Config.TEST_CLOCK_SECONDS,
-        word_rate=Config.TEST_WORD_RATE,
+        size=parsed['size'],
+        op_limit=parsed['op_limit'],
+        clock_seconds=parsed['clock_seconds'],
+        word_rate=parsed['word_rate'],
+        starting_player=parsed['starting_player'],
     )
-    # Start with a pre-loaded bank; accrues at TEST_WORD_RATE from there
-    session.engine._word_bank[1] = Config.TEST_WORD_BANK_START
-    session.engine._word_bank[2] = Config.TEST_WORD_BANK_START
+    session.engine._word_bank[1] = parsed['p1_starting_words']
+    session.engine._word_bank[2] = parsed['p2_starting_words']
+    session.engine._word_tick[1] = None
+    session.engine._word_tick[2] = None
+    session.engine._clock_remaining[1] = parsed['p1_clock_seconds']
+    session.engine._clock_remaining[2] = parsed['p2_clock_seconds']
+    session.engine._clock_tick[1] = None
+    session.engine._clock_tick[2] = None
     session.configure_auto_writer(
         player=2,
         first_script=Config.TEST_BOT_FIRST_SCRIPT,
         repeat_script=Config.TEST_BOT_REPEAT_SCRIPT,
         write_delay_seconds=Config.TEST_BOT_WRITE_DELAY_SECONDS,
     )
-    return jsonify({"game_id": game_id}), 201
+    return jsonify({'game_id': game_id}), 201
 
 
-@bp.route('/games/<game_id>/state', methods=['GET'])
+@bp.route('/game/<game_id>/state', methods=['GET'])
 def game_state(game_id):
     """
     Poll current game state. Auto-advances animation phases and checks clock expiry.
 
     Returns full state dict.
     """
+    game = db.session.get(Game, game_id)
+    if game is None:
+        return jsonify({"error": "game not found"}), 404
+
     session = get_session(game_id)
     if session is None:
-        return jsonify({"error": "game not found"}), 404
+        return jsonify({"error": "game session not found"}), 404
+
+    session.check_clock_expired()
+    state = session.get_state()
+    return jsonify(state)
+
+
+@bp.route('/test/<game_id>/compile', methods=['POST'])
+def test_compile_script(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    source = data.get('source', '')
+
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    result = session.compile_script(player, source)
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/deploy', methods=['POST'])
+def test_deploy_script(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    source = data.get('source', '')
+
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    result = session.deploy_script(player, source)
+    status = 200 if result.get('ok') else 422
+    return jsonify(result), status
+
+
+@bp.route('/test/<game_id>/state', methods=['GET'])
+def test_game_state(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    if request.args.get('begin_write') == '1':
+        session.skip_opening_pre_write()
 
     session.check_clock_expired()
     state = session.get_state()

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Satura - New Test Game{% endblock %}
+
+{% block content %}
+<main class="site-main">
+    <div class="container create-page-stack" id="test-create-root">
+        <article class="card">
+            <header class="card-header">
+                <h1 class="card-title">Create Test Game</h1>
+            </header>
+            <div class="settings-card-body settings-stack">
+                <div>
+                    <p class="hero-create-label">Preset</p>
+                    <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Test game preset">
+                        {% for key in preset_order %}
+                        <button type="button" class="icon-btn btn-warm-hover" data-preset="{{ key }}" role="radio"
+                            aria-checked="false">
+                            <span class="material-symbols-outlined">{{ preset_icons[key] }}</span>
+                            <span class="icon-btn-label">{{ key }} min</span>
+                        </button>
+                        {% endfor %}
+                        <button type="button" class="icon-btn btn-warm-hover" data-preset="custom" role="radio"
+                            aria-checked="false">
+                            <span class="material-symbols-outlined">{{ preset_icons['custom'] }}</span>
+                            <span class="icon-btn-label">Custom</span>
+                        </button>
+                    </div>
+                </div>
+
+                <form id="test-create-form" class="contact-form settings-form" novalidate>
+                    <div class="create-form-grid">
+                        <div class="field">
+                            <label class="form-label" for="clock_seconds">Clock time</label>
+                            <input type="number" id="clock_seconds" name="clock_seconds" min="10" max="21600" step="1">
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="board_size">Board size</label>
+                            <select id="board_size" name="board_size">
+                                {% for stop in board_size_stops %}
+                                <option value="{{ stop }}">{{ stop }} x {{ stop }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="op_limit">Op limit</label>
+                            <input type="number" id="op_limit" name="op_limit" min="1" max="200" step="1">
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="word_rate">Word rate</label>
+                            <input type="number" id="word_rate" name="word_rate" min="0.1" max="10" step="0.1">
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="starting_words">Starting words</label>
+                            <input type="number" id="starting_words" name="starting_words" min="0" max="500" step="1">
+                        </div>
+                    </div>
+
+                    <div class="toggle-row">
+                        <label class="toggle-label" for="accommodations_enabled">
+                            <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled">
+                            <span>Accommodations</span>
+                        </label>
+                        <span class="text-small-sans text-subtle">Customize per-player time and starting words.</span>
+                    </div>
+
+                    <section id="accommodations-section" class="settings-stack" hidden>
+                        <div class="split-grid">
+                            <div class="field">
+                                <label class="form-label" for="p1_clock_seconds">P1 clock time</label>
+                                <input type="number" id="p1_clock_seconds" name="p1_clock_seconds" min="10" max="21600"
+                                    step="1">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p2_clock_seconds">P2 clock time</label>
+                                <input type="number" id="p2_clock_seconds" name="p2_clock_seconds" min="10" max="21600"
+                                    step="1">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p1_starting_words">P1 starting words</label>
+                                <input type="number" id="p1_starting_words" name="p1_starting_words" min="0" max="500"
+                                    step="1">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p2_starting_words">P2 starting words</label>
+                                <input type="number" id="p2_starting_words" name="p2_starting_words" min="0" max="500"
+                                    step="1">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="starting_player">Starting player</label>
+                            <select id="starting_player" name="starting_player">
+                                <option value="random">Random</option>
+                                <option value="1">Player 1</option>
+                                <option value="2">Player 2</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <div id="test-create-error" class="error-msg" hidden></div>
+
+                    <div class="card-footer create-form-footer">
+                        <button type="submit" class="btn btn--accent" id="start-test-game">Start</button>
+                    </div>
+                </form>
+            </div>
+        </article>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script id="test-presets-json" type="application/json">{{ presets | tojson }}</script>
+<script id="test-default-preset-json" type="application/json">{{ default_preset | tojson }}</script>
+<script src="{{ url_for('static', filename='js/test_new.js') }}"></script>
+{% endblock %}
