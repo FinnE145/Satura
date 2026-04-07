@@ -27,6 +27,8 @@ const gameOverBackdrop = document.getElementById('game-over-backdrop');
 const testRoot = document.getElementById('test-root');
 const gameId = testRoot?.dataset?.gameId || null;
 const apiBase = gameId ? `/test/${encodeURIComponent(gameId)}` : null;
+const myPlayer = parseInt(testRoot?.dataset?.playerNum) || null;
+const isMultiplayer = testRoot?.dataset?.multiplayer === 'true';
 let bankPollTimer = null;
 let clockRenderTimer = null;
 const fallbackPalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' };
@@ -93,8 +95,14 @@ async function init() {
         markReplaySeen(initState);
         startClockRender();
 
-        // Hold state polling until the player edits the script for the first time.
+        // Hold state polling until the starting player edits their script for the first time.
+        // The non-starting player polls immediately so they see pre-write end and can react.
         wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> words in bank`;
+        const startingPlayer = Number(initState?.current_player ?? 1);
+        if (isMultiplayer && myPlayer !== startingPlayer) {
+            hasTriggeredFirstWriteState = true;
+            startBankPoll();
+        }
     } catch (e) {
         setStatus('error');
         setPhase('error');
@@ -110,7 +118,7 @@ function startBankPoll() {
         bankPollTimer = null;
     }
     refreshBank();
-    bankPollTimer = setInterval(refreshBank, 2000);
+    bankPollTimer = setInterval(refreshBank, 500);
 }
 
 async function refreshBank() {
@@ -180,7 +188,7 @@ btnCompile.addEventListener('click', async () => {
 
 async function runCompile() {
     const data = await post(`${apiBase}/compile`, {
-        player: 1,
+        player: isMultiplayer ? myPlayer : 1,
         source: editor.value,
     });
     compileState = { errors: data.errors ?? [], warnings: data.warnings ?? [] };
@@ -223,11 +231,11 @@ btnDeploy.addEventListener('click', async () => {
         // Step 2: deploy
         clearOutput();
         const preExecState = cloneBoardAndAgents(lastBoardState);
-        setPhase('P1 Exec 1');
+        setPhase(isMultiplayer ? `P${myPlayer} Exec 1` : 'P1 Exec 1');
         setSessionReady(false);
 
         const data = await post(`${apiBase}/deploy`, {
-            player: 1,
+            player: isMultiplayer ? myPlayer : 1,
             source: editor.value,
         });
 
@@ -251,7 +259,7 @@ btnDeploy.addEventListener('click', async () => {
         applySessionState(state);
         replayInFlight = true;
         try {
-            await replayExecution(preExecState, state, 1);
+            await replayExecution(preExecState, state, isMultiplayer ? myPlayer : 1);
         } finally {
             replayInFlight = false;
         }
@@ -790,11 +798,14 @@ function phasePillClass(isWrite, player) {
 function applySessionState(state) {
     const phase = state?.phase ?? 'unknown';
     const isWrite = phase === 'write';
-    const isP1Turn = Number(state?.current_player ?? 0) === 1;
+    const currentPlayer = Number(state?.current_player ?? 0);
+    const isMyTurn = isMultiplayer
+        ? currentPlayer === myPlayer
+        : currentPlayer === 1;
     updateStepDelayFromState(state);
     updatePhaseSnapshot(state);
     updateClockSnapshot(state);
-    setSessionReady(isWrite && isP1Turn && state?.game_over !== true);
+    setSessionReady(isWrite && isMyTurn && state?.game_over !== true);
     maybeShowGameOverModal(state);
 }
 

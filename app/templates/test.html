@@ -3,7 +3,7 @@
 {% block title %}Satura — Test Bench{% endblock %}
 
 {% block content %}
-<main class="site-main" id="test-root" data-game-id="{{ game_id }}">
+<main class="site-main" id="test-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}" data-multiplayer="{{ 'true' if multiplayer else '' }}">
     <div class="container">
 
         <!-- Session status bar -->
