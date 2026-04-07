@@ -3,6 +3,8 @@
 const statusDot = document.getElementById('status-dot');
 const sessionIdEl = document.getElementById('session-id');
 const sessionPhaseEl = document.getElementById('session-phase');
+const sessionClockP1El = document.getElementById('session-clock-p1');
+const sessionClockP2El = document.getElementById('session-clock-p2');
 const boardLegendP1El = document.getElementById('board-legend-p1');
 const boardLegendP2El = document.getElementById('board-legend-p2');
 const wordBankEl = document.getElementById('word-bank');
@@ -22,7 +24,9 @@ const gameOverBackdrop = document.getElementById('game-over-backdrop');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let gameId = null;
+const testRoot = document.getElementById('test-root');
+const gameId = testRoot?.dataset?.gameId || null;
+const apiBase = gameId ? `/test/${encodeURIComponent(gameId)}` : null;
 let bankPollTimer = null;
 let clockRenderTimer = null;
 const fallbackPalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' };
@@ -45,6 +49,7 @@ let lastReplayKey = null;
 let replayInFlight = false;
 let stepDelayMs = 500;
 let gameOverModalShown = false;
+let hasTriggeredFirstWriteState = false;
 
 if (gameOverDismissBtn) {
     gameOverDismissBtn.addEventListener('click', hideGameOverModal);
@@ -69,21 +74,27 @@ async function init() {
     setPhase('initialising');
     setSessionReady(false);
 
+    if (!gameId || !apiBase) {
+        setStatus('error');
+        setPhase('error');
+        sessionIdEl.textContent = 'missing game id';
+        return;
+    }
+
     try {
-        const data = await post('/test/session');
-        gameId = data.game_id;
         sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
         sessionIdEl.title = gameId;
         setStatus('ready');
 
         // Show the latest board and actual server phase immediately.
-        const initState = await get(`/games/${gameId}/state`);
+        const initState = await get(`${apiBase}/state`);
         applySessionState(initState);
         renderBoard(initState);
         markReplaySeen(initState);
         startClockRender();
 
-        startBankPoll();
+        // Hold state polling until the player edits the script for the first time.
+        wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> words in bank`;
     } catch (e) {
         setStatus('error');
         setPhase('error');
@@ -105,7 +116,7 @@ function startBankPoll() {
 async function refreshBank() {
     if (!gameId || !bankPollTimer) return;
     try {
-        const state = await get(`/games/${gameId}/state`);
+        const state = await get(`${apiBase}/state`);
         const bank = state.word_bank?.[1] ?? 0;
         lastBank = bank;
         lastRate = state.word_rate ?? (1 / 3);
@@ -122,6 +133,30 @@ async function refreshBank() {
     } catch (_) {
         // ignore transient poll failures
     }
+}
+
+async function triggerFirstWriteState() {
+    if (!gameId || hasTriggeredFirstWriteState) {
+        return;
+    }
+    hasTriggeredFirstWriteState = true;
+
+    try {
+        const state = await get(`${apiBase}/state?begin_write=1`);
+        const bank = state.word_bank?.[1] ?? 0;
+        lastBank = bank;
+        lastRate = state.word_rate ?? (1 / 3);
+        wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> words in bank`;
+        applySessionState(state);
+        await replayPolledExecution(state);
+        updateWordEta();
+        updateDeployButton();
+        updateWordShortageNotice();
+    } catch (_) {
+        // keep UI usable; normal polling will retry
+    }
+
+    startBankPoll();
 }
 
 // ── Compile ───────────────────────────────────────────────────────────────────
@@ -144,7 +179,7 @@ btnCompile.addEventListener('click', async () => {
 });
 
 async function runCompile() {
-    const data = await post(`/games/${gameId}/compile`, {
+    const data = await post(`${apiBase}/compile`, {
         player: 1,
         source: editor.value,
     });
@@ -191,7 +226,7 @@ btnDeploy.addEventListener('click', async () => {
         setPhase('P1 Exec 1');
         setSessionReady(false);
 
-        const data = await post(`/games/${gameId}/deploy`, {
+        const data = await post(`${apiBase}/deploy`, {
             player: 1,
             source: editor.value,
         });
@@ -212,7 +247,7 @@ btnDeploy.addEventListener('click', async () => {
         deployConfirmPending = false;
 
         // Fetch exec log, territory, and board from game state
-        const state = await get(`/games/${gameId}/state`);
+        const state = await get(`${apiBase}/state`);
         applySessionState(state);
         replayInFlight = true;
         try {
@@ -221,6 +256,7 @@ btnDeploy.addEventListener('click', async () => {
             replayInFlight = false;
         }
         markReplaySeen(state);
+        maybeShowGameOverModal(state);
     } catch (e) {
         renderNetworkError(diagBadge, diagBody, e.message);
     } finally {
@@ -248,6 +284,10 @@ editor.addEventListener('input', () => {
     updateWordEta();
     updateDeployButton();
     updateWordShortageNotice();
+
+    if (!hasTriggeredFirstWriteState) {
+        triggerFirstWriteState();
+    }
 });
 
 function updateWordEta() {
@@ -689,6 +729,37 @@ function renderBoard(state) {
             boardGrid.appendChild(cell);
         }
     }
+
+    updateBoardCoverage(board);
+}
+
+function updateBoardCoverage(board) {
+    if (!boardLegendP1El || !boardLegendP2El || !Array.isArray(board) || board.length === 0) {
+        return;
+    }
+
+    let p1Owned = 0;
+    let p2Owned = 0;
+    const total = board.length * board.length;
+
+    for (const row of board) {
+        for (const cell of row) {
+            if (!cell) {
+                continue;
+            }
+            if (cell.p1 > cell.p2) {
+                p1Owned += 1;
+            } else if (cell.p2 > cell.p1) {
+                p2Owned += 1;
+            }
+        }
+    }
+
+    const p1Pct = total > 0 ? ((p1Owned / total) * 100).toFixed(1) : '0.0';
+    const p2Pct = total > 0 ? ((p2Owned / total) * 100).toFixed(1) : '0.0';
+
+    boardLegendP1El.textContent = `P1 ${p1Owned} (${p1Pct}%)`;
+    boardLegendP2El.textContent = `P2 ${p2Owned} (${p2Pct}%)`;
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -729,6 +800,10 @@ function applySessionState(state) {
 
 function maybeShowGameOverModal(state) {
     if (!state || state.game_over !== true || gameOverModalShown || !gameOverModal || !gameOverMessage) {
+        return;
+    }
+    // Keep modal aligned with what the player sees on board/log replay.
+    if (replayInFlight || hasUnreplayedAnimation(state)) {
         return;
     }
     gameOverModalShown = true;
@@ -823,6 +898,9 @@ function formatPhaseLabel(state) {
     if (phase === 'anim_pre_write' || phase === 'exec2') {
         return `${side} Exec 2`;
     }
+    if (phase === 'opening_pre_write') {
+        return `${side} Pre-Write`;
+    }
     if (phase === 'write') {
         return `${side} Write`;
     }
@@ -853,11 +931,11 @@ function startClockRender() {
 }
 
 function renderSessionClock() {
-    if (!boardLegendP1El || !boardLegendP2El) return;
+    if (!sessionClockP1El || !sessionClockP2El) return;
 
     if (!clockSnapshot) {
-        boardLegendP1El.textContent = 'P1 --:--';
-        boardLegendP2El.textContent = 'P2 --:--';
+        sessionClockP1El.textContent = 'P1 --:--';
+        sessionClockP2El.textContent = 'P2 --:--';
         return;
     }
 
@@ -873,8 +951,8 @@ function renderSessionClock() {
         }
     }
 
-    boardLegendP1El.textContent = `P1 ${formatClock(p1)}`;
-    boardLegendP2El.textContent = `P2 ${formatClock(p2)}`;
+    sessionClockP1El.textContent = `P1 ${formatClock(p1)}`;
+    sessionClockP2El.textContent = `P2 ${formatClock(p2)}`;
 }
 
 function formatClock(seconds) {
@@ -891,6 +969,17 @@ function replayKeyForState(state) {
     return `${actor}|${consumed}|${JSON.stringify(log)}`;
 }
 
+function hasUnreplayedAnimation(state) {
+    if (!state) {
+        return false;
+    }
+    const log = state.exec_log ?? [];
+    if (!Array.isArray(log) || log.length === 0) {
+        return false;
+    }
+    return replayKeyForState(state) !== lastReplayKey;
+}
+
 function markReplaySeen(state) {
     lastReplayKey = replayKeyForState(state);
 }
@@ -905,6 +994,7 @@ async function replayPolledExecution(state) {
         if (lastBoardState !== state) {
             renderBoard(state);
         }
+        maybeShowGameOverModal(state);
         return;
     }
 
@@ -917,6 +1007,7 @@ async function replayPolledExecution(state) {
         replayInFlight = false;
     }
     markReplaySeen(state);
+    maybeShowGameOverModal(state);
 }
 
 function setSessionReady(on) {

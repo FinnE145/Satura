@@ -40,6 +40,11 @@ Update this file whenever a class is added, changed, or removed.
 | Class | Description |
 |---|---|
 | `.container` | 1440px max-width centred wrapper with horizontal padding |
+| `.create-page-stack` | vertical stack wrapper for create/new-game style pages |
+| `.create-form-grid` | responsive two-column form grid for core game-creation fields |
+| `.toggle-row` | bordered row for inline toggle controls and helper text |
+| `.toggle-label` | inline checkbox + label treatment inside `.toggle-row` |
+| `.split-grid` | responsive two-column sub-grid for paired player fields |
 
 ### Buttons
 Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
@@ -55,6 +60,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.btn--danger` | error-coloured border action (red) |
 | `.icon-btn` | stacked icon + label button — mode selectors, tool pickers |
 | `.icon-btn-label` | tiny label below the icon inside `.icon-btn` |
+| `.icon-btn.is-active` | selected-state modifier for `.icon-btn` (accent border + tint background) |
 
 ### Cards
 | Class | Description |
@@ -162,7 +168,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 ### Test bench
 | Class | Description |
 |---|---|
-| `.session-bar` | flex status bar at the top of the test bench |
+| `.session-bar` | grid status bar at the top of the test bench |
+| `.session-bar-left` | left cluster inside `.session-bar` for session id and phase pill |
 | `.status-dot` | small coloured indicator dot (use with a state modifier) |
 | `.status-dot--ready` | green dot |
 | `.status-dot--pending` | yellow dot |
@@ -170,7 +177,11 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.session-bar-group` | flex group of related items within the session bar |
 | `.session-bar-key` | tiny uppercase key label in the session bar |
 | `.session-bar-sep` | non-selectable separator character between bar groups |
-| `.session-bar-spacer` | flex spacer that pushes subsequent items right |
+| `.session-clocks` | centered inline group showing both player clocks in the status row |
+| `.session-clock` | individual player clock text inside `.session-clocks` |
+| `.session-clock--p1` | warm-accent clock text for player 1 |
+| `.session-clock--p2` | cool-accent clock text for player 2 |
+| `.session-clock-sep` | separator dot between player clock texts |
 | `.session-id` | monospace session UUID display |
 | `.phase-pill` | rounded pill showing the current game phase |
 | `.phase-pill--p1` | warm accent variant for P1-controlled phases |
@@ -187,8 +198,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.word-eta--ready` | subtle colour when word bank is sufficient |
 | `.script-editor` | full-height monospace textarea for script input |
 | `.board-card` | flex column card wrapping the game board |
-| `.board-legend` | flex row legend showing both player colours |
-| `.board-legend-item` | pill legend item showing player label and remaining clock (use with `--p1` or `--p2`) |
+| `.board-legend` | flex row legend showing player board-coverage stats |
+| `.board-legend-item` | pill legend item showing player owned-cell count and board percentage (use with `--p1` or `--p2`) |
 | `.board-legend-item--p1` | warm accent pill |
 | `.board-legend-item--p2` | cool accent pill |
 | `.board-wrap` | padded inner container for the board grid |

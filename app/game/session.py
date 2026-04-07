@@ -25,6 +25,7 @@ class GameSession:
         self._auto_write_ready_at: float | None = None
         self._auto_deploy_count: int = 0
         self._write_started_at: float | None = None
+        self._opening_pre_write_pending: bool = True
 
     _SENSING_OPS = {"get_friction", "has_agent", "my_paint", "opp_paint"}
 
@@ -141,6 +142,12 @@ class GameSession:
             return True
         return False
 
+    def skip_opening_pre_write(self) -> None:
+        """Force the one-time opening pre-write wait to end on the next state tick."""
+        self._opening_pre_write_pending = False
+        if self.phase in ("anim_pre_write", "opening_pre_write"):
+            self._anim_deadline = time.monotonic() - 1.0
+
     # ------------------------------------------------------------------ private helpers
 
     def _run_exec2(self) -> None:
@@ -154,8 +161,14 @@ class GameSession:
             self._exec_ops = 0
         self._check_win_stalemate()
         if not self.game_over:
-            self.phase = "anim_pre_write"
-            self._anim_deadline = time.monotonic() + self._animation_wait_seconds(self._exec_log)
+            wait_seconds = self._animation_wait_seconds(self._exec_log)
+            if self._opening_pre_write_pending:
+                self.phase = "opening_pre_write"
+                self._anim_deadline = time.monotonic() + wait_seconds + Config.INITIAL_PRE_WRITE_SECONDS
+                self._opening_pre_write_pending = False
+            else:
+                self.phase = "anim_pre_write"
+                self._anim_deadline = time.monotonic() + wait_seconds
         self._write_started_at = None
 
     def _run_exec1(self) -> None:
@@ -176,21 +189,26 @@ class GameSession:
         if self._anim_deadline is None or time.monotonic() < self._anim_deadline:
             return
         if self.phase == "anim_pre_write":
-            self.phase = "write"
-            self._anim_deadline = None
-            self._write_started_at = time.monotonic()
-            self.engine.resume_clock(self.current_player)
-            self.engine.resume_word_accumulation(self.current_player)
-            if self.current_player == self._auto_player:
-                self._auto_write_ready_at = time.monotonic() + self._auto_write_delay
+            self._enter_write_phase()
+        elif self.phase == "opening_pre_write":
+            self._enter_write_phase()
         elif self.phase == "anim_post_exec1":
             self._anim_deadline = None
             self._switch_player()
             self._run_exec2()
 
+    def _enter_write_phase(self) -> None:
+        self.phase = "write"
+        self._anim_deadline = None
+        self._write_started_at = time.monotonic()
+        self.engine.resume_clock(self.current_player)
+        self.engine.resume_word_accumulation(self.current_player)
+        if self.current_player == self._auto_player:
+            self._auto_write_ready_at = time.monotonic() + self._auto_write_delay
+
     def _phase_timer_payload(self) -> dict | None:
         now = time.monotonic()
-        if self.phase in ("anim_pre_write", "anim_post_exec1") and self._anim_deadline is not None:
+        if self.phase in ("anim_pre_write", "anim_post_exec1", "opening_pre_write") and self._anim_deadline is not None:
             return {
                 "mode": "countdown",
                 "seconds": max(0.0, self._anim_deadline - now),
@@ -274,10 +292,12 @@ def create_session(
     op_limit: int,
     clock_seconds: float,
     word_rate: float = 1.0,
+    starting_player: int = 1,
 ) -> GameSession:
-    """Create a new session and immediately run P1's first exec2 (no script → halt)."""
+    """Create a new session and immediately run first exec2 for the starting player."""
     engine = Engine(size, op_limit, clock_seconds, word_rate)
     session = GameSession(game_id, engine)
+    session.current_player = 2 if starting_player == 2 else 1
     _sessions[game_id] = session
     session._run_exec2()
     return session

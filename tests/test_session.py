@@ -25,6 +25,7 @@ def _in_write(player=1, engine=None):
     s = _session(engine)
     s.current_player = player
     s.phase = "write"
+    s._opening_pre_write_pending = False
     s.engine._word_bank[player] = 1000.0
     s.engine.resume_clock(player)
     s.engine.resume_word_accumulation(player)
@@ -54,10 +55,10 @@ class TestRegistry:
         assert get_session("does-not-exist") is None
 
     def test_create_session_runs_p1_exec2(self):
-        # After creation, P1's exec2 (no script) already ran — should be in anim_pre_write
+        # After creation, P1's exec2 (no script) already ran — should be in opening_pre_write
         s = create_session("reg-3", 4, 100, 60.0)
         assert s.current_player == 1
-        assert s.phase == "anim_pre_write"
+        assert s.phase == "opening_pre_write"
 
     def test_create_session_exec_log_empty_on_no_script(self):
         s = create_session("reg-4", 4, 100, 60.0)
@@ -289,6 +290,14 @@ class TestGetState:
         assert state["phase_timer"]["mode"] == "countdown"
         assert state["phase_timer"]["seconds"] >= 0.0
 
+    def test_state_phase_timer_countdown_in_opening_pre_write(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._anim_deadline = time.monotonic() + 5.0
+        state = s.get_state()
+        assert state["phase_timer"]["mode"] == "countdown"
+        assert state["phase_timer"]["seconds"] >= 0.0
+
     def test_state_phase_timer_countup_in_write(self):
         s = _in_write()
         state = s.get_state()
@@ -313,16 +322,32 @@ class TestGetState:
         s.get_state()
         assert s.phase == "write"
 
+    def test_advance_opening_pre_write_to_write(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._anim_deadline = time.monotonic() - 1.0
+        s.get_state()
+        assert s.phase == "write"
+
     def test_advance_anim_pre_write_starts_clock(self):
         s = _session()
         s.phase = "anim_pre_write"
+        s._anim_deadline = time.monotonic() - 1.0
+        s.get_state()
+        assert s.phase == "write"
+        assert s.engine._clock_tick[s.current_player] is not None
+
+    def test_advance_opening_pre_write_starts_clock(self):
+        s = _session()
+        s.phase = "opening_pre_write"
         s._anim_deadline = time.monotonic() - 1.0
         s.get_state()
         assert s.engine._clock_tick[s.current_player] is not None
 
     def test_advance_to_write_with_zero_time_finishes_immediately(self):
         s = _session()
-        s.phase = "anim_pre_write"
+        s.phase = "opening_pre_write"
+        s._opening_pre_write_pending = False
         s.current_player = 1
         s.engine._clock_remaining[1] = 0.0
         s._anim_deadline = time.monotonic() - 1.0
@@ -342,11 +367,30 @@ class TestGetState:
         # After anim_post_exec1 expires, P2's exec2 runs (no script → halt)
         # Session should be in anim_pre_write for P2
         s = _session()
+        s._opening_pre_write_pending = False
         s.phase = "anim_post_exec1"
         s._anim_deadline = time.monotonic() - 1.0
         s.get_state()
         assert s.phase == "anim_pre_write"
         assert s.current_player == 2
+
+    def test_skip_opening_pre_write_from_anim_pre_write_enters_write(self):
+        s = _session()
+        s.phase = "anim_pre_write"
+        s.current_player = 1
+        s.skip_opening_pre_write()
+        s.get_state()
+        assert s.phase == "write"
+        assert s._opening_pre_write_pending is False
+
+    def test_skip_opening_pre_write_from_opening_pre_write_enters_write(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s.current_player = 1
+        s.skip_opening_pre_write()
+        s.get_state()
+        assert s.phase == "write"
+        assert s._opening_pre_write_pending is False
 
 
 # ================================================================== check_clock_expired
@@ -586,12 +630,13 @@ class TestWordBankAccumulation:
         # After _run_exec2, session is in animation and accumulation must be paused.
         s = _session()
         s._run_exec2()  # no script → halt
-        assert s.phase == "anim_pre_write"
+        assert s.phase == "opening_pre_write"
         assert s.engine._word_tick[1] is None
 
     def test_accumulation_starts_on_write_phase_entry(self):
         s = _session()
-        s.phase = "anim_pre_write"
+        s.phase = "opening_pre_write"
+        s._opening_pre_write_pending = False
         s.current_player = 1
         s._anim_deadline = time.monotonic() - 1.0
         s.get_state()

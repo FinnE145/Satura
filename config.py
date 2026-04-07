@@ -24,31 +24,31 @@ class Config:
     TIME_CONTROL_PRESETS = {
         '60': {
             'clock_seconds': 3600.0,
-            'board_size': 16,
-            'op_limit': 25,
-            'word_rate': 2.0,
-            'starting_words': 0.0,
+            'board_size': 32,
+            'op_limit': 75,
+            'word_rate': 0.4,
+            'starting_words': 50.0,
         },
         '30': {
             'clock_seconds': 1800.0,
-            'board_size': 16,
-            'op_limit': 25,
-            'word_rate': 2.0,
-            'starting_words': 0.0,
+            'board_size': 24,
+            'op_limit': 50,
+            'word_rate': 0.5,
+            'starting_words': 25.0,
         },
         '15': {
             'clock_seconds': 900.0,
             'board_size': 16,
             'op_limit': 25,
-            'word_rate': 2.0,
-            'starting_words': 0.0,
+            'word_rate': 0.6,
+            'starting_words': 25.0,
         },
         '5': {
             'clock_seconds': 300.0,
-            'board_size': 16,
+            'board_size': 10,
             'op_limit': 25,
-            'word_rate': 2.0,
-            'starting_words': 0.0,
+            'word_rate': 1.2,
+            'starting_words': 30.0,
         },
     }
 
@@ -58,6 +58,7 @@ class Config:
     CLOCK_SECONDS   = TIME_CONTROL_PRESETS['5']['clock_seconds']
     WORD_RATE       = TIME_CONTROL_PRESETS['5']['word_rate']      # words per second during live games
     ANIMATION_STEP_DURATION = 0.5  # seconds for each step in the animation to wait
+    INITIAL_PRE_WRITE_SECONDS = 30.0  # one-time opening think timer before first write phase
 
     # ── Test bench overrides ──────────────────────────────────────────────────
     TEST_CLOCK_SECONDS  = 7.0

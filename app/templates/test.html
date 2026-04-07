@@ -3,19 +3,27 @@
 {% block title %}Satura — Test Bench{% endblock %}
 
 {% block content %}
-<main class="site-main">
+<main class="site-main" id="test-root" data-game-id="{{ game_id }}">
     <div class="container">
 
         <!-- Session status bar -->
         <div class="session-bar" role="status" aria-live="polite">
-            <span class="status-dot" id="status-dot" aria-hidden="true"></span>
-            <span class="session-bar-group">
-                <span class="session-bar-key">Session</span>
-                <code class="session-id" id="session-id" title="">—</code>
+            <span class="session-bar-left">
+                <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+                <span class="session-bar-group">
+                    <span class="session-bar-key">Session</span>
+                    <code class="session-id" id="session-id" title="">—</code>
+                </span>
+                <span class="session-bar-sep" aria-hidden="true">·</span>
+                <span class="phase-pill" id="session-phase">initialising</span>
             </span>
-            <span class="session-bar-sep" aria-hidden="true">·</span>
-            <span class="phase-pill" id="session-phase">initialising</span>
-            <span class="session-bar-spacer"></span>
+
+            <span class="session-clocks" id="session-clocks" aria-label="Player clocks">
+                <span class="session-clock session-clock--p1" id="session-clock-p1">P1 --:--</span>
+                <span class="session-clock-sep" aria-hidden="true">·</span>
+                <span class="session-clock session-clock--p2" id="session-clock-p2">P2 --:--</span>
+            </span>
+
             <span class="word-bank" id="word-bank"></span>
         </div>
 
@@ -45,8 +53,8 @@
                 <div class="card-header">
                     <h2 class="card-title">Board</h2>
                     <span class="board-legend" id="board-legend">
-                        <span class="board-legend-item board-legend-item--p1" id="board-legend-p1">P1 --:--</span>
-                        <span class="board-legend-item board-legend-item--p2" id="board-legend-p2">P2 --:--</span>
+                        <span class="board-legend-item board-legend-item--p1" id="board-legend-p1">P1 0 (0.0%)</span>
+                        <span class="board-legend-item board-legend-item--p2" id="board-legend-p2">P2 0 (0.0%)</span>
                     </span>
                 </div>
                 <div class="board-wrap">
