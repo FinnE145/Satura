@@ -133,13 +133,34 @@ class GameSession:
             "warnings": [str(w) for w in result.warnings],
         }
 
-    def get_state(self) -> dict:
-        """Auto-advance animation phases, then return full game state."""
+    def get_state(self, for_player: int | None = None) -> dict:
+        """Auto-advance animation phases, then return game state.
+
+        If for_player is 1 or 2, sensitive fields are filtered so each client
+        only receives its own private data:
+        - exec_log: sensing ops are stripped when the requesting player is not
+          the one who executed (they don't need them and shouldn't see them).
+        - word_bank: only the requesting player's own level is included.
+        """
         self._maybe_advance_animation()
         self.check_clock_expired()
         self._maybe_auto_deploy()
         self.check_clock_expired()
         p1, p2, black, total = self.engine.board.territory()
+
+        if for_player is not None and for_player != self._last_exec_player:
+            exec_log = [e for e in self._exec_log if e.get("op") not in self._SENSING_OPS]
+        else:
+            exec_log = self._exec_log
+
+        if for_player is not None:
+            word_bank = {for_player: self.engine.word_bank(for_player)}
+        else:
+            word_bank = {
+                1: self.engine.word_bank(1),
+                2: self.engine.word_bank(2),
+            }
+
         return {
             "game_id": self.game_id,
             "game_over": self.game_over,
@@ -160,12 +181,9 @@ class GameSession:
                 1: self.engine.clock_remaining(1),
                 2: self.engine.clock_remaining(2),
             },
-            "word_bank": {
-                1: self.engine.word_bank(1),
-                2: self.engine.word_bank(2),
-            },
+            "word_bank": word_bank,
             "word_rate": self.engine._word_rate,
-            "exec_log": self._exec_log,
+            "exec_log": exec_log,
             "exec_ops_consumed": self._exec_ops,
             "last_exec_player": self._last_exec_player,
             "animation_step_duration": Config.ANIMATION_STEP_DURATION,

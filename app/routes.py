@@ -1140,6 +1140,13 @@ def test_game_state(game_id):
     if session is None:
         return jsonify({'error': 'game not found'}), 404
 
+    for_player = None
+    if session._multiplayer and current_user.is_authenticated:
+        if session._player_ids.get(1) == current_user.id:
+            for_player = 1
+        elif session._player_ids.get(2) == current_user.id:
+            for_player = 2
+
     session.check_clock_expired()
-    state = session.get_state()
+    state = session.get_state(for_player=for_player)
     return jsonify(state)
