@@ -651,20 +651,11 @@ function renderOutput(state) {
             formatLogEntry(entry);
         outputBody.appendChild(row);
     });
-
-    // Territory summary
-    if (state.territory) {
-        const t = state.territory;
-        outputBody.appendChild(el('div', 'log-sep', ''));
-        outputBody.appendChild(el('div', 'log-summary',
-            `P1\u00a0${t.p1}\u2002\u00b7\u2002P2\u00a0${t.p2}\u2002\u00b7\u2002Black\u00a0${t.black}\u2002\u00b7\u2002Total\u00a0${t.total}`
-        ));
-    }
 }
 
-async function replayExecution(preExecState, postExecState, actorPlayer = 1) {
+async function replayExecution(preExecState, postExecState, actorPlayer = 1, showOutput = true) {
     if (!preExecState) {
-        renderOutput(postExecState);
+        if (showOutput) renderOutput(postExecState);
         renderBoard(postExecState);
         return;
     }
@@ -673,12 +664,25 @@ async function replayExecution(preExecState, postExecState, actorPlayer = 1) {
     const replayState = cloneBoardAndAgents(preExecState);
 
     renderBoard(replayState);
-    await renderOutputStepByStep(postExecState, async (entry) => {
-        const opDelta = estimateOpCost(entry, replayState, actorPlayer);
-        applyOperationToReplayState(replayState, entry, replayBase, actorPlayer);
-        renderBoard(replayState);
-        return opDelta;
-    });
+
+    if (showOutput) {
+        await renderOutputStepByStep(postExecState, async (entry) => {
+            const opDelta = estimateOpCost(entry, replayState, actorPlayer);
+            applyOperationToReplayState(replayState, entry, replayBase, actorPlayer);
+            renderBoard(replayState);
+            return opDelta;
+        });
+    } else {
+        // Animate board only — leave the output panel untouched
+        const log = postExecState.exec_log ?? [];
+        for (const entry of log) {
+            if (!isInstantSensingOp(entry)) {
+                await delay(stepDelayMs);
+            }
+            applyOperationToReplayState(replayState, entry, replayBase, actorPlayer);
+            renderBoard(replayState);
+        }
+    }
 
     // Ensure exact parity with server-authoritative final state.
     renderBoard(postExecState);
@@ -725,14 +729,6 @@ async function renderOutputStepByStep(state, onStep) {
 
     // Snap to authoritative total in case stepwise estimates differ.
     outcomeLabel.textContent = `${consumed} / ${limit} ops`;
-
-    if (state.territory) {
-        const t = state.territory;
-        outputBody.appendChild(el('div', 'log-sep', ''));
-        outputBody.appendChild(el('div', 'log-summary',
-            `P1\u00a0${t.p1}\u2002\u00b7\u2002P2\u00a0${t.p2}\u2002\u00b7\u2002Black\u00a0${t.black}\u2002\u00b7\u2002Total\u00a0${t.total}`
-        ));
-    }
 }
 
 function isInstantSensingOp(entry) {
@@ -1255,7 +1251,7 @@ async function replayPolledExecution(state) {
     const preExecState = cloneBoardAndAgents(lastBoardState);
     replayInFlight = true;
     try {
-        await replayExecution(preExecState, state, actor === 2 ? 2 : 1);
+        await replayExecution(preExecState, state, actor === 2 ? 2 : 1, actor === minePlayer);
     } finally {
         replayInFlight = false;
     }
