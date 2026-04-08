@@ -49,6 +49,17 @@ _EXPR_START = frozenset({
 })
 
 
+def _token_desc(tok: Token) -> str:
+    """Return a human-readable description of a token for error messages."""
+    if tok.type == TokenType.EOF:
+        return "end of script"
+    if tok.type == TokenType.IDENT:
+        return repr(tok.value)
+    if tok.type in (TokenType.INT_LIT, TokenType.FLOAT_LIT):
+        return f"number {tok.value}"
+    return repr(tok.value)
+
+
 class Parser:
     def __init__(self, tokens: list[Token]):
         self.tokens = tokens
@@ -96,7 +107,7 @@ class Parser:
         if self._check(type):
             return self._advance()
         tok = self._peek()
-        raise ParseError(f"{msg} (got {tok.type.name} {tok.value!r})", tok.line, tok.col)
+        raise ParseError(f"{msg} (got {_token_desc(tok)})", tok.line, tok.col)
 
     # --------------------------------------------------------- statement parsing
 
@@ -435,7 +446,7 @@ class Parser:
             )
 
         raise ParseError(
-            f"unexpected token {tok.type.name} {tok.value!r}", tok.line, tok.col
+            f"unexpected {_token_desc(tok)}", tok.line, tok.col
         )
 
 
