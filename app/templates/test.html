@@ -6,19 +6,6 @@
 <main class="site-main" id="test-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}" data-multiplayer="{{ 'true' if multiplayer else '' }}">
     <div class="container">
 
-        <!-- Session status bar -->
-        <div class="session-bar" role="status" aria-live="polite">
-            <span class="session-bar-left">
-                <span class="status-dot" id="status-dot" aria-hidden="true"></span>
-                <span class="session-bar-group">
-                    <span class="session-bar-key">Session</span>
-                    <code class="session-id" id="session-id" title="">—</code>
-                </span>
-            </span>
-
-            <span class="word-bank" id="word-bank"></span>
-        </div>
-
         <!-- Workspace: editor + board -->
         <div class="workspace">
 
@@ -29,6 +16,8 @@
                     <span class="script-meta">
                         <span class="word-cost" id="word-cost"></span>
                         <span class="word-eta" id="word-eta"></span>
+                        <span class="script-meta-sep" id="word-bank-sep" hidden aria-hidden="true">·</span>
+                        <span class="word-bank" id="word-bank"></span>
                     </span>
                 </div>
                 <textarea class="script-editor" id="script-editor" spellcheck="false" autocomplete="off"
@@ -156,6 +145,17 @@
                     <button class="btn btn--secondary" id="game-over-dismiss">Close</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Session status bar -->
+        <div class="session-bar" role="status" aria-live="polite">
+            <span class="session-bar-left">
+                <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+                <span class="session-bar-group">
+                    <span class="session-bar-key">Session</span>
+                    <code class="session-id" id="session-id" title="">—</code>
+                </span>
+            </span>
         </div>
 
     </div><!-- .container -->

@@ -170,7 +170,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 ### Test bench
 | Class | Description |
 |---|---|
-| `.session-bar` | grid status bar at the top of the test bench |
+| `.session-bar` | status bar at the bottom of the test bench page |
 | `.session-bar-left` | left cluster inside `.session-bar` for session id and phase pill |
 | `.status-dot` | small coloured indicator dot (use with a state modifier) |
 | `.status-dot--ready` | green dot |
@@ -189,15 +189,16 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.phase-pill--p1` | warm accent variant for P1-controlled phases |
 | `.phase-pill--p2` | cool accent variant for P2-controlled phases |
 | `.phase-pill--write` | stronger emphasis modifier for write phases (with P1/P2 colour) |
-| `.word-bank` | word-bank count display in the session bar |
 | `.workspace` | 55/45 grid: script editor left, board right |
 | `.editor-card` | flex column card wrapping the script editor |
-| `.script-meta` | flex row showing word cost and ETA above the editor |
+| `.script-meta` | flex row showing word cost, ETA, and bank in the editor card header |
 | `.word-cost` | word-count text in `.script-meta` |
 | `.word-cost--active` | warm colour when words are actively being spent |
 | `.word-eta` | ETA text in `.script-meta` |
 | `.word-eta--waiting` | yellow colour while waiting for words to accrue |
 | `.word-eta--ready` | subtle colour when word bank is sufficient |
+| `.script-meta-sep` | non-selectable separator dot between script-meta groups |
+| `.word-bank` | word-bank count display in `.script-meta` |
 | `.script-editor` | full-height monospace textarea for script input |
 | `.board-card` | flex column card wrapping the game board |
 | `.board-legend` | flex row legend showing player board-coverage stats |

@@ -1222,11 +1222,10 @@ a[aria-disabled='true'] {
 /* Session status bar */
 
 .session-bar {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    display: flex;
     align-items: center;
     gap: 0.625em;
-    margin-bottom: 1.5em;
+    margin-top: 1.5em;
     min-height: 2em;
 }
 
@@ -1358,8 +1357,7 @@ a[aria-disabled='true'] {
 }
 
 .word-bank {
-    justify-self: end;
-    font-size: 0.8em;
+    font-size: 0.78em;
     color: var(--text-muted);
     font-family: var(--font-ui);
 }
@@ -1367,6 +1365,13 @@ a[aria-disabled='true'] {
 .word-bank strong {
     color: var(--text);
     font-weight: 500;
+}
+
+.script-meta-sep {
+    font-size: 0.72em;
+    color: var(--text-subtle);
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* Workspace grid */
@@ -2483,11 +2488,6 @@ body:has(.login-wrap) {
     .toggle-row {
         align-items: flex-start;
         flex-direction: column;
-    }
-
-    .session-bar {
-        grid-template-columns: 1fr;
-        gap: 0.5em;
     }
 
     .session-bar-left,

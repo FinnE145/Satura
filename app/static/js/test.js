@@ -12,6 +12,7 @@ const boardLegendMineEl = document.getElementById('board-legend-mine');
 const boardLegendOppEl = document.getElementById('board-legend-opp');
 const boardLegendInfoEl = document.getElementById('board-legend-info');
 const wordBankEl = document.getElementById('word-bank');
+const wordBankSepEl = document.getElementById('word-bank-sep');
 const wordCostEl = document.getElementById('word-cost');
 const wordEtaEl = document.getElementById('word-eta');
 const editor = document.getElementById('script-editor');
@@ -130,7 +131,7 @@ async function init() {
         markReplaySeen(initState);
         startClockRender();
 
-        wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> words in bank`;
+        wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> in bank`;
         startBankPoll();
     } catch (e) {
         setStatus('error');
@@ -154,10 +155,11 @@ async function refreshBank() {
     if (!gameId || !bankPollTimer) return;
     try {
         const state = await get(`${apiBase}/state`);
-        const bank = state.word_bank?.[1] ?? 0;
+        const bank = state.word_bank?.[minePlayer] ?? 0;
         lastBank = bank;
         lastRate = state.word_rate ?? (1 / 3);
-        wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> words in bank`;
+        wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> in bank`;
+        wordBankSepEl.hidden = currentWordCount === 0;
         applySessionState(state);
         await replayPolledExecution(state);
         if (state?.game_over === true && bankPollTimer) {
@@ -511,6 +513,7 @@ editor.addEventListener('input', () => {
     const wc = currentWordCount;
     wordCostEl.textContent = wc > 0 ? `${wc} word${wc !== 1 ? 's' : ''}` : '';
     wordCostEl.className = wc > 0 ? 'word-cost word-cost--active' : 'word-cost';
+    wordBankSepEl.hidden = wc === 0;
     updateWordEta();
     updateDeployButton();
     updateWordShortageNotice();
