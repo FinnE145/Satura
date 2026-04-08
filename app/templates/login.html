@@ -18,6 +18,7 @@
                 {% endif %}
             {% endwith %}
             <form method="post">
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
                 <div class="field">
                     <label class="form-label" for="username">Username</label>
                     <input type="text" id="username" name="username" autocomplete="username" autofocus>

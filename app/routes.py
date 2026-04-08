@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from urllib.parse import urlsplit
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
@@ -397,13 +398,19 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
+        next_url = request.form.get('next', '')
         account = Account.query.filter_by(username=username).first()
         if account and account.check_password(password):
             login_user(account)
+            parsed = urlsplit(next_url)
+            if next_url and not parsed.scheme and not parsed.netloc:
+                return redirect(next_url)
             return redirect(url_for('main.index'))
         flash('Invalid username or password.')
+    else:
+        next_url = request.args.get('next', '')
 
-    return render_template('login.html')
+    return render_template('login.html', next=next_url)
 
 
 @bp.route('/logout')
