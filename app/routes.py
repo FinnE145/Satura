@@ -824,6 +824,7 @@ def test_create_lobby():
 
 
 @bp.route('/test/<game_id>/join', methods=['GET'])
+@login_required
 def test_join_page(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
