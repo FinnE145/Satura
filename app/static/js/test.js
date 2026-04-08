@@ -8,8 +8,9 @@ const gcPhaseMineEl = document.getElementById('gc-phase-mine');
 const gcPhaseOppEl = document.getElementById('gc-phase-opp');
 const gcBadgeMineEl = document.getElementById('gc-badge-mine');
 const gcBadgeOppEl = document.getElementById('gc-badge-opp');
-const boardLegendP1El = document.getElementById('board-legend-p1');
-const boardLegendP2El = document.getElementById('board-legend-p2');
+const boardLegendMineEl = document.getElementById('board-legend-mine');
+const boardLegendOppEl = document.getElementById('board-legend-opp');
+const boardLegendInfoEl = document.getElementById('board-legend-info');
 const wordBankEl = document.getElementById('word-bank');
 const wordCostEl = document.getElementById('word-cost');
 const wordEtaEl = document.getElementById('word-eta');
@@ -50,6 +51,12 @@ if (gcBadgeMineEl) {
 if (gcBadgeOppEl) {
     gcBadgeOppEl.textContent = `P${oppPlayer}`;
     gcBadgeOppEl.classList.add(`gc-player-badge--p${oppPlayer}`);
+}
+if (boardLegendMineEl) {
+    boardLegendMineEl.className = `board-legend-item board-legend-item--p${minePlayer}`;
+}
+if (boardLegendOppEl) {
+    boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppPlayer}`;
 }
 
 let bankPollTimer = null;
@@ -955,7 +962,7 @@ function renderBoard(state) {
 }
 
 function updateBoardCoverage(board) {
-    if (!boardLegendP1El || !boardLegendP2El || !Array.isArray(board) || board.length === 0) {
+    if (!boardLegendMineEl || !boardLegendOppEl || !Array.isArray(board) || board.length === 0) {
         return;
     }
 
@@ -976,11 +983,18 @@ function updateBoardCoverage(board) {
         }
     }
 
-    const p1Pct = total > 0 ? ((p1Owned / total) * 100).toFixed(1) : '0.0';
-    const p2Pct = total > 0 ? ((p2Owned / total) * 100).toFixed(1) : '0.0';
+    const mineOwned = minePlayer === 1 ? p1Owned : p2Owned;
+    const oppOwned  = minePlayer === 1 ? p2Owned : p1Owned;
+    const minePct = total > 0 ? ((mineOwned / total) * 100).toFixed(1) : '0.0';
+    const oppPct  = total > 0 ? ((oppOwned  / total) * 100).toFixed(1) : '0.0';
 
-    boardLegendP1El.textContent = `P1 ${p1Owned} (${p1Pct}%)`;
-    boardLegendP2El.textContent = `P2 ${p2Owned} (${p2Pct}%)`;
+    boardLegendMineEl.textContent = `P${minePlayer} ${mineOwned} (${minePct}%)`;
+    boardLegendOppEl.textContent  = `P${oppPlayer} ${oppOwned} (${oppPct}%)`;
+
+    if (boardLegendInfoEl) {
+        const threshold = Math.ceil(total * 0.6);
+        boardLegendInfoEl.textContent = `${total} cells · Win: ${threshold}`;
+    }
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
