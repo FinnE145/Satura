@@ -235,6 +235,26 @@ h6 {
     color: var(--accent-cool);
 }
 
+.btn-warn-hover {
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-warn-hover:hover {
+    background: var(--warn-tint);
+    border-color: var(--warn-border);
+    color: var(--warn);
+}
+
+.btn-danger-hover {
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-danger-hover:hover {
+    background: var(--error-tint);
+    border-color: var(--error-border);
+    color: var(--error);
+}
+
 /* ─── Layout ─────────────────────────────────────────────────────────────────── */
 
 .container {
@@ -712,6 +732,107 @@ a[aria-disabled='true'] {
     text-decoration: none;
     letter-spacing: 0.06em;
     transition: opacity 0.15s;
+}
+
+/* Game controls panel */
+
+.game-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin-top: var(--gap);
+}
+
+.game-controls-main {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.game-controls-side {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.game-controls-side--opp {
+    justify-content: flex-end;
+}
+
+.game-controls-btns {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.25rem;
+}
+
+.gc-player-badge {
+    font-family: var(--font-ui);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.2em 0.45em;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.gc-player-badge--p1 {
+    background: var(--accent-tint);
+    color: var(--accent-bright);
+    border: 1px solid var(--accent-bright-dim);
+}
+
+.gc-player-badge--p2 {
+    background: var(--accent-cool-tint);
+    color: var(--accent-cool-bright);
+    border: 1px solid var(--accent-cool-bright-dim);
+}
+
+.gc-clock {
+    font-family: var(--font-ui);
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.game-controls-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.65em 0.9em;
+    min-width: 64px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.game-controls-btn .material-symbols-outlined {
+    font-size: 1.4rem;
+    line-height: 1;
+    font-variation-settings: 'wght' 300;
+}
+
+.game-controls-btn .icon-btn-label {
+    font-size: 0.75em;
+}
+
+.game-controls-confirm {
+    color: var(--text-subtle);
+    opacity: 0.8;
+}
+
+.game-controls-confirm[hidden] {
+    display: none;
 }
 
 /* End-of-game modal */

@@ -35,6 +35,8 @@ Update this file whenever a class is added, changed, or removed.
 | `.cool-hover` | text transitions to cool accent on hover |
 | `.btn-warm-hover` | border + tint fill transitions to warm accent on hover |
 | `.btn-cool-hover` | border + tint fill transitions to cool accent on hover |
+| `.btn-warn-hover` | border + tint fill transitions to warning yellow on hover |
+| `.btn-danger-hover` | border + tint fill transitions to error red on hover |
 
 ### Layout
 | Class | Description |
@@ -231,6 +233,20 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-over-modal__card` | centered modal card container |
 | `.game-over-modal__body` | inner body padding wrapper for modal content |
 | `.game-over-modal__message` | outcome message text for win/loss/stalemate popup |
+| `.game-controls` | card panel containing clocks, phase, and action buttons below the board |
+| `.game-controls-main` | flex row inside the panel: mine side, buttons, opponent side |
+| `.game-controls-side` | left/right info area holding badge, clock, and phase pill |
+| `.game-controls-side--mine` | local player side (always left) |
+| `.game-controls-side--opp` | opponent side (always right, right-aligned) |
+| `.game-controls-btns` | flex row of action buttons (centered) |
+| `.game-controls-btn` | borderless icon-stacked button inside the controls panel |
+| `.game-controls-btn--draw` | draw-offer button modifier (warn hover) |
+| `.game-controls-btn--resign` | resign button modifier (danger hover) |
+| `.game-controls-confirm` | small confirmation prompt text below the panel main row |
+| `.gc-player-badge` | small coloured player label — requires `--p1` or `--p2` modifier |
+| `.gc-player-badge--p1` | warm accent badge for P1 |
+| `.gc-player-badge--p2` | cool accent badge for P2 |
+| `.gc-clock` | clock time display in the controls panel |
 
 ### Login page
 | Class | Description |

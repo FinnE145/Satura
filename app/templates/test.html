@@ -14,14 +14,6 @@
                     <span class="session-bar-key">Session</span>
                     <code class="session-id" id="session-id" title="">—</code>
                 </span>
-                <span class="session-bar-sep" aria-hidden="true">·</span>
-                <span class="phase-pill" id="session-phase">initializing</span>
-            </span>
-
-            <span class="session-clocks" id="session-clocks" aria-label="Player clocks">
-                <span class="session-clock session-clock--p1" id="session-clock-p1">P1 --:--</span>
-                <span class="session-clock-sep" aria-hidden="true">·</span>
-                <span class="session-clock session-clock--p2" id="session-clock-p2">P2 --:--</span>
             </span>
 
             <span class="word-bank" id="word-bank"></span>
@@ -63,6 +55,56 @@
             </div>
 
         </div><!-- .workspace -->
+
+        <!-- Game controls panel -->
+        <div class="card game-controls" id="game-controls">
+            <div class="game-controls-main">
+
+                <!-- Mine side (always left) -->
+                <div class="game-controls-side game-controls-side--mine" id="gc-side-mine">
+                    <span class="gc-player-badge" id="gc-badge-mine"></span>
+                    <span class="gc-clock" id="gc-clock-mine">--:--</span>
+                    <span class="phase-pill" id="gc-phase-mine" hidden></span>
+                </div>
+
+                <!-- Buttons -->
+                <div class="game-controls-btns">
+                    <button type="button" class="game-controls-btn btn-warm-hover">
+                        <span class="material-symbols-outlined">replay</span>
+                        <span class="icon-btn-label">Replay</span>
+                    </button>
+                    <button type="button" class="game-controls-btn btn-cool-hover">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span class="icon-btn-label">Back</span>
+                    </button>
+                    <button type="button" class="game-controls-btn btn-cool-hover">
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                        <span class="icon-btn-label">Forward</span>
+                    </button>
+                    <button type="button" class="game-controls-btn btn-warm-hover">
+                        <span class="material-symbols-outlined">last_page</span>
+                        <span class="icon-btn-label">Current</span>
+                    </button>
+                    <button type="button" class="game-controls-btn game-controls-btn--draw btn-warn-hover" id="btn-draw">
+                        <span class="material-symbols-outlined">handshake</span>
+                        <span class="icon-btn-label">Draw</span>
+                    </button>
+                    <button type="button" class="game-controls-btn game-controls-btn--resign btn-danger-hover" id="btn-resign">
+                        <span class="material-symbols-outlined">flag</span>
+                        <span class="icon-btn-label">Resign</span>
+                    </button>
+                </div>
+
+                <!-- Opponent side (always right) -->
+                <div class="game-controls-side game-controls-side--opp" id="gc-side-opp">
+                    <span class="phase-pill" id="gc-phase-opp" hidden></span>
+                    <span class="gc-clock" id="gc-clock-opp">--:--</span>
+                    <span class="gc-player-badge" id="gc-badge-opp"></span>
+                </div>
+
+            </div>
+            <span class="game-controls-confirm text-small-sans" id="game-controls-confirm" hidden></span>
+        </div>
 
         <!-- Results row: diagnostics + output -->
         <div class="results-row">
@@ -114,4 +156,53 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/test.js') }}"></script>
+<script>
+(function () {
+    var confirm = document.getElementById('game-controls-confirm');
+    var drawBtn = document.getElementById('btn-draw');
+    var resignBtn = document.getElementById('btn-resign');
+    var pending = null;
+
+    function clearConfirm() {
+        confirm.hidden = true;
+        confirm.textContent = '';
+        pending = null;
+    }
+
+    drawBtn.addEventListener('click', function () {
+        if (pending === 'draw') { clearConfirm(); return; }
+        pending = 'draw';
+        confirm.textContent = 'Click Draw again to confirm';
+        confirm.hidden = false;
+    });
+
+    resignBtn.addEventListener('click', function () {
+        if (pending === 'resign') {
+            clearConfirm();
+            fetch(apiBase + '/resign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player: minePlayer }),
+            }).then(function () {
+                if (!bankPollTimer) { startBankPoll(); }
+                refreshBank();
+            });
+            return;
+        }
+        pending = 'resign';
+        confirm.textContent = 'Click Resign again to confirm';
+        confirm.hidden = false;
+    });
+
+    [drawBtn, resignBtn].forEach(function (btn) {
+        btn.addEventListener('blur', function () {
+            setTimeout(function () {
+                if (!document.activeElement || (document.activeElement !== drawBtn && document.activeElement !== resignBtn)) {
+                    clearConfirm();
+                }
+            }, 150);
+        });
+    });
+})();
+</script>
 {% endblock %}

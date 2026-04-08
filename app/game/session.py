@@ -171,6 +171,17 @@ class GameSession:
             "op_limit": self.engine.op_limit,
         }
 
+    def resign(self, player: int, user_id: int | None = None) -> dict:
+        """Forfeit the game on behalf of player; the opponent wins."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "error": "forbidden"}
+        if self.game_over:
+            return {"ok": False, "error": "game already over"}
+        if player not in (1, 2):
+            return {"ok": False, "error": "invalid player"}
+        self._finish(3 - player, reason="resign")
+        return {"ok": True}
+
     def check_clock_expired(self) -> bool:
         """Call during polling to detect write-phase timeout."""
         if self.phase == "write" and self.engine.clock_expired(self.current_player):

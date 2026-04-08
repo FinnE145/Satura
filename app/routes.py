@@ -1015,14 +1015,50 @@ def test_deploy_script(game_id):
     return jsonify(result), status
 
 
+@bp.route('/test/<game_id>/resign', methods=['POST'])
+def test_resign(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.resign(player, user_id=user_id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/begin_write', methods=['POST'])
+def test_begin_write(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+    if player != session.current_player:
+        return jsonify({'error': 'forbidden'}), 403
+    if session._multiplayer:
+        user_id = current_user.id if current_user.is_authenticated else None
+        if user_id != session._player_ids.get(player):
+            return jsonify({'error': 'forbidden'}), 403
+
+    session.skip_opening_pre_write()
+    return jsonify({'ok': True})
+
+
 @bp.route('/test/<game_id>/state', methods=['GET'])
 def test_game_state(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
-
-    if request.args.get('begin_write') == '1':
-        session.skip_opening_pre_write()
 
     session.check_clock_expired()
     state = session.get_state()

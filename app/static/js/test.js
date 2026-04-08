@@ -2,9 +2,12 @@
 
 const statusDot = document.getElementById('status-dot');
 const sessionIdEl = document.getElementById('session-id');
-const sessionPhaseEl = document.getElementById('session-phase');
-const sessionClockP1El = document.getElementById('session-clock-p1');
-const sessionClockP2El = document.getElementById('session-clock-p2');
+const gcClockMineEl = document.getElementById('gc-clock-mine');
+const gcClockOppEl = document.getElementById('gc-clock-opp');
+const gcPhaseMineEl = document.getElementById('gc-phase-mine');
+const gcPhaseOppEl = document.getElementById('gc-phase-opp');
+const gcBadgeMineEl = document.getElementById('gc-badge-mine');
+const gcBadgeOppEl = document.getElementById('gc-badge-opp');
 const boardLegendP1El = document.getElementById('board-legend-p1');
 const boardLegendP2El = document.getElementById('board-legend-p2');
 const wordBankEl = document.getElementById('word-bank');
@@ -29,6 +32,18 @@ const gameId = testRoot?.dataset?.gameId || null;
 const apiBase = gameId ? `/test/${encodeURIComponent(gameId)}` : null;
 const myPlayer = parseInt(testRoot?.dataset?.playerNum) || null;
 const isMultiplayer = testRoot?.dataset?.multiplayer === 'true';
+const minePlayer = (isMultiplayer && myPlayer) ? myPlayer : 1;
+const oppPlayer = minePlayer === 1 ? 2 : 1;
+
+if (gcBadgeMineEl) {
+    gcBadgeMineEl.textContent = `P${minePlayer}`;
+    gcBadgeMineEl.classList.add(`gc-player-badge--p${minePlayer}`);
+}
+if (gcBadgeOppEl) {
+    gcBadgeOppEl.textContent = `P${oppPlayer}`;
+    gcBadgeOppEl.classList.add(`gc-player-badge--p${oppPlayer}`);
+}
+
 let bankPollTimer = null;
 let clockRenderTimer = null;
 const fallbackPalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' };
@@ -51,7 +66,7 @@ let lastReplayKey = null;
 let replayInFlight = false;
 let stepDelayMs = 500;
 let gameOverModalShown = false;
-let hasTriggeredFirstWriteState = false;
+let hasSignaledBeginWrite = false;
 
 if (gameOverDismissBtn) {
     gameOverDismissBtn.addEventListener('click', hideGameOverModal);
@@ -95,14 +110,8 @@ async function init() {
         markReplaySeen(initState);
         startClockRender();
 
-        // Hold state polling until the starting player edits their script for the first time.
-        // The non-starting player polls immediately so they see pre-write end and can react.
         wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> words in bank`;
-        const startingPlayer = Number(initState?.current_player ?? 1);
-        if (isMultiplayer && myPlayer !== startingPlayer) {
-            hasTriggeredFirstWriteState = true;
-            startBankPoll();
-        }
+        startBankPoll();
     } catch (e) {
         setStatus('error');
         setPhase('error');
@@ -143,28 +152,12 @@ async function refreshBank() {
     }
 }
 
-async function triggerFirstWriteState() {
-    if (!gameId || hasTriggeredFirstWriteState) {
+function signalBeginWrite() {
+    if (!gameId || hasSignaledBeginWrite) {
         return;
     }
-    hasTriggeredFirstWriteState = true;
-
-    try {
-        const state = await get(`${apiBase}/state?begin_write=1`);
-        const bank = state.word_bank?.[1] ?? 0;
-        lastBank = bank;
-        lastRate = state.word_rate ?? (1 / 3);
-        wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> words in bank`;
-        applySessionState(state);
-        await replayPolledExecution(state);
-        updateWordEta();
-        updateDeployButton();
-        updateWordShortageNotice();
-    } catch (_) {
-        // keep UI usable; normal polling will retry
-    }
-
-    startBankPoll();
+    hasSignaledBeginWrite = true;
+    post(`${apiBase}/begin_write`, { player: minePlayer }).catch(() => {});
 }
 
 // ── Compile ───────────────────────────────────────────────────────────────────
@@ -231,7 +224,7 @@ btnDeploy.addEventListener('click', async () => {
         // Step 2: deploy
         clearOutput();
         const preExecState = cloneBoardAndAgents(lastBoardState);
-        setPhase(isMultiplayer ? `P${myPlayer} Exec 1` : 'P1 Exec 1');
+        setPhase('Exec 1', false, minePlayer);
         setSessionReady(false);
 
         const data = await post(`${apiBase}/deploy`, {
@@ -246,7 +239,7 @@ btnDeploy.addEventListener('click', async () => {
             clearDiagnostics();
             renderDiagnostics(data);
             // If deploy is rejected, remain in write phase.
-            setPhase('P1 Write', true);
+            setPhase('Write', true, minePlayer);
             setSessionReady(true);
             return;
         }
@@ -293,9 +286,7 @@ editor.addEventListener('input', () => {
     updateDeployButton();
     updateWordShortageNotice();
 
-    if (!hasTriggeredFirstWriteState) {
-        triggerFirstWriteState();
-    }
+    signalBeginWrite();
 });
 
 function updateWordEta() {
@@ -776,10 +767,21 @@ function setStatus(state) {
     statusDot.className = `status-dot status-dot--${state}`;
 }
 
-function setPhase(text, highlight = false) {
+function setPhase(text, highlight = false, player = 0) {
     phaseSnapshot = null;
-    sessionPhaseEl.textContent = text;
-    sessionPhaseEl.className = highlight ? 'phase-pill phase-pill--write' : 'phase-pill';
+    _applyPhaseToElements(text, highlight ? 'phase-pill phase-pill--write' : 'phase-pill', player);
+}
+
+function _applyPhaseToElements(text, className, player) {
+    const isMine = player === minePlayer || player === 0;
+    const activeEl = isMine ? gcPhaseMineEl : gcPhaseOppEl;
+    const inactiveEl = isMine ? gcPhaseOppEl : gcPhaseMineEl;
+    if (!activeEl || !inactiveEl) return;
+    activeEl.textContent = text;
+    activeEl.className = className;
+    activeEl.hidden = false;
+    inactiveEl.textContent = '';
+    inactiveEl.hidden = true;
 }
 
 function phasePillClass(isWrite, player) {
@@ -821,7 +823,12 @@ function maybeShowGameOverModal(state) {
 
     const winner = state.winner;
     const reason = state.end_reason;
-    if (reason === 'timeout') {
+    if (reason === 'resign') {
+        const resignedPlayer = 3 - winner;
+        gameOverMessage.textContent = winner === minePlayer
+            ? `Win by resignation: P${resignedPlayer} resigned.`
+            : `Loss by resignation: P${resignedPlayer} resigned.`;
+    } else if (reason === 'timeout') {
         gameOverMessage.textContent = winner === 1
             ? 'Win by timeout: P2 ran out of write time.'
             : 'Loss by timeout: P1 ran out of write time.';
@@ -861,8 +868,7 @@ function updatePhaseSnapshot(state) {
 
     if (!timer || !timer.mode || !Number.isFinite(Number(timer.seconds))) {
         phaseSnapshot = null;
-        sessionPhaseEl.textContent = baseLabel;
-        sessionPhaseEl.className = phasePillClass(state?.phase === 'write', player);
+        _applyPhaseToElements(baseLabel, phasePillClass(state?.phase === 'write', player), player);
         return;
     }
 
@@ -890,30 +896,27 @@ function renderPhaseIndicator() {
         timerText = `+${formatClock(phaseSnapshot.seconds + elapsed)}`;
     }
 
-    sessionPhaseEl.textContent = timerText ? `${phaseSnapshot.label} ${timerText}` : phaseSnapshot.label;
-    sessionPhaseEl.className = phasePillClass(phaseSnapshot.isWrite, phaseSnapshot.player);
+    _applyPhaseToElements(
+        timerText ? `${phaseSnapshot.label} ${timerText}` : phaseSnapshot.label,
+        phasePillClass(phaseSnapshot.isWrite, phaseSnapshot.player),
+        phaseSnapshot.player
+    );
 }
 
 function formatPhaseLabel(state) {
     const phase = state?.phase ?? 'unknown';
-    const player = Number(state?.current_player ?? 0);
-    const side = player === 1 ? 'P1' : player === 2 ? 'P2' : null;
-
-    if (!side) {
-        return phase;
-    }
 
     if (phase === 'anim_post_exec1' || phase === 'exec1') {
-        return `${side} Exec 1`;
+        return 'Exec 1';
     }
     if (phase === 'anim_pre_write' || phase === 'exec2') {
-        return `${side} Exec 2`;
+        return 'Exec 2';
     }
     if (phase === 'opening_pre_write') {
-        return `${side} Pre-Write`;
+        return 'Pre-Write';
     }
     if (phase === 'write') {
-        return `${side} Write`;
+        return 'Write';
     }
     return phase;
 }
@@ -942,11 +945,11 @@ function startClockRender() {
 }
 
 function renderSessionClock() {
-    if (!sessionClockP1El || !sessionClockP2El) return;
+    if (!gcClockMineEl || !gcClockOppEl) return;
 
     if (!clockSnapshot) {
-        sessionClockP1El.textContent = 'P1 --:--';
-        sessionClockP2El.textContent = 'P2 --:--';
+        gcClockMineEl.textContent = '--:--';
+        gcClockOppEl.textContent = '--:--';
         return;
     }
 
@@ -962,8 +965,8 @@ function renderSessionClock() {
         }
     }
 
-    sessionClockP1El.textContent = `P1 ${formatClock(p1)}`;
-    sessionClockP2El.textContent = `P2 ${formatClock(p2)}`;
+    gcClockMineEl.textContent = formatClock(minePlayer === 1 ? p1 : p2);
+    gcClockOppEl.textContent = formatClock(oppPlayer === 1 ? p1 : p2);
 }
 
 function formatClock(seconds) {
