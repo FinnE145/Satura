@@ -757,11 +757,15 @@ a[aria-disabled='true'] {
 }
 
 .game-controls-side {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 0.625rem;
     flex: 1;
     min-width: 0;
+}
+
+.active-time .game-controls-side {
+    display: flex;
 }
 
 .game-controls-side--opp {
@@ -869,6 +873,18 @@ a[aria-disabled='true'] {
     background: var(--error-tint);
     border-color: var(--error-border);
     color: var(--error);
+}
+
+/* Time controls card (small screens) */
+
+.time-controls-card {
+    display: none;
+    margin-top: var(--gap);
+    padding: 0.6rem 1rem;
+}
+
+.time-controls-card.active-time {
+    display: block;
 }
 
 /* End-of-game modal */
@@ -1493,6 +1509,11 @@ a[aria-disabled='true'] {
 .board-legend {
     display: flex;
     align-items: center;
+    gap: 0.625em;
+}
+
+.board-legend-pills {
+    display: flex;
     gap: 0.625em;
 }
 
@@ -2433,6 +2454,31 @@ body:has(.login-wrap) {
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
 
+@media (max-width: 1080px) {
+    .board-legend {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.3em;
+    }
+}
+
+@media (min-width: 801px) and (max-width: 1080px) {
+    .active-time .game-controls-side {
+        flex-wrap: wrap;
+    }
+
+    .active-time .game-controls-side .phase-pill-wrap {
+        flex-basis: 100%;
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    .active-time .game-controls-side--opp .phase-pill-wrap {
+        order: 1;
+        justify-content: flex-end;
+    }
+}
+
 @media (max-width: 800px) {
     .page-right {
         display: none;
@@ -2498,5 +2544,15 @@ body:has(.login-wrap) {
     .session-clocks,
     .word-bank {
         justify-self: start;
+    }
+
+    .board-legend {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.625em;
+    }
+
+    .game-controls-main {
+        justify-content: center;
     }
 }

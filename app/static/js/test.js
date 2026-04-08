@@ -2,12 +2,8 @@
 
 const statusDot = document.getElementById('status-dot');
 const sessionIdEl = document.getElementById('session-id');
-const gcClockMineEl = document.getElementById('gc-clock-mine');
-const gcClockOppEl = document.getElementById('gc-clock-opp');
-const gcPhaseMineEl = document.getElementById('gc-phase-mine');
-const gcPhaseOppEl = document.getElementById('gc-phase-opp');
-const gcBadgeMineEl = document.getElementById('gc-badge-mine');
-const gcBadgeOppEl = document.getElementById('gc-badge-opp');
+const timeControlsCard = document.getElementById('time-controls-card');
+const gameControlsEl = document.getElementById('game-controls');
 const boardLegendMineEl = document.getElementById('board-legend-mine');
 const boardLegendOppEl = document.getElementById('board-legend-opp');
 const boardLegendInfoEl = document.getElementById('board-legend-info');
@@ -45,14 +41,14 @@ const isMultiplayer = testRoot?.dataset?.multiplayer === 'true';
 const minePlayer = (isMultiplayer && myPlayer) ? myPlayer : 1;
 const oppPlayer = minePlayer === 1 ? 2 : 1;
 
-if (gcBadgeMineEl) {
-    gcBadgeMineEl.textContent = `P${minePlayer}`;
-    gcBadgeMineEl.classList.add(`gc-player-badge--p${minePlayer}`);
-}
-if (gcBadgeOppEl) {
-    gcBadgeOppEl.textContent = `P${oppPlayer}`;
-    gcBadgeOppEl.classList.add(`gc-player-badge--p${oppPlayer}`);
-}
+document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
+    el.textContent = `P${minePlayer}`;
+    el.classList.add(`gc-player-badge--p${minePlayer}`);
+});
+document.querySelectorAll('[data-tc="badge-opp"]').forEach(el => {
+    el.textContent = `P${oppPlayer}`;
+    el.classList.add(`gc-player-badge--p${oppPlayer}`);
+});
 if (boardLegendMineEl) {
     boardLegendMineEl.className = `board-legend-item board-legend-item--p${minePlayer}`;
 }
@@ -88,6 +84,28 @@ let replayInFlight = false;
 let stepDelayMs = 500;
 let gameOverModalShown = false;
 let hasSignaledBeginWrite = false;
+let lastPhaseCall = null;
+
+// ── Active time container ─────────────────────────────────────────────────────
+
+function tcEl(name) {
+    return document.querySelector(`.active-time [data-tc="${name}"]`);
+}
+
+function updateActiveTime() {
+    const isSmall = window.innerWidth <= 800;
+    timeControlsCard?.classList.toggle('active-time', isSmall);
+    gameControlsEl?.classList.toggle('active-time', !isSmall);
+    renderSessionClock();
+    if (phaseSnapshot) {
+        renderPhaseIndicator();
+    } else if (lastPhaseCall) {
+        _applyPhaseToElements(lastPhaseCall.text, lastPhaseCall.className, lastPhaseCall.player);
+    }
+}
+
+window.addEventListener('resize', updateActiveTime);
+updateActiveTime();
 
 if (gameOverDismissBtn) {
     gameOverDismissBtn.addEventListener('click', hideGameOverModal);
@@ -1037,9 +1055,10 @@ function setPhase(text, highlight = false, player = 0) {
 }
 
 function _applyPhaseToElements(text, className, player) {
+    lastPhaseCall = { text, className, player };
     const isMine = player === minePlayer || player === 0;
-    const activeEl = isMine ? gcPhaseMineEl : gcPhaseOppEl;
-    const inactiveEl = isMine ? gcPhaseOppEl : gcPhaseMineEl;
+    const activeEl = isMine ? tcEl('phase-mine') : tcEl('phase-opp');
+    const inactiveEl = isMine ? tcEl('phase-opp') : tcEl('phase-mine');
     if (!activeEl || !inactiveEl) return;
     activeEl.textContent = text;
     activeEl.className = className;
@@ -1212,11 +1231,13 @@ function startClockRender() {
 }
 
 function renderSessionClock() {
-    if (!gcClockMineEl || !gcClockOppEl) return;
+    const clockMine = tcEl('clock-mine');
+    const clockOpp = tcEl('clock-opp');
+    if (!clockMine || !clockOpp) return;
 
     if (!clockSnapshot) {
-        gcClockMineEl.textContent = '--:--';
-        gcClockOppEl.textContent = '--:--';
+        clockMine.textContent = '--:--';
+        clockOpp.textContent = '--:--';
         return;
     }
 
@@ -1232,8 +1253,8 @@ function renderSessionClock() {
         }
     }
 
-    gcClockMineEl.textContent = formatClock(minePlayer === 1 ? p1 : p2);
-    gcClockOppEl.textContent = formatClock(oppPlayer === 1 ? p1 : p2);
+    clockMine.textContent = formatClock(minePlayer === 1 ? p1 : p2);
+    clockOpp.textContent = formatClock(oppPlayer === 1 ? p1 : p2);
 }
 
 function formatClock(seconds) {

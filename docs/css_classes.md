@@ -185,6 +185,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.session-clock--p2` | cool-accent clock text for player 2 |
 | `.session-clock-sep` | separator dot between player clock texts |
 | `.session-id` | monospace session UUID display |
+| `.phase-pill-wrap` | full-width flex row wrapper around `.phase-pill`; used at 801–1080px to force the pill onto its own line while keeping the pill content-sized |
 | `.phase-pill` | rounded pill showing the current game phase |
 | `.phase-pill--p1` | warm accent variant for P1-controlled phases |
 | `.phase-pill--p2` | cool accent variant for P2-controlled phases |
@@ -201,7 +202,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.word-bank` | word-bank count display in `.script-meta` |
 | `.script-editor` | full-height monospace textarea for script input |
 | `.board-card` | flex column card wrapping the game board |
-| `.board-legend` | flex row legend showing player board-coverage stats |
+| `.board-legend` | flex row legend showing player board-coverage stats; stacks to column at ≤1080px |
+| `.board-legend-pills` | flex row grouping the two ownership pill items within `.board-legend` |
 | `.board-legend-item` | pill legend item showing player owned-cell count and board percentage (use with `--p1` or `--p2`) |
 | `.board-legend-item--p1` | warm accent pill |
 | `.board-legend-item--p2` | cool accent pill |
@@ -238,9 +240,11 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-over-modal__card` | centered modal card container |
 | `.game-over-modal__body` | inner body padding wrapper for modal content |
 | `.game-over-modal__message` | outcome message text for win/loss/stalemate popup |
+| `.time-controls-card` | card shown at ≤800px containing both player clocks, badges, and phase pills; hidden at wider widths |
+| `.active-time` | applied by JS to whichever time-control container is currently active (`#game-controls` at >800px, `#time-controls-card` at ≤800px); controls visibility of `.game-controls-side` children |
 | `.game-controls` | card panel containing clocks, phase, and action buttons below the board |
 | `.game-controls-main` | flex row inside the panel: mine side, buttons, opponent side |
-| `.game-controls-side` | left/right info area holding badge, clock, and phase pill |
+| `.game-controls-side` | left/right info area holding badge, clock, and phase pill; hidden unless inside `.active-time` |
 | `.game-controls-side--mine` | local player side (always left) |
 | `.game-controls-side--opp` | opponent side (always right, right-aligned) |
 | `.game-controls-btns` | flex row of action buttons (centered) |

@@ -35,8 +35,10 @@
                     <h2 class="card-title">Board</h2>
                     <span class="board-legend" id="board-legend">
                         <span class="text-small-sans text-muted" id="board-legend-info"></span>
-                        <span class="board-legend-item" id="board-legend-mine"></span>
-                        <span class="board-legend-item" id="board-legend-opp"></span>
+                        <span class="board-legend-pills">
+                            <span class="board-legend-item" id="board-legend-mine"></span>
+                            <span class="board-legend-item" id="board-legend-opp"></span>
+                        </span>
                     </span>
                 </div>
                 <div class="board-wrap">
@@ -46,15 +48,31 @@
 
         </div><!-- .workspace -->
 
+        <!-- Time controls card (small screens only) -->
+        <div class="card time-controls-card" id="time-controls-card">
+            <div class="game-controls-main">
+                <div class="game-controls-side game-controls-side--mine">
+                    <span class="gc-player-badge" data-tc="badge-mine"></span>
+                    <span class="gc-clock" data-tc="clock-mine">--:--</span>
+                    <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-mine" hidden></span></span>
+                </div>
+                <div class="game-controls-side game-controls-side--opp">
+                    <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-opp" hidden></span></span>
+                    <span class="gc-clock" data-tc="clock-opp">--:--</span>
+                    <span class="gc-player-badge" data-tc="badge-opp"></span>
+                </div>
+            </div>
+        </div>
+
         <!-- Game controls panel -->
         <div class="card game-controls" id="game-controls">
             <div class="game-controls-main">
 
                 <!-- Mine side (always left) -->
                 <div class="game-controls-side game-controls-side--mine" id="gc-side-mine">
-                    <span class="gc-player-badge" id="gc-badge-mine"></span>
-                    <span class="gc-clock" id="gc-clock-mine">--:--</span>
-                    <span class="phase-pill" id="gc-phase-mine" hidden></span>
+                    <span class="gc-player-badge" data-tc="badge-mine"></span>
+                    <span class="gc-clock" data-tc="clock-mine">--:--</span>
+                    <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-mine" hidden></span></span>
                 </div>
 
                 <!-- Buttons -->
@@ -87,9 +105,9 @@
 
                 <!-- Opponent side (always right) -->
                 <div class="game-controls-side game-controls-side--opp" id="gc-side-opp">
-                    <span class="phase-pill" id="gc-phase-opp" hidden></span>
-                    <span class="gc-clock" id="gc-clock-opp">--:--</span>
-                    <span class="gc-player-badge" id="gc-badge-opp"></span>
+                    <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-opp" hidden></span></span>
+                    <span class="gc-clock" data-tc="clock-opp">--:--</span>
+                    <span class="gc-player-badge" data-tc="badge-opp"></span>
                 </div>
 
             </div>
