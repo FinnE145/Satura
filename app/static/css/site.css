@@ -835,6 +835,38 @@ a[aria-disabled='true'] {
     display: none;
 }
 
+.game-controls-draw-area {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--text-subtle);
+    opacity: 0.8;
+}
+
+.game-controls-draw-area[hidden] {
+    display: none;
+}
+
+.game-controls-draw-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.game-controls-draw-btns[hidden] {
+    display: none;
+}
+
+.game-controls-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.game-controls-btn--is-danger {
+    background: var(--error-tint);
+    border-color: var(--error-border);
+    color: var(--error);
+}
+
 /* End-of-game modal */
 
 .game-over-modal {

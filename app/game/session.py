@@ -53,6 +53,8 @@ class GameSession:
         self._opening_pre_write_pending: bool = True
         self._multiplayer: bool = False
         self._player_ids: dict[int, int | None] = {1: None, 2: None}
+        self._draw_offer_player: int | None = None
+        self._draw_cooldown: dict[int, float] = {}
 
     _SENSING_OPS = {"get_friction", "has_agent", "my_paint", "opp_paint"}
 
@@ -169,7 +171,57 @@ class GameSession:
             "animation_step_duration": Config.ANIMATION_STEP_DURATION,
             "phase_timer": self._phase_timer_payload(),
             "op_limit": self.engine.op_limit,
+            "draw_offer": self._draw_offer_state(),
         }
+
+    def offer_draw(self, player: int, user_id: int | None = None) -> dict:
+        """Player offers a draw; rejected if a cooldown is still active."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "error": "forbidden"}
+        if self.game_over:
+            return {"ok": False, "error": "game already over"}
+        if player not in (1, 2):
+            return {"ok": False, "error": "invalid player"}
+        if self._draw_offer_player is not None:
+            return {"ok": False, "error": "draw already offered"}
+        if self._draw_cooldown.get(player, 0) > time.monotonic():
+            return {"ok": False, "error": "cooldown active"}
+        self._draw_offer_player = player
+        return {"ok": True}
+
+    def cancel_draw(self, player: int, user_id: int | None = None) -> dict:
+        """Offering player withdraws their own pending draw offer."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "error": "forbidden"}
+        if self._draw_offer_player != player:
+            return {"ok": False, "error": "no draw offer from this player"}
+        self._draw_offer_player = None
+        return {"ok": True}
+
+    def accept_draw(self, player: int, user_id: int | None = None) -> dict:
+        """Non-offering player accepts; ends the game as a draw."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "error": "forbidden"}
+        if self.game_over:
+            return {"ok": False, "error": "game already over"}
+        if self._draw_offer_player is None:
+            return {"ok": False, "error": "no draw offer"}
+        if self._draw_offer_player == player:
+            return {"ok": False, "error": "cannot accept your own offer"}
+        self._finish("draw", reason="draw_offer")
+        return {"ok": True}
+
+    def reject_draw(self, player: int, user_id: int | None = None) -> dict:
+        """Non-offering player rejects; offering player gets a 30-second cooldown."""
+        if self._multiplayer and user_id != self._player_ids.get(player):
+            return {"ok": False, "error": "forbidden"}
+        if self._draw_offer_player is None:
+            return {"ok": False, "error": "no draw offer"}
+        if self._draw_offer_player == player:
+            return {"ok": False, "error": "cannot reject your own offer"}
+        self._draw_cooldown[self._draw_offer_player] = time.monotonic() + 30.0
+        self._draw_offer_player = None
+        return {"ok": True}
 
     def resign(self, player: int, user_id: int | None = None) -> dict:
         """Forfeit the game on behalf of player; the opponent wins."""
@@ -194,6 +246,16 @@ class GameSession:
         self._opening_pre_write_pending = False
         if self.phase in ("anim_pre_write", "opening_pre_write"):
             self._anim_deadline = time.monotonic() - 1.0
+
+    def _draw_offer_state(self) -> dict:
+        now = time.monotonic()
+        return {
+            "offered_by": self._draw_offer_player,
+            "cooldown": {
+                1: max(0.0, self._draw_cooldown[1] - now) if self._draw_cooldown.get(1, 0) > now else None,
+                2: max(0.0, self._draw_cooldown[2] - now) if self._draw_cooldown.get(2, 0) > now else None,
+            },
+        }
 
     # ------------------------------------------------------------------ private helpers
 

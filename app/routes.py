@@ -1033,6 +1033,78 @@ def test_resign(game_id):
     return jsonify(result)
 
 
+@bp.route('/test/<game_id>/offer_draw', methods=['POST'])
+def test_offer_draw(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.offer_draw(player, user_id=user_id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/cancel_draw', methods=['POST'])
+def test_cancel_draw(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.cancel_draw(player, user_id=user_id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/accept_draw', methods=['POST'])
+def test_accept_draw(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.accept_draw(player, user_id=user_id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/reject_draw', methods=['POST'])
+def test_reject_draw(game_id):
+    session = get_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    player = data.get('player')
+    if player not in (1, 2):
+        return jsonify({'error': 'player must be 1 or 2'}), 400
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    result = session.reject_draw(player, user_id=user_id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
 @bp.route('/test/<game_id>/begin_write', methods=['POST'])
 def test_begin_write(game_id):
     session = get_session(game_id)

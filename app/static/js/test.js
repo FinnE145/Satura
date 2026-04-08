@@ -24,6 +24,14 @@ const gameOverModal = document.getElementById('game-over-modal');
 const gameOverMessage = document.getElementById('game-over-message');
 const gameOverDismissBtn = document.getElementById('game-over-dismiss');
 const gameOverBackdrop = document.getElementById('game-over-backdrop');
+const btnDraw = document.getElementById('btn-draw');
+const btnResign = document.getElementById('btn-resign');
+const gameControlsConfirm = document.getElementById('game-controls-confirm');
+const gameControlsDrawArea = document.getElementById('game-controls-draw-area');
+const gameControlsDrawMsg = document.getElementById('game-controls-draw-msg');
+const gameControlsDrawBtns = document.getElementById('game-controls-draw-btns');
+const btnDrawAccept = document.getElementById('btn-draw-accept');
+const btnDrawReject = document.getElementById('btn-draw-reject');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +54,11 @@ if (gcBadgeOppEl) {
 
 let bankPollTimer = null;
 let clockRenderTimer = null;
+let resignConfirmPending = false;
+// drawUiState: 'idle' | 'confirm' | 'offering' | 'cooldown' | 'received'
+let drawUiState = 'idle';
+let drawCooldownEnd = null;
+let drawCooldownTimer = null;
 const fallbackPalette = { name: 'solstice', warm: '#D2640E', cool: '#A82068' };
 const bodyPalette = document.body?.dataset;
 let activePalette = {
@@ -150,6 +163,215 @@ async function refreshBank() {
     } catch (_) {
         // ignore transient poll failures
     }
+}
+
+// ── Draw / Resign controls ────────────────────────────────────────────────────
+
+function clearConfirm() {
+    gameControlsConfirm.hidden = true;
+    gameControlsConfirm.textContent = '';
+    resignConfirmPending = false;
+    if (drawUiState === 'confirm') {
+        drawUiState = 'idle';
+    }
+}
+
+function setBtnDrawNormal() {
+    btnDraw.disabled = false;
+    btnDraw.classList.remove('game-controls-btn--is-danger', 'btn-danger-hover');
+    btnDraw.classList.add('btn-warn-hover');
+    btnDraw.querySelector('.material-symbols-outlined').textContent = 'handshake';
+    btnDraw.querySelector('.icon-btn-label').textContent = 'Draw';
+}
+
+function setBtnDrawCancel() {
+    btnDraw.disabled = false;
+    btnDraw.classList.remove('btn-warn-hover');
+    btnDraw.classList.add('game-controls-btn--is-danger', 'btn-danger-hover');
+    btnDraw.querySelector('.material-symbols-outlined').textContent = 'close';
+    btnDraw.querySelector('.icon-btn-label').textContent = 'Cancel';
+}
+
+function setBtnDrawCooldown(seconds) {
+    btnDraw.disabled = true;
+    btnDraw.classList.remove('game-controls-btn--is-danger', 'btn-danger-hover');
+    btnDraw.classList.add('btn-warn-hover');
+    btnDraw.querySelector('.material-symbols-outlined').textContent = 'handshake';
+    btnDraw.querySelector('.icon-btn-label').textContent = `${seconds}s`;
+}
+
+function startDrawCooldown(remainingSeconds) {
+    drawUiState = 'cooldown';
+    gameControlsDrawArea.hidden = true;
+    if (drawCooldownTimer) {
+        clearInterval(drawCooldownTimer);
+        drawCooldownTimer = null;
+    }
+    drawCooldownEnd = Date.now() + remainingSeconds * 1000;
+    setBtnDrawCooldown(Math.ceil(remainingSeconds));
+    drawCooldownTimer = setInterval(() => {
+        const remaining = Math.ceil((drawCooldownEnd - Date.now()) / 1000);
+        if (remaining <= 0) {
+            clearInterval(drawCooldownTimer);
+            drawCooldownTimer = null;
+            drawCooldownEnd = null;
+            drawUiState = 'idle';
+            setBtnDrawNormal();
+        } else {
+            setBtnDrawCooldown(remaining);
+        }
+    }, 250);
+}
+
+function renderDrawUiState() {
+    switch (drawUiState) {
+        case 'idle':
+            setBtnDrawNormal();
+            gameControlsDrawArea.hidden = true;
+            break;
+        case 'confirm':
+            setBtnDrawNormal();
+            gameControlsDrawArea.hidden = true;
+            break;
+        case 'offering':
+            setBtnDrawCancel();
+            gameControlsDrawMsg.textContent = "You're offering a draw";
+            gameControlsDrawBtns.hidden = true;
+            gameControlsDrawArea.hidden = false;
+            if (!resignConfirmPending) clearConfirm();
+            break;
+        case 'received':
+            setBtnDrawNormal();
+            gameControlsDrawMsg.textContent = `P${oppPlayer} offered a draw`;
+            gameControlsDrawBtns.hidden = false;
+            gameControlsDrawArea.hidden = false;
+            if (!resignConfirmPending) clearConfirm();
+            break;
+        // 'cooldown' is managed entirely by startDrawCooldown / its interval
+    }
+}
+
+function applyDrawOffer(drawOffer) {
+    if (!drawOffer) return;
+    const offeredBy = drawOffer.offered_by;
+    const myRemainingCooldown = drawOffer.cooldown?.[minePlayer] ?? null;
+
+    if (offeredBy === minePlayer) {
+        if (drawUiState !== 'offering') {
+            drawUiState = 'offering';
+            renderDrawUiState();
+        }
+    } else if (offeredBy === oppPlayer) {
+        if (drawUiState !== 'received') {
+            drawUiState = 'received';
+            renderDrawUiState();
+        }
+    } else if (myRemainingCooldown !== null && myRemainingCooldown > 0) {
+        if (drawUiState !== 'cooldown') {
+            startDrawCooldown(myRemainingCooldown);
+        }
+    } else {
+        // No active offer, no cooldown
+        if (drawUiState === 'offering' || drawUiState === 'received') {
+            drawUiState = 'idle';
+            renderDrawUiState();
+        }
+        // 'confirm' and 'cooldown' persist until user or timer resolves them
+    }
+}
+
+if (btnDraw) {
+    btnDraw.addEventListener('click', async () => {
+        if (btnDraw.disabled) return;
+
+        if (drawUiState === 'offering') {
+            try {
+                await post(`${apiBase}/cancel_draw`, { player: minePlayer });
+            } catch (_) {}
+            drawUiState = 'idle';
+            renderDrawUiState();
+            return;
+        }
+
+        if (drawUiState === 'confirm') {
+            // Second click — send offer
+            const prevState = drawUiState;
+            drawUiState = 'idle';
+            clearConfirm();
+            try {
+                await post(`${apiBase}/offer_draw`, { player: minePlayer });
+                drawUiState = 'offering';
+                renderDrawUiState();
+            } catch (_) {
+                drawUiState = 'idle';
+            }
+            return;
+        }
+
+        // First click — show confirm prompt
+        resignConfirmPending = false;
+        drawUiState = 'confirm';
+        gameControlsConfirm.textContent = 'Click Draw again to confirm';
+        gameControlsConfirm.hidden = false;
+    });
+}
+
+if (btnResign) {
+    btnResign.addEventListener('click', async () => {
+        if (resignConfirmPending) {
+            resignConfirmPending = false;
+            gameControlsConfirm.hidden = true;
+            gameControlsConfirm.textContent = '';
+            try {
+                await post(`${apiBase}/resign`, { player: minePlayer });
+                if (!bankPollTimer) startBankPoll();
+                refreshBank();
+            } catch (_) {}
+            return;
+        }
+        if (drawUiState === 'confirm') {
+            drawUiState = 'idle';
+        }
+        resignConfirmPending = true;
+        gameControlsConfirm.textContent = 'Click Resign again to confirm';
+        gameControlsConfirm.hidden = false;
+    });
+}
+
+function handleConfirmBlur() {
+    setTimeout(() => {
+        const a = document.activeElement;
+        if (a !== btnDraw && a !== btnResign && a !== btnDrawAccept && a !== btnDrawReject) {
+            if (resignConfirmPending || drawUiState === 'confirm') {
+                clearConfirm();
+            }
+        }
+    }, 150);
+}
+
+if (btnDraw) btnDraw.addEventListener('blur', handleConfirmBlur);
+if (btnResign) btnResign.addEventListener('blur', handleConfirmBlur);
+
+if (btnDrawAccept) {
+    btnDrawAccept.addEventListener('click', async () => {
+        try {
+            await post(`${apiBase}/accept_draw`, { player: minePlayer });
+            drawUiState = 'idle';
+            gameControlsDrawArea.hidden = true;
+            if (!bankPollTimer) startBankPoll();
+            refreshBank();
+        } catch (_) {}
+    });
+}
+
+if (btnDrawReject) {
+    btnDrawReject.addEventListener('click', async () => {
+        try {
+            await post(`${apiBase}/reject_draw`, { player: minePlayer });
+            drawUiState = 'idle';
+            gameControlsDrawArea.hidden = true;
+        } catch (_) {}
+    });
 }
 
 function signalBeginWrite() {
@@ -809,6 +1031,7 @@ function applySessionState(state) {
     updateClockSnapshot(state);
     setSessionReady(isWrite && isMyTurn && state?.game_over !== true);
     maybeShowGameOverModal(state);
+    applyDrawOffer(state?.draw_offer);
 }
 
 function maybeShowGameOverModal(state) {
@@ -836,6 +1059,8 @@ function maybeShowGameOverModal(state) {
         gameOverMessage.textContent = winner === 1
             ? 'Win by board control: P1 reached the territory threshold.'
             : 'Loss by board control: P2 reached the territory threshold.';
+    } else if (reason === 'draw_offer') {
+        gameOverMessage.textContent = 'Draw by mutual agreement.';
     } else if (reason === 'stalemate' || winner === 'draw') {
         gameOverMessage.textContent = 'Stalemate: neither player can still mathematically reach the territory threshold.';
     } else {

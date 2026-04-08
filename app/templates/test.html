@@ -104,6 +104,13 @@
 
             </div>
             <span class="game-controls-confirm text-small-sans" id="game-controls-confirm" hidden></span>
+            <div class="game-controls-draw-area text-small-sans" id="game-controls-draw-area" hidden>
+                <span id="game-controls-draw-msg"></span>
+                <div class="game-controls-draw-btns" id="game-controls-draw-btns" hidden>
+                    <button type="button" class="btn btn--secondary btn--sm" id="btn-draw-accept">Accept</button>
+                    <button type="button" class="btn btn--danger btn--sm" id="btn-draw-reject">Reject</button>
+                </div>
+            </div>
         </div>
 
         <!-- Results row: diagnostics + output -->
@@ -156,53 +163,4 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/test.js') }}"></script>
-<script>
-(function () {
-    var confirm = document.getElementById('game-controls-confirm');
-    var drawBtn = document.getElementById('btn-draw');
-    var resignBtn = document.getElementById('btn-resign');
-    var pending = null;
-
-    function clearConfirm() {
-        confirm.hidden = true;
-        confirm.textContent = '';
-        pending = null;
-    }
-
-    drawBtn.addEventListener('click', function () {
-        if (pending === 'draw') { clearConfirm(); return; }
-        pending = 'draw';
-        confirm.textContent = 'Click Draw again to confirm';
-        confirm.hidden = false;
-    });
-
-    resignBtn.addEventListener('click', function () {
-        if (pending === 'resign') {
-            clearConfirm();
-            fetch(apiBase + '/resign', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ player: minePlayer }),
-            }).then(function () {
-                if (!bankPollTimer) { startBankPoll(); }
-                refreshBank();
-            });
-            return;
-        }
-        pending = 'resign';
-        confirm.textContent = 'Click Resign again to confirm';
-        confirm.hidden = false;
-    });
-
-    [drawBtn, resignBtn].forEach(function (btn) {
-        btn.addEventListener('blur', function () {
-            setTimeout(function () {
-                if (!document.activeElement || (document.activeElement !== drawBtn && document.activeElement !== resignBtn)) {
-                    clearConfirm();
-                }
-            }, 150);
-        });
-    });
-})();
-</script>
 {% endblock %}
