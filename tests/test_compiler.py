@@ -140,6 +140,9 @@ class TestBreakErrors:
     def test_break_inside_nested_loop_is_fine(self):
         assert errors("for $i in range(3) { for $j in range(3) { break } }") == []
 
+    def test_break_inside_anonymous_range_is_fine(self):
+        assert errors("for range(5) { break }") == []
+
 
 # ---------------------------------------------------------- nested def errors
 
@@ -368,6 +371,16 @@ class TestCleanScripts:
 
     def test_conditional_move(self):
         assert_clean("if $ops_remaining > 0 { move(UP) }")
+
+    def test_anonymous_range_loop(self):
+        assert_clean("for range(5) { move(UP) }")
+
+    def test_anonymous_range_loop_with_var_expr(self):
+        assert_clean("$n = 5\nfor range($n) { move(UP) }")
+
+    def test_anonymous_range_float_stop_warns(self):
+        assert errors("for range(1.5) { halt }") == []
+        assert warnings("for range(1.5) { halt }") != []
 
     def test_loop_over_directions(self):
         assert_clean("for $dir in $directions { move($dir) }")

@@ -279,6 +279,34 @@ class TestForLoop:
         node = stmt("for $item in $mylist { halt }")
         assert node.var == "item"
 
+    def test_anonymous_range_stop_only(self):
+        node = stmt("for range(5) { paint(1) }")
+        assert isinstance(node, For)
+        assert node.var is None
+        r = node.iterable
+        assert isinstance(r, RangeExpr)
+        assert r.start is None
+        assert isinstance(r.stop, IntLit) and r.stop.value == 5
+        assert r.step is None
+
+    def test_anonymous_range_start_stop(self):
+        node = stmt("for range(0, 10) { paint(1) }")
+        assert node.var is None
+        r = node.iterable
+        assert isinstance(r.start, IntLit) and r.start.value == 0
+        assert isinstance(r.stop, IntLit) and r.stop.value == 10
+        assert r.step is None
+
+    def test_anonymous_range_start_stop_step(self):
+        node = stmt("for range(0, 10, 2) { paint(1) }")
+        assert node.var is None
+        assert isinstance(node.iterable.step, IntLit) and node.iterable.step.value == 2
+
+    def test_named_loop_var_unaffected_by_anonymous_form(self):
+        # Regression: $var in ... form still sets var correctly
+        node = stmt("for $i in range(5) { }")
+        assert node.var == "i"
+
 
 # ---------------------------------------------------------------- functions
 

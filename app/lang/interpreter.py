@@ -159,7 +159,8 @@ class _Interpreter:
 
         elif isinstance(stmt, For):
             for val in self._iter(stmt.iterable, env):
-                env[stmt.var] = val       # globally scoped; persists after loop
+                if stmt.var is not None:
+                    env[stmt.var] = val   # globally scoped; persists after loop
                 try:
                     for s in stmt.body:
                         self._exec(s, env)

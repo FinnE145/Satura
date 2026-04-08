@@ -320,9 +320,11 @@ class Compiler:
                 assigns.setdefault(s.name, []).append(s.value)
             elif isinstance(s, For):
                 if isinstance(s.iterable, RangeExpr):
-                    assigns.setdefault(s.var, []).append(IntLit(0))  # range yields INT
+                    if s.var is not None:
+                        assigns.setdefault(s.var, []).append(IntLit(0))  # range yields INT
                 else:
-                    for_vars.setdefault(s.var, []).append(s.iterable)
+                    if s.var is not None:
+                        for_vars.setdefault(s.var, []).append(s.iterable)
                 self._collect_assigns(s.body, assigns, for_vars)
             elif isinstance(s, If):
                 for _, body in s.branches:

@@ -444,6 +444,33 @@ class TestForLoop:
         with pytest.raises(_HS):
             execute(prog, _Ctx(), {})
 
+    def test_anonymous_range_runs_correct_times(self):
+        ctx = _mock_ctx()
+        _run("$n = 0\nfor range(4) { $n = $n + 1 }\npaint($n)", ctx)
+        ctx.board_paint.assert_called_once_with(4)
+
+    def test_anonymous_range_start_stop(self):
+        ctx = _mock_ctx()
+        _run("$n = 0\nfor range(2, 5) { $n = $n + 1 }\npaint($n)", ctx)
+        ctx.board_paint.assert_called_once_with(3)
+
+    def test_anonymous_range_step(self):
+        ctx = _mock_ctx()
+        _run("$n = 0\nfor range(0, 6, 2) { $n = $n + 1 }\npaint($n)", ctx)
+        ctx.board_paint.assert_called_once_with(3)
+
+    def test_anonymous_range_zero_iterations(self):
+        ctx = _mock_ctx()
+        _run("for range(0) { paint(1) }", ctx)
+        ctx.board_paint.assert_not_called()
+
+    def test_anonymous_range_does_not_set_loop_var(self):
+        # No loop variable should be injected into the environment
+        ctx = _Ctx()
+        with pytest.raises(HaltSignal):
+            # $i was never defined; reading it after an anonymous loop should halt
+            _run("if 0 { $i = 0 }\nfor range(3) { }\npaint($i)", ctx)
+
     def test_for_list_snapshot_mid_mutation(self):
         # Mutating the list mid-loop should not affect the current iteration
         ctx = _mock_ctx()

@@ -460,6 +460,14 @@ for $i in range(0, 10, 2) {   // start, stop, step
 }
 ```
 
+When iterating over a range and the loop index is not needed, the `$var in` part may be omitted:
+
+```c
+for range(5) {
+    paint(1)   // runs 5 times, no loop variable defined
+}
+```
+
 ### while
 
 ```c

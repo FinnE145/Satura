@@ -188,6 +188,11 @@ class Parser:
 
     def _parse_for(self) -> For:
         tok = self._expect(TokenType.FOR, "expected 'for'")
+        # Anonymous range loop: for range(...) { ... }
+        if self._check(TokenType.RANGE):
+            iterable = self._parse_range_or_expr()
+            body = self._parse_block()
+            return For(None, iterable, body, line=tok.line, col=tok.col)
         self._expect(TokenType.DOLLAR, "expected '$' before loop variable")
         var = self._expect(TokenType.IDENT, "expected loop variable name").value
         self._expect(TokenType.IN, "expected 'in'")

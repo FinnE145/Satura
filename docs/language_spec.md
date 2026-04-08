@@ -318,7 +318,7 @@ Reading a variable before any assignment to it is a **compile error** where the 
 
 - Variables assigned at the **top level** of a script are **globally scoped** within that script execution.
 - Variables assigned inside `if`, `elif`, `else`, `for`, and `while` blocks are still **globally scoped** — there is no block scope.
-- The **loop variable** in a `for` loop (e.g. `$dir` in `for $dir in $directions`) is globally scoped and remains accessible after the loop ends, holding the last value it was assigned.
+- The **loop variable** in a `for` loop (e.g. `$dir` in `for $dir in $directions`) is globally scoped and remains accessible after the loop ends, holding the last value it was assigned. Anonymous range loops (`for range(...)`) define no loop variable.
 - Variables assigned inside a **function body** are **locally scoped** to that function. They are not visible outside the function.
 - **Function scope is fully isolated.** A function body can only access its own parameters and variables assigned within the body. It has no access to script-level (global) variables. This is because functions persist across turns and may be called from scripts that define entirely different global variables.
 - **Function parameters** are declared without `$` in the `def` signature but are accessed with `$` inside the function body (like any other local variable).
@@ -361,9 +361,16 @@ for $i in range(5) { ... }
 for $i in range(0, 10, 2) { ... }   // $i = 0, 2, 4, 6, 8
 ```
 
+When iterating over a `range` and the loop index is not needed, the `$var in` part may be omitted:
+
+```
+for range(5) { ... }               // runs 5 times, no loop variable
+for range(0, 10, 2) { ... }        // runs 5 times, no loop variable
+```
+
 `for` costs **1 word.** `in` is free.
 
-The loop variable is globally scoped (see Section 6.2). Iterating over a non-list, non-range value is a runtime halt.
+The loop variable is globally scoped (see Section 6.2). Anonymous range loops (`for range(...)`) define no loop variable. Iterating over a non-list, non-range value is a runtime halt.
 
 ### 7.3 range
 
