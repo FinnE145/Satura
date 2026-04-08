@@ -857,6 +857,33 @@ function fmtResult(v) {
 
 const boardGrid = document.getElementById('board-grid');
 
+// Custom cell tooltip
+const cellTooltip = document.createElement('div');
+cellTooltip.className = 'board-cell-tooltip';
+cellTooltip.innerHTML =
+    '<span class="board-cell-tooltip__p1"></span>' +
+    '<span class="board-cell-tooltip__p2"></span>';
+document.body.appendChild(cellTooltip);
+const tooltipP1El = cellTooltip.querySelector('.board-cell-tooltip__p1');
+const tooltipP2El = cellTooltip.querySelector('.board-cell-tooltip__p2');
+
+boardGrid.addEventListener('mouseover', (e) => {
+    const cell = e.target.closest('.board-cell');
+    if (!cell) return;
+    tooltipP1El.textContent = `P1: ${cell.dataset.p1 ?? 0}`;
+    tooltipP2El.textContent = `P2: ${cell.dataset.p2 ?? 0}`;
+    cellTooltip.classList.add('board-cell-tooltip--visible');
+});
+
+boardGrid.addEventListener('mousemove', (e) => {
+    cellTooltip.style.left = `${e.clientX + 12}px`;
+    cellTooltip.style.top  = `${e.clientY - 10}px`;
+});
+
+boardGrid.addEventListener('mouseleave', () => {
+    cellTooltip.classList.remove('board-cell-tooltip--visible');
+});
+
 function hexToRgb(hex) {
     return {
         r: parseInt(hex.slice(1, 3), 16),
@@ -934,6 +961,8 @@ function renderBoard(state) {
             const cell = document.createElement('div');
             cell.className = 'board-cell';
             cell.style.background = cellBg(board[r][c]);
+            cell.dataset.p1 = board[r][c].p1;
+            cell.dataset.p2 = board[r][c].p2;
 
             // P1 agent
             if (agents['1']?.row === r && agents['1']?.col === c) {

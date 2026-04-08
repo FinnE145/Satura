@@ -208,6 +208,10 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.board-grid` | CSS grid of game board cells |
 | `.board-cell` | individual board cell (background set via JS) |
 | `.board-agent` | absolute circle overlay marking an agent's position |
+| `.board-cell-tooltip` | fixed hover card showing per-cell paint levels; toggled with `--visible` |
+| `.board-cell-tooltip--visible` | makes the tooltip opaque |
+| `.board-cell-tooltip__p1` | P1 paint label inside tooltip (warm accent color) |
+| `.board-cell-tooltip__p2` | P2 paint label inside tooltip (cool accent color) |
 | `.results-row` | 2-column grid below the workspace for result cards |
 | `.result-card` | card with a scrollable body for compiler/execution output |
 | `.outcome-label` | small muted outcome summary line |

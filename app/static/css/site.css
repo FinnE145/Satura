@@ -1536,6 +1536,37 @@ a[aria-disabled='true'] {
     box-shadow: var(--shadow-agent-ring);
 }
 
+.board-cell-tooltip {
+    position: fixed;
+    z-index: 200;
+    pointer-events: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-elevated);
+    padding: 0.3em 0.55em;
+    font-family: var(--font-ui);
+    font-size: 0.72em;
+    font-weight: 500;
+    display: flex;
+    gap: 0.55em;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.08s;
+}
+
+.board-cell-tooltip--visible {
+    opacity: 1;
+}
+
+.board-cell-tooltip__p1 {
+    color: var(--accent-bright);
+}
+
+.board-cell-tooltip__p2 {
+    color: var(--accent-cool-bright);
+}
+
 /* Results row */
 
 .results-row {
