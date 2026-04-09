@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Satura — Game {{ game.id[:8] }}{% endblock %}
+
+{% block content %}
+<div style="padding: 2rem; font-family: monospace;">
+    <p><a href="{{ url_for('main.my_games') }}">← My Games</a></p>
+    <h1>Game <code>{{ game.id }}</code></h1>
+
+    <!-- ── Game metadata ────────────────────────────────── -->
+    <h2>Game Info</h2>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <tr><th>Status</th><td>{{ game.status }}</td></tr>
+        <tr><th>Player 1</th><td>{{ game.player1_id }}</td></tr>
+        <tr><th>Player 2</th><td>{{ game.player2_id or '—' }}</td></tr>
+        <tr><th>Created by</th><td>{{ game.created_by or '—' }}</td></tr>
+        <tr><th>Winner slot</th><td>{{ game.winner or ('draw' if game.is_draw else '—') }}</td></tr>
+        <tr><th>End reason</th><td>{{ game.end_reason or '—' }}</td></tr>
+        <tr><th>Created at</th><td>{{ game.created_at }}</td></tr>
+        <tr><th>Finished at</th><td>{{ game.finished_at or '—' }}</td></tr>
+    </table>
+
+    <h2>Settings</h2>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <tr><th>Preset</th><td>{{ game.preset or '—' }}</td></tr>
+        <tr><th>Board size</th><td>{{ game.board_size or '—' }}</td></tr>
+        <tr><th>Op limit</th><td>{{ game.op_limit or '—' }}</td></tr>
+        <tr><th>Clock seconds</th><td>{{ game.clock_seconds or '—' }}</td></tr>
+        <tr><th>Word rate</th><td>{{ game.word_rate or '—' }}</td></tr>
+        <tr><th>Starting player</th><td>{{ game.starting_player or '—' }}</td></tr>
+        <tr><th>Accommodations</th><td>{{ 'Yes' if game.accommodations_enabled else 'No' }}</td></tr>
+        <tr><th>P1 clock</th><td>{{ game.p1_clock_seconds or '—' }}</td></tr>
+        <tr><th>P2 clock</th><td>{{ game.p2_clock_seconds or '—' }}</td></tr>
+        <tr><th>P1 starting words</th><td>{{ game.p1_starting_words or '—' }}</td></tr>
+        <tr><th>P2 starting words</th><td>{{ game.p2_starting_words or '—' }}</td></tr>
+    </table>
+
+    <!-- ── Execution phases ─────────────────────────────── -->
+    <h2>Execution Phases ({{ phases|length }})</h2>
+    {% if not phases %}
+        <p>No phases recorded.</p>
+    {% else %}
+        {% for phase in phases %}
+        <details style="margin-bottom: 0.5rem;">
+            <summary>
+                Phase {{ phase.phase_number }} — {{ phase.exec_type }}
+                (P{{ phase.player_slot }})
+                {% if phase.outcome %} → {{ phase.outcome }}{% endif %}
+                {% if phase.ops_consumed %} | {{ phase.ops_consumed }} ops{% endif %}
+            </summary>
+            <div style="padding: 0.5rem 1rem; background: #f8f8f8; border: 1px solid #ccc;">
+                <p><strong>Script ID:</strong> {{ phase.script_id or '—' }}</p>
+                <p><strong>Prev phase ID:</strong> {{ phase.prev_phase_id or '—' }}</p>
+
+                <p><strong>Agents:</strong> <code>{{ phase.agents_json }}</code></p>
+                <p><strong>Word banks:</strong> <code>{{ phase.word_banks_json }}</code></p>
+                <p><strong>Clock remaining:</strong> <code>{{ phase.clock_remaining_json }}</code></p>
+
+                {% if phase.exec_log_json and phase.exec_log_json != 'null' %}
+                <p><strong>Exec log ({{ phase.exec_log_json | fromjson | length }} ops):</strong></p>
+                <ol style="margin: 0;">
+                    {% for op in phase.exec_log_json | fromjson %}
+                    <li><code>{{ op }}</code></li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <p><strong>Exec log:</strong> —</p>
+                {% endif %}
+
+                <p><strong>Board state:</strong></p>
+                <pre style="font-size: 0.75rem; overflow-x: auto;">{% for row in phase.board_state_json | fromjson %}{{ row }}
+{% endfor %}</pre>
+            </div>
+        </details>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ── Scripts (own only) ───────────────────────────── -->
+    <h2>My Scripts ({{ scripts|length }})</h2>
+    {% if not scripts %}
+        <p>No scripts recorded for your account in this game.</p>
+    {% else %}
+        {% for script in scripts %}
+        <details style="margin-bottom: 0.5rem;">
+            <summary>
+                Turn {{ script.turn_number }} — {{ script.word_count }} words
+                (P{{ script.player_slot }})
+                {% if script.write_duration_seconds %}
+                | {{ '%.1f'|format(script.write_duration_seconds) }}s write time
+                {% endif %}
+            </summary>
+            <div style="padding: 0.5rem 1rem; background: #f8f8f8; border: 1px solid #ccc;">
+                <p><strong>Script ID:</strong> {{ script.id }}</p>
+                {% if script.source_text %}
+                <pre style="white-space: pre-wrap;">{{ script.source_text }}</pre>
+                {% else %}
+                <p><em>(source text scrubbed)</em></p>
+                {% endif %}
+            </div>
+        </details>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ── Defined functions (own only) ────────────────── -->
+    <h2>My Defined Functions ({{ functions|length }})</h2>
+    {% if not functions %}
+        <p>No functions recorded for your account in this game.</p>
+    {% else %}
+        {% for fn in functions %}
+        <details style="margin-bottom: 0.5rem;">
+            <summary>
+                <code>{{ fn.func_name }}</code>
+                (defined in script {{ fn.script_id }})
+            </summary>
+            <div style="padding: 0.5rem 1rem; background: #f8f8f8; border: 1px solid #ccc;">
+                <pre style="white-space: pre-wrap;">{{ fn.func_body_text }}</pre>
+            </div>
+        </details>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

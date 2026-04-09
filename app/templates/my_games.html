@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Satura — My Games{% endblock %}
+
+{% block content %}
+<div style="padding: 2rem; font-family: monospace;">
+    <h1>My Games ({{ games|length }})</h1>
+
+    {% if not games %}
+        <p>No games found.</p>
+    {% else %}
+        <table border="1" cellpadding="6" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Game ID</th>
+                    <th>Status</th>
+                    <th>As</th>
+                    <th>Opponent</th>
+                    <th>Result</th>
+                    <th>End Reason</th>
+                    <th>Preset</th>
+                    <th>Size</th>
+                    <th>Created</th>
+                    <th>Finished</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in games %}
+                {% set is_p1 = g.player1_id == current_user.id %}
+                {% set my_slot = 1 if is_p1 else 2 %}
+                {% set opp_slot = 2 if is_p1 else 1 %}
+                {% set opp_id = g.player2_id if is_p1 else g.player1_id %}
+                {% if is_p1 %}
+                    {% set result = 'Win' if g.winner == 1 else ('Loss' if g.winner == 2 else ('Draw' if g.is_draw else '—')) %}
+                {% else %}
+                    {% set result = 'Win' if g.winner == 2 else ('Loss' if g.winner == 1 else ('Draw' if g.is_draw else '—')) %}
+                {% endif %}
+                <tr>
+                    <td><code>{{ g.id[:8] }}…</code></td>
+                    <td>{{ g.status }}</td>
+                    <td>P{{ my_slot }}</td>
+                    <td>{{ opp_id if opp_id else '—' }}</td>
+                    <td>{{ result }}</td>
+                    <td>{{ g.end_reason or '—' }}</td>
+                    <td>{{ g.preset or '—' }}</td>
+                    <td>{{ g.board_size or '—' }}</td>
+                    <td>{{ g.created_at.strftime('%Y-%m-%d %H:%M') if g.created_at else '—' }}</td>
+                    <td>{{ g.finished_at.strftime('%Y-%m-%d %H:%M') if g.finished_at else '—' }}</td>
+                    <td><a href="{{ url_for('main.my_game_detail', game_id=g.id) }}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}
