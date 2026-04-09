@@ -103,7 +103,7 @@
 
     async function pollLobby() {
         try {
-            const resp = await fetch(`/test/${encodeURIComponent(gameId)}/lobby`);
+            const resp = await fetch(`/game/${encodeURIComponent(gameId)}/lobby`);
             if (resp.status === 404) {
                 showLobbyDeleted();
                 return;
@@ -116,7 +116,7 @@
 
             if (data.started || data.both_ready) {
                 stopPolling();
-                window.location.href = `/test/${encodeURIComponent(gameId)}`;
+                window.location.href = `/game/${encodeURIComponent(gameId)}`;
             }
         } catch (_) {
             // silently retry
@@ -125,7 +125,7 @@
 
     async function joinGame() {
         try {
-            const resp = await fetch(`/test/${encodeURIComponent(gameId)}/join`, {
+            const resp = await fetch(`/game/${encodeURIComponent(gameId)}/join`, {
                 method: 'POST',
             });
 
@@ -158,7 +158,7 @@
         if (!gameId) return;
         p2ReadyBtn.disabled = true;
         try {
-            const resp = await fetch(`/test/${encodeURIComponent(gameId)}/ready`, {
+            const resp = await fetch(`/game/${encodeURIComponent(gameId)}/ready`, {
                 method: 'POST',
             });
             if (resp.status === 401) {
@@ -171,7 +171,7 @@
             p2ReadyBtn.textContent = p2IsReady ? 'Cancel ready' : 'Ready';
             if (data.both_ready) {
                 stopPolling();
-                window.location.href = `/test/${encodeURIComponent(gameId)}`;
+                window.location.href = `/game/${encodeURIComponent(gameId)}`;
             }
         } catch (_) {
         } finally {
@@ -181,14 +181,14 @@
 
     async function handleLeave() {
         if (!gameId) {
-            window.location.href = '/test/new';
+            window.location.href = '/game/new';
             return;
         }
         try {
-            await fetch(`/test/${encodeURIComponent(gameId)}/leave`, { method: 'POST' });
+            await fetch(`/game/${encodeURIComponent(gameId)}/leave`, { method: 'POST' });
         } catch (_) {}
         stopPolling();
-        window.location.href = '/test/new';
+        window.location.href = '/game/new';
     }
 
     if (!gameId) {

@@ -134,14 +134,6 @@ def _log_contact(log_file, name, email, message):
         f.write(entry + "\n\n")
 
 
-def _player_authorized(game, player):
-    """Return True if current_user is the account for the given player slot."""
-    if player == 1:
-        return current_user.id == game.player1_id
-    if player == 2:
-        return current_user.id == game.player2_id
-    return False
-
 
 def _valid_email(email):
     if not email:
@@ -432,18 +424,41 @@ def new_game_legacy():
 
 
 @bp.route('/game/new')
-@login_required
 def game_new():
-    return render_template('stub.html', page_title='New Game')
+    preset_order = ('60', '30', '15', '5')
+    preset_icons = {
+        '60': 'hourglass_top',
+        '30': 'timer',
+        '15': 'speed',
+        '5': 'rocket',
+        'custom': 'alarm_smart_wake',
+    }
+    preset_param = request.args.get('preset', '5')
+    if preset_param not in ('60', '30', '15', '5', 'custom'):
+        preset_param = '5'
+    return render_template(
+        'test_new.html',
+        presets=Config.TIME_CONTROL_PRESETS,
+        preset_order=preset_order,
+        preset_icons=preset_icons,
+        board_size_stops=Config.BOARD_SIZE_STOPS,
+        default_preset=preset_param,
+        username=current_user.username if current_user.is_authenticated else '',
+    )
 
 
 @bp.route('/game/<game_id>')
-@login_required
 def game_page(game_id):
-    game = db.session.get(Game, game_id)
-    if game is None:
+    session = get_session(game_id)
+    if session is None:
         return render_template('stub.html', page_title='Game not found'), 404
-    return render_template('stub.html', page_title=f'Game {game_id[:8]}')
+    player_num = None
+    if session._multiplayer and current_user.is_authenticated:
+        if session._player_ids.get(1) == current_user.id:
+            player_num = 1
+        elif session._player_ids.get(2) == current_user.id:
+            player_num = 2
+    return render_template('test.html', game_id=game_id, player_num=player_num, multiplayer=session._multiplayer)
 
 
 @bp.route('/my-games')
@@ -667,121 +682,27 @@ def create_game():
     return jsonify({"game_id": game.id}), 201
 
 
-@bp.route('/game/<game_id>/compile', methods=['POST'])
-@login_required
-def game_compile_script(game_id):
-    """
-    Lint a script without advancing game state.
-
-    JSON body:
-        { "player": <1|2>, "source": <str> }
-
-    Returns:
-        { "ok": bool, "errors": [...], "warnings": [...], "word_count": int }
-    """
-    game = db.session.get(Game, game_id)
-    if game is None:
-        return jsonify({"error": "game not found"}), 404
-
-    session = get_session(game_id)
-    if session is None:
-        return jsonify({"error": "game session not found"}), 404
-
-    data = request.get_json(silent=True) or {}
-    player = data.get('player')
-    source = data.get('source', '')
-
-    if player not in (1, 2):
-        return jsonify({"error": "player must be 1 or 2"}), 400
-
-    if not _player_authorized(game, player):
-        return jsonify({"error": "forbidden"}), 403
-
-    result = session.compile_script(player, source)
-    return jsonify(result)
-
-
-@bp.route('/game/<game_id>/deploy', methods=['POST'])
-@login_required
-def game_deploy_script(game_id):
-    """
-    Deploy a script, ending the current write phase.
-
-    JSON body:
-        { "player": <1|2>, "source": <str> }
-
-    Returns:
-        { "ok": bool, "errors": [...], "warnings": [...], "game_over": bool, "winner": ... }
-    """
-    game = db.session.get(Game, game_id)
-    if game is None:
-        return jsonify({"error": "game not found"}), 404
-
-    session = get_session(game_id)
-    if session is None:
-        return jsonify({"error": "game session not found"}), 404
-
-    data = request.get_json(silent=True) or {}
-    player = data.get('player')
-    source = data.get('source', '')
-
-    if player not in (1, 2):
-        return jsonify({"error": "player must be 1 or 2"}), 400
-
-    if not _player_authorized(game, player):
-        return jsonify({"error": "forbidden"}), 403
-
-    result = session.deploy_script(player, source)
-    status = 200 if result.get('ok') else 422
-    return jsonify(result), status
-
-
 @bp.route('/test')
 def test_page_legacy():
-    return redirect(url_for('main.test_new'))
+    return redirect(url_for('main.game_new'))
 
 
 @bp.route('/test/new')
-def test_new():
-    preset_order = ('60', '30', '15', '5')
-    preset_icons = {
-        '60': 'hourglass_top',
-        '30': 'timer',
-        '15': 'speed',
-        '5': 'rocket',
-        'custom': 'alarm_smart_wake',
-    }
-    return render_template(
-        'test_new.html',
-        presets=Config.TIME_CONTROL_PRESETS,
-        preset_order=preset_order,
-        preset_icons=preset_icons,
-        board_size_stops=Config.BOARD_SIZE_STOPS,
-        default_preset='5',
-        username=current_user.username if current_user.is_authenticated else '',
-    )
+def test_new_legacy():
+    return redirect(url_for('main.game_new'))
 
 
 @bp.route('/test/<game_id>')
-def test_page(game_id):
-    session = get_session(game_id)
-    if session is None:
-        return render_template('stub.html', page_title='Test game not found'), 404
-    player_num = None
-    if session._multiplayer and current_user.is_authenticated:
-        if session._player_ids.get(1) == current_user.id:
-            player_num = 1
-        elif session._player_ids.get(2) == current_user.id:
-            player_num = 2
-    return render_template('test.html', game_id=game_id, player_num=player_num, multiplayer=session._multiplayer)
+def test_game_page_legacy(game_id):
+    return redirect(url_for('main.game_page', game_id=game_id))
 
 
 @bp.route('/test/session', methods=['POST'])
 def test_create_session():
     """
-    Create a throw-away in-memory session for the test bench.
-    No DB accounts required. Both word banks are pre-filled for quick
-    compile/deploy testing once the normal animation phase advances.
+    Create a single-player in-memory session against a bot opponent.
+    No DB accounts required. Word banks are pre-filled and an auto-writer
+    is configured for player 2.
     """
     data = request.get_json(silent=True) or {}
     try:
@@ -815,9 +736,9 @@ def test_create_session():
     return jsonify({'game_id': game_id}), 201
 
 
-@bp.route('/test/lobby', methods=['POST'])
+@bp.route('/game/lobby', methods=['POST'])
 @login_required
-def test_create_lobby():
+def game_create_lobby():
     """Create a pending multiplayer lobby. Returns game_id immediately; session is created only when both players ready."""
     data = request.get_json(silent=True) or {}
     try:
@@ -830,9 +751,9 @@ def test_create_lobby():
     return jsonify({'game_id': game_id}), 201
 
 
-@bp.route('/test/<game_id>/join', methods=['GET'])
+@bp.route('/game/<game_id>/join', methods=['GET'])
 @login_required
-def test_join_page(game_id):
+def game_join_page(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
@@ -844,9 +765,9 @@ def test_join_page(game_id):
     )
 
 
-@bp.route('/test/<game_id>/join', methods=['POST'])
+@bp.route('/game/<game_id>/join', methods=['POST'])
 @login_required
-def test_join(game_id):
+def game_join(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
@@ -859,9 +780,9 @@ def test_join(game_id):
     return jsonify({'ok': True}), 200
 
 
-@bp.route('/test/<game_id>/settings', methods=['PATCH'])
+@bp.route('/game/<game_id>/settings', methods=['PATCH'])
 @login_required
-def test_update_lobby_settings(game_id):
+def game_update_lobby_settings(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
@@ -876,8 +797,8 @@ def test_update_lobby_settings(game_id):
     return jsonify({'ok': True})
 
 
-@bp.route('/test/<game_id>/lobby', methods=['GET'])
-def test_lobby_status(game_id):
+@bp.route('/game/<game_id>/lobby', methods=['GET'])
+def game_lobby_status(game_id):
     lobby = get_lobby(game_id)
     session = get_session(game_id)
     if session is not None and session._multiplayer:
@@ -894,9 +815,9 @@ def test_lobby_status(game_id):
     return jsonify({'error': 'game not found'}), 404
 
 
-@bp.route('/test/<game_id>/ready', methods=['POST'])
+@bp.route('/game/<game_id>/ready', methods=['POST'])
 @login_required
-def test_ready(game_id):
+def game_ready(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
@@ -916,9 +837,9 @@ def test_ready(game_id):
     return jsonify({'ready': ready, 'both_ready': False})
 
 
-@bp.route('/test/<game_id>/leave', methods=['POST'])
+@bp.route('/game/<game_id>/leave', methods=['POST'])
 @login_required
-def test_leave(game_id):
+def game_leave(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
@@ -931,9 +852,9 @@ def test_leave(game_id):
     return jsonify({'ok': True})
 
 
-@bp.route('/test/<game_id>/close', methods=['POST'])
+@bp.route('/game/<game_id>/close', methods=['POST'])
 @login_required
-def test_close(game_id):
+def game_close(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
@@ -966,28 +887,8 @@ def _start_lobby_game(game_id: str, lobby) -> None:
     remove_lobby(game_id)
 
 
-@bp.route('/game/<game_id>/state', methods=['GET'])
-def game_state(game_id):
-    """
-    Poll current game state. Auto-advances animation phases and checks clock expiry.
-
-    Returns full state dict.
-    """
-    game = db.session.get(Game, game_id)
-    if game is None:
-        return jsonify({"error": "game not found"}), 404
-
-    session = get_session(game_id)
-    if session is None:
-        return jsonify({"error": "game session not found"}), 404
-
-    session.check_clock_expired()
-    state = session.get_state()
-    return jsonify(state)
-
-
-@bp.route('/test/<game_id>/compile', methods=['POST'])
-def test_compile_script(game_id):
+@bp.route('/game/<game_id>/compile', methods=['POST'])
+def game_compile_script(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1004,8 +905,8 @@ def test_compile_script(game_id):
     return jsonify(result)
 
 
-@bp.route('/test/<game_id>/deploy', methods=['POST'])
-def test_deploy_script(game_id):
+@bp.route('/game/<game_id>/deploy', methods=['POST'])
+def game_deploy_script(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1023,8 +924,8 @@ def test_deploy_script(game_id):
     return jsonify(result), status
 
 
-@bp.route('/test/<game_id>/resign', methods=['POST'])
-def test_resign(game_id):
+@bp.route('/game/<game_id>/resign', methods=['POST'])
+def game_resign(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1041,8 +942,8 @@ def test_resign(game_id):
     return jsonify(result)
 
 
-@bp.route('/test/<game_id>/offer_draw', methods=['POST'])
-def test_offer_draw(game_id):
+@bp.route('/game/<game_id>/offer_draw', methods=['POST'])
+def game_offer_draw(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1059,8 +960,8 @@ def test_offer_draw(game_id):
     return jsonify(result)
 
 
-@bp.route('/test/<game_id>/cancel_draw', methods=['POST'])
-def test_cancel_draw(game_id):
+@bp.route('/game/<game_id>/cancel_draw', methods=['POST'])
+def game_cancel_draw(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1077,8 +978,8 @@ def test_cancel_draw(game_id):
     return jsonify(result)
 
 
-@bp.route('/test/<game_id>/accept_draw', methods=['POST'])
-def test_accept_draw(game_id):
+@bp.route('/game/<game_id>/accept_draw', methods=['POST'])
+def game_accept_draw(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1095,8 +996,8 @@ def test_accept_draw(game_id):
     return jsonify(result)
 
 
-@bp.route('/test/<game_id>/reject_draw', methods=['POST'])
-def test_reject_draw(game_id):
+@bp.route('/game/<game_id>/reject_draw', methods=['POST'])
+def game_reject_draw(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1113,8 +1014,8 @@ def test_reject_draw(game_id):
     return jsonify(result)
 
 
-@bp.route('/test/<game_id>/begin_write', methods=['POST'])
-def test_begin_write(game_id):
+@bp.route('/game/<game_id>/begin_write', methods=['POST'])
+def game_begin_write(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
@@ -1134,8 +1035,8 @@ def test_begin_write(game_id):
     return jsonify({'ok': True})
 
 
-@bp.route('/test/<game_id>/state', methods=['GET'])
-def test_game_state(game_id):
+@bp.route('/game/<game_id>/state', methods=['GET'])
+def game_state(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404

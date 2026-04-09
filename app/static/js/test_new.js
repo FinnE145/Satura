@@ -207,13 +207,13 @@
 
     async function pollLobby(gameId) {
         try {
-            const resp = await fetch(`/test/${encodeURIComponent(gameId)}/lobby`);
+            const resp = await fetch(`/game/${encodeURIComponent(gameId)}/lobby`);
             if (!resp.ok) return;
             const data = await resp.json();
 
             if (data.started || data.both_ready) {
                 stopPolling();
-                window.location.href = `/test/${encodeURIComponent(gameId)}`;
+                window.location.href = `/game/${encodeURIComponent(gameId)}`;
                 return;
             }
 
@@ -238,7 +238,7 @@
         // Close old lobby if re-generating
         if (currentGameId) {
             try {
-                await fetch(`/test/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
+                await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
             } catch (_) {}
         }
 
@@ -257,14 +257,14 @@
         const payload = buildPayload();
 
         try {
-            const response = await fetch('/test/lobby', {
+            const response = await fetch('/game/lobby', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
             if (response.status === 401) {
-                window.location.href = '/login?next=/test/new';
+                window.location.href = '/login?next=/game/new';
                 return;
             }
 
@@ -281,7 +281,7 @@
             }
 
             currentGameId = gameId;
-            const joinUrl = `${location.origin}/test/${encodeURIComponent(gameId)}/join`;
+            const joinUrl = `${location.origin}/game/${encodeURIComponent(gameId)}/join`;
             try {
                 await navigator.clipboard.writeText(joinUrl);
             } catch (_) {
@@ -302,11 +302,11 @@
         if (!currentGameId) return;
         p1ReadyBtn.disabled = true;
         try {
-            const resp = await fetch(`/test/${encodeURIComponent(currentGameId)}/ready`, {
+            const resp = await fetch(`/game/${encodeURIComponent(currentGameId)}/ready`, {
                 method: 'POST',
             });
             if (resp.status === 401) {
-                window.location.href = '/login?next=/test/new';
+                window.location.href = '/login?next=/game/new';
                 return;
             }
             if (!resp.ok) return;
@@ -315,7 +315,7 @@
             p1ReadyBtn.textContent = p1IsReady ? 'Cancel ready' : 'Ready';
             if (data.both_ready) {
                 stopPolling();
-                window.location.href = `/test/${encodeURIComponent(currentGameId)}`;
+                window.location.href = `/game/${encodeURIComponent(currentGameId)}`;
             }
         } catch (_) {
         } finally {
@@ -335,7 +335,7 @@
         settingsPatchTimer = setTimeout(async () => {
             if (!currentGameId) return;
             try {
-                await fetch(`/test/${encodeURIComponent(currentGameId)}/settings`, {
+                await fetch(`/game/${encodeURIComponent(currentGameId)}/settings`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(buildPayload()),

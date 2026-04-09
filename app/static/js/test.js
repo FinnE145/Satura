@@ -35,7 +35,7 @@ const btnDrawReject = document.getElementById('btn-draw-reject');
 
 const testRoot = document.getElementById('test-root');
 const gameId = testRoot?.dataset?.gameId || null;
-const apiBase = gameId ? `/test/${encodeURIComponent(gameId)}` : null;
+const apiBase = gameId ? `/game/${encodeURIComponent(gameId)}` : null;
 const myPlayer = parseInt(testRoot?.dataset?.playerNum) || null;
 const isMultiplayer = testRoot?.dataset?.multiplayer === 'true';
 const minePlayer = (isMultiplayer && myPlayer) ? myPlayer : 1;
