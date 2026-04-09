@@ -14,13 +14,30 @@ from urllib.parse import urlsplit
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
-from .models import Game, Account, AccountSettings
+from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction
 from .game.session import create_session, get_session, create_lobby, get_lobby, remove_lobby
 from config import Config
 
 bp = Blueprint('main', __name__)
 
 _LOG_DIR = Path(__file__).parent.parent
+
+
+def _populate_game_settings(game: Game, parsed: dict, created_by: int | None = None) -> None:
+    """Copy parsed session config onto a Game DB row."""
+    game.preset = parsed.get('preset')
+    game.board_size = parsed.get('size')
+    game.op_limit = parsed.get('op_limit')
+    game.clock_seconds = parsed.get('clock_seconds')
+    game.word_rate = parsed.get('word_rate')
+    game.starting_player = parsed.get('starting_player')
+    game.accommodations_enabled = parsed.get('accommodations_enabled', False)
+    game.p1_clock_seconds = parsed.get('p1_clock_seconds')
+    game.p2_clock_seconds = parsed.get('p2_clock_seconds')
+    game.p1_starting_words = parsed.get('p1_starting_words')
+    game.p2_starting_words = parsed.get('p2_starting_words')
+    if created_by is not None:
+        game.created_by = created_by
 _PALETTES = ('solstice', 'fieldstone', 'levant', 'folio')
 _PALETTE_CONFIG = {
     'solstice': {'warm': '#D2640E', 'cool': '#A82068'},
@@ -462,8 +479,50 @@ def game_page(game_id):
 
 
 @bp.route('/my-games')
+@login_required
 def my_games():
-    return render_template('stub.html', page_title='My Games')
+    games = (
+        Game.query
+        .filter(
+            (Game.player1_id == current_user.id) | (Game.player2_id == current_user.id)
+        )
+        .order_by(Game.created_at.desc())
+        .all()
+    )
+    return render_template('my_games.html', games=games)
+
+
+@bp.route('/my-games/<game_id>')
+@login_required
+def my_game_detail(game_id):
+    game = Game.query.get_or_404(game_id)
+    if game.player1_id != current_user.id and game.player2_id != current_user.id:
+        return render_template('stub.html', page_title='Not found'), 404
+
+    phases = (
+        game.phases
+        .order_by(ExecutionPhase.phase_number)
+        .all()
+    )
+    scripts = (
+        game.scripts
+        .filter_by(account_id=current_user.id)
+        .order_by(Script.turn_number)
+        .all()
+    )
+    functions = (
+        game.functions
+        .filter_by(account_id=current_user.id)
+        .order_by(DefinedFunction.id)
+        .all()
+    )
+    return render_template(
+        'my_game_detail.html',
+        game=game,
+        phases=phases,
+        scripts=scripts,
+        functions=functions,
+    )
 
 
 @bp.route('/how-to-play')
@@ -537,8 +596,11 @@ def settings_account():
                 current_user.email = None
                 current_user.set_password(str(uuid.uuid4()))
                 current_user.username = _unique_deleted_username(current_user.id)
-                # TODO: remove user-owned script/function rows once those tables exist;
-                # keep shared game history and opponent-authored artifacts.
+                # Scrub private data: clear script text, delete function entries
+                Script.query.filter_by(account_id=current_user.id).update(
+                    {'account_id': None, 'source_text': ''},
+                )
+                DefinedFunction.query.filter_by(account_id=current_user.id).delete()
                 db.session.commit()
                 logout_user()
                 flash('Account deleted and anonymized.')
@@ -668,6 +730,20 @@ def create_game():
     player2_id = data.get('player2_id')
 
     game = Game(player1_id=current_user.id, player2_id=player2_id, status='active')
+    default_settings = {
+        'preset': None,
+        'size': Config.BOARD_SIZE,
+        'op_limit': Config.OP_LIMIT,
+        'clock_seconds': Config.CLOCK_SECONDS,
+        'word_rate': Config.WORD_RATE,
+        'starting_player': 1,
+        'accommodations_enabled': False,
+        'p1_clock_seconds': Config.CLOCK_SECONDS,
+        'p2_clock_seconds': Config.CLOCK_SECONDS,
+        'p1_starting_words': 0.0,
+        'p2_starting_words': 0.0,
+    }
+    _populate_game_settings(game, default_settings, created_by=current_user.id)
     db.session.add(game)
     db.session.commit()
 
@@ -867,6 +943,17 @@ def game_close(game_id):
 def _start_lobby_game(game_id: str, lobby) -> None:
     """Create a real GameSession from a ready lobby, then remove the lobby."""
     parsed = lobby.settings
+
+    game = Game(
+        id=game_id,
+        player1_id=lobby.player1_id,
+        player2_id=lobby.player2_id,
+        status='active',
+    )
+    _populate_game_settings(game, parsed, created_by=lobby.player1_id)
+    db.session.add(game)
+    db.session.commit()
+
     session = create_session(
         game_id=game_id,
         size=parsed['size'],

@@ -70,6 +70,29 @@ def _upgrade_schema():
                 """
             ))
 
+        # -- Extend games table with settings/result columns --
+        if inspector.has_table('games'):
+            game_cols = {col['name'] for col in inspector.get_columns('games')}
+            new_game_cols = {
+                'preset':                  "VARCHAR(8)",
+                'board_size':              "INTEGER",
+                'op_limit':                "INTEGER",
+                'clock_seconds':           "REAL",
+                'word_rate':               "REAL",
+                'starting_player':         "INTEGER",
+                'accommodations_enabled':  "BOOLEAN NOT NULL DEFAULT 0",
+                'p1_clock_seconds':        "REAL",
+                'p2_clock_seconds':        "REAL",
+                'p1_starting_words':       "REAL",
+                'p2_starting_words':       "REAL",
+                'end_reason':              "VARCHAR(16)",
+                'is_draw':                 "BOOLEAN NOT NULL DEFAULT 0",
+                'created_by':              "INTEGER",
+            }
+            for col_name, col_def in new_game_cols.items():
+                if col_name not in game_cols:
+                    conn.execute(text(f'ALTER TABLE games ADD COLUMN {col_name} {col_def}'))
+
 
 @login_manager.user_loader
 def load_user(user_id):

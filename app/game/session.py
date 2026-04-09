@@ -1,8 +1,32 @@
+import json
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from .engine import Engine
 from config import Config
+
+
+def _extract_func_text(source_lines: list[str], start_line: int) -> str:
+    """Extract a function definition from source lines given its 1-based start line.
+
+    Scans from the def keyword line forward, tracking brace depth to find the
+    matching closing brace.
+    """
+    idx = start_line - 1  # convert to 0-based
+    if idx < 0 or idx >= len(source_lines):
+        return ""
+    depth = 0
+    end_idx = idx
+    for i in range(idx, len(source_lines)):
+        for ch in source_lines[i]:
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+        end_idx = i
+        if depth <= 0 and i > idx:
+            break
+    return "\n".join(source_lines[idx:end_idx + 1])
 
 
 @dataclass
@@ -55,6 +79,12 @@ class GameSession:
         self._player_ids: dict[int, int | None] = {1: None, 2: None}
         self._draw_offer_player: int | None = None
         self._draw_cooldown: dict[int, float] = {}
+
+        # Persistence tracking
+        self._phase_counter: int = 0
+        self._prev_phase_id: int | None = None
+        self._turn_counter: int = 0
+        self._current_script_id: int | None = None
 
     _SENSING_OPS = {"get_friction", "has_agent", "my_paint", "opp_paint"}
 
@@ -124,8 +154,20 @@ class GameSession:
             self.engine.resume_word_accumulation(player)
             return {"ok": False, "errors": ["insufficient word bank"], "warnings": []}
 
+        # Persist script before execution
+        account_id = self._player_ids.get(player)
+        script_id = self._persist_script(source, result.word_count, player, account_id)
+        self._current_script_id = script_id
+
+        # Snapshot function names before execution to detect new definitions
+        funcs_before = set(self.engine.persisted_funcs.get(0, {}).keys())
+
         self._program[player] = result.program
         self._run_exec1()
+
+        # Persist any newly defined functions
+        self._persist_functions(source, script_id, player, account_id, funcs_before)
+
         return {
             "ok": True,
             "game_over": self.game_over,
@@ -275,6 +317,143 @@ class GameSession:
             },
         }
 
+    # ------------------------------------------------------------------ persistence
+
+    def _snapshot_board_json(self) -> str:
+        return json.dumps(self.engine.board.snapshot())
+
+    def _snapshot_agents_json(self) -> str:
+        agents = self.engine.agents
+        return json.dumps({
+            "1": {"row": agents[1].row, "col": agents[1].col},
+            "2": {"row": agents[2].row, "col": agents[2].col},
+        })
+
+    def _snapshot_word_banks_json(self) -> str:
+        return json.dumps({
+            "1": self.engine.word_bank(1),
+            "2": self.engine.word_bank(2),
+        })
+
+    def _snapshot_clock_json(self) -> str:
+        return json.dumps({
+            "1": self.engine.clock_remaining(1),
+            "2": self.engine.clock_remaining(2),
+        })
+
+    def _persist_phase(
+        self,
+        exec_type: str,
+        player_slot: int,
+        outcome: str | None = None,
+        exec_log: list[dict] | None = None,
+        ops_consumed: int = 0,
+        script_id: int | None = None,
+    ) -> None:
+        """Insert an ExecutionPhase row capturing the current board/agent/clock/word state."""
+        try:
+            from .. import db
+            from ..models import ExecutionPhase
+
+            phase = ExecutionPhase(
+                game_id=self.game_id,
+                phase_number=self._phase_counter,
+                player_slot=player_slot,
+                exec_type=exec_type,
+                script_id=script_id,
+                outcome=outcome,
+                exec_log_json=json.dumps(exec_log) if exec_log is not None else None,
+                ops_consumed=ops_consumed,
+                board_state_json=self._snapshot_board_json(),
+                agents_json=self._snapshot_agents_json(),
+                word_banks_json=self._snapshot_word_banks_json(),
+                clock_remaining_json=self._snapshot_clock_json(),
+                prev_phase_id=self._prev_phase_id,
+            )
+            db.session.add(phase)
+            db.session.flush()
+            self._prev_phase_id = phase.id
+            self._phase_counter += 1
+            db.session.commit()
+        except Exception:
+            pass  # best-effort; in-memory state is authoritative
+
+    def _persist_initial_phase(self) -> None:
+        """Insert phase 0 representing the initial board state before any player action."""
+        self._persist_phase(
+            exec_type="initial",
+            player_slot=self.current_player,
+        )
+
+    def _persist_script(
+        self,
+        source: str,
+        word_count: int,
+        player_slot: int,
+        account_id: int | None,
+    ) -> int | None:
+        """Insert a Script row and return its ID."""
+        try:
+            from .. import db
+            from ..models import Script
+
+            write_duration = None
+            if self._write_started_at is not None:
+                write_duration = time.monotonic() - self._write_started_at
+
+            script = Script(
+                game_id=self.game_id,
+                account_id=account_id,
+                player_slot=player_slot,
+                source_text=source,
+                word_count=word_count,
+                write_duration_seconds=write_duration,
+                turn_number=self._turn_counter,
+            )
+            db.session.add(script)
+            db.session.flush()
+            self._turn_counter += 1
+            script_id = script.id
+            db.session.commit()
+            return script_id
+        except Exception:
+            return None
+
+    def _persist_functions(
+        self,
+        source: str,
+        script_id: int | None,
+        player_slot: int,
+        account_id: int | None,
+        funcs_before: set[str],
+    ) -> None:
+        """Insert DefinedFunction rows for any newly defined/redefined functions."""
+        if script_id is None:
+            return
+        try:
+            from .. import db
+            from ..models import DefinedFunction
+
+            bodies = self.engine.persisted_funcs.get(0, {})
+            new_names = set(bodies.keys()) - funcs_before
+            if not new_names:
+                return
+
+            source_lines = source.splitlines()
+            for name in new_names:
+                func_def = bodies[name]
+                func_text = _extract_func_text(source_lines, func_def.line)
+                db.session.add(DefinedFunction(
+                    game_id=self.game_id,
+                    account_id=account_id,
+                    script_id=script_id,
+                    func_name=name,
+                    func_body_text=func_text,
+                ))
+            db.session.commit()
+        except Exception:
+            pass
+
     # ------------------------------------------------------------------ private helpers
 
     def _run_exec2(self) -> None:
@@ -282,8 +461,9 @@ class GameSession:
         self._last_exec_player = self.current_player
         program = self._program[self.current_player]
         if program is not None:
-            _, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, program)
+            outcome, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, program)
         else:
+            outcome = None
             self._exec_log = []
             self._exec_ops = 0
         self._check_win_stalemate()
@@ -297,16 +477,33 @@ class GameSession:
                 self.phase = "anim_pre_write"
                 self._anim_deadline = time.monotonic() + wait_seconds
         self._write_started_at = None
+        if outcome is not None:
+            self._persist_phase(
+                exec_type="exec2",
+                player_slot=self.current_player,
+                outcome=outcome,
+                exec_log=self._exec_log,
+                ops_consumed=self._exec_ops,
+                script_id=self._current_script_id,
+            )
 
     def _run_exec1(self) -> None:
         self.phase = "exec1"
         self._last_exec_player = self.current_player
-        _, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, self._program[self.current_player])
+        outcome, self._exec_log, self._exec_ops = self.engine.run_execution(self.current_player, self._program[self.current_player])
         self._check_win_stalemate()
         if not self.game_over:
             self.phase = "anim_post_exec1"
             self._anim_deadline = time.monotonic() + self._animation_wait_seconds(self._exec_log)
         self._write_started_at = None
+        self._persist_phase(
+            exec_type="exec1",
+            player_slot=self.current_player,
+            outcome=outcome,
+            exec_log=self._exec_log,
+            ops_consumed=self._exec_ops,
+            script_id=self._current_script_id,
+        )
 
     def _animation_wait_seconds(self, exec_log: list[dict]) -> float:
         non_sensing_steps = sum(1 for entry in exec_log if entry.get("op") not in self._SENSING_OPS)
@@ -402,6 +599,8 @@ class GameSession:
             if game is not None:
                 game.status = "finished"
                 game.winner = self.winner if isinstance(self.winner, int) else None
+                game.is_draw = self.winner == "draw"
+                game.end_reason = self.end_reason
                 game.finished_at = datetime.now(timezone.utc)
                 db.session.commit()
         except Exception:
@@ -446,6 +645,7 @@ def create_session(
     session = GameSession(game_id, engine)
     session.current_player = 2 if starting_player == 2 else 1
     _sessions[game_id] = session
+    session._persist_initial_phase()
     session._run_exec2()
     return session
 
