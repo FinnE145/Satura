@@ -77,19 +77,19 @@
 
                 <!-- Buttons -->
                 <div class="game-controls-btns">
-                    <button type="button" class="game-controls-btn btn-warm-hover">
+                    <button type="button" class="game-controls-btn btn-warm-hover" id="btn-replay">
                         <span class="material-symbols-outlined">replay</span>
                         <span class="icon-btn-label">Replay</span>
                     </button>
-                    <button type="button" class="game-controls-btn btn-cool-hover">
+                    <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-back">
                         <span class="material-symbols-outlined">arrow_back</span>
                         <span class="icon-btn-label">Back</span>
                     </button>
-                    <button type="button" class="game-controls-btn btn-cool-hover">
+                    <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-forward">
                         <span class="material-symbols-outlined">arrow_forward</span>
                         <span class="icon-btn-label">Forward</span>
                     </button>
-                    <button type="button" class="game-controls-btn btn-warm-hover">
+                    <button type="button" class="game-controls-btn btn-warm-hover" id="btn-history-current">
                         <span class="material-symbols-outlined">last_page</span>
                         <span class="icon-btn-label">Current</span>
                     </button>
@@ -112,6 +112,7 @@
 
             </div>
             <span class="game-controls-confirm text-small-sans" id="game-controls-confirm" hidden></span>
+            <span class="game-controls-confirm text-small-sans" id="game-controls-past-notice" hidden>Viewing a past game state</span>
             <div class="game-controls-draw-area text-small-sans" id="game-controls-draw-area" hidden>
                 <span id="game-controls-draw-msg"></span>
                 <div class="game-controls-draw-btns" id="game-controls-draw-btns" hidden>

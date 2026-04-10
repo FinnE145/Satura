@@ -24,7 +24,12 @@ const gameOverDismissBtn = document.getElementById('game-over-dismiss');
 const gameOverBackdrop = document.getElementById('game-over-backdrop');
 const btnDraw = document.getElementById('btn-draw');
 const btnResign = document.getElementById('btn-resign');
+const btnReplay = document.getElementById('btn-replay');
+const btnHistoryBack = document.getElementById('btn-history-back');
+const btnHistoryForward = document.getElementById('btn-history-forward');
+const btnHistoryCurrent = document.getElementById('btn-history-current');
 const gameControlsConfirm = document.getElementById('game-controls-confirm');
+const gameControlsPastNotice = document.getElementById('game-controls-past-notice');
 const gameControlsDrawArea = document.getElementById('game-controls-draw-area');
 const gameControlsDrawMsg = document.getElementById('game-controls-draw-msg');
 const gameControlsDrawBtns = document.getElementById('game-controls-draw-btns');
@@ -59,6 +64,14 @@ if (boardLegendOppEl) {
 let bankPollTimer = null;
 let clockRenderTimer = null;
 let resignConfirmPending = false;
+// History navigation state
+// viewingPhase: null = live present, integer = phase_number of historical snapshot
+let viewingPhase = null;
+// Total phases known from the last historical fetch or live poll
+let knownTotalPhases = 0;
+let lastLiveState = null;
+// State object currently rendered on the board (live or historical)
+let viewState = null;
 // drawUiState: 'idle' | 'confirm' | 'offering' | 'cooldown' | 'received'
 let drawUiState = 'idle';
 let drawCooldownEnd = null;
@@ -144,10 +157,14 @@ async function init() {
 
         // Show the latest board and actual server phase immediately.
         const initState = await get(`${apiBase}/state`);
+        lastLiveState = initState;
+        viewState = initState;
+        knownTotalPhases = initState.total_phases ?? 0;
         applySessionState(initState);
         renderBoard(initState);
         markReplaySeen(initState);
         startClockRender();
+        updateHistoryButtons();
 
         wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> in bank`;
         startBankPoll();
@@ -173,13 +190,26 @@ async function refreshBank() {
     if (!gameId || !bankPollTimer) return;
     try {
         const state = await get(`${apiBase}/state`);
+        lastLiveState = state;
+        if (state.total_phases !== undefined) {
+            const prevTotal = knownTotalPhases;
+            knownTotalPhases = state.total_phases;
+            // New phase arrived while user is browsing history — highlight Current button and update notice
+            if (viewingPhase !== null && knownTotalPhases > prevTotal) {
+                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm');
+                updatePastNotice();
+            }
+        }
         const bank = state.word_bank?.[minePlayer] ?? 0;
         lastBank = bank;
         lastRate = state.word_rate ?? (1 / 3);
         wordBankEl.innerHTML = `<strong>${Math.floor(bank)}</strong> in bank`;
         wordBankSepEl.hidden = currentWordCount === 0;
         applySessionState(state);
-        await replayPolledExecution(state);
+        if (viewingPhase === null) {
+            viewState = state;
+            await replayPolledExecution(state);
+        }
         if (state?.game_over === true && bankPollTimer) {
             clearInterval(bankPollTimer);
             bankPollTimer = null;
@@ -187,6 +217,7 @@ async function refreshBank() {
         updateWordEta();
         updateDeployButton();
         updateWordShortageNotice();
+        updateHistoryButtons();
     } catch (_) {
         // ignore transient poll failures
     }
@@ -442,6 +473,7 @@ async function runCompile() {
 
 btnDeploy.addEventListener('click', async () => {
     if (!gameId) return;
+    if (viewingPhase !== null) exitHistoryMode();
     setBothButtonsDisabled(true);
 
     try {
@@ -1368,6 +1400,138 @@ async function get(url) {
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ── Replay button ─────────────────────────────────────────────────────────────
+
+if (btnReplay) {
+    btnReplay.addEventListener('click', async () => {
+        if (!gameId || !viewState || replayInFlight) return;
+        const log = viewState.exec_log ?? [];
+        if (log.length === 0) return;
+
+        const wasLive = viewingPhase === null;
+        const currentPhaseNum = wasLive
+            ? knownTotalPhases - 1
+            : viewingPhase;
+
+        // Enter history mode when replaying from live, so a new phase mid-animation
+        // doesn't update the board or output underneath us.
+        if (wasLive) {
+            viewingPhase = currentPhaseNum;
+            updatePastNotice();
+            updateHistoryButtons();
+        }
+
+        // Fetch the phase that preceded this one so we have a pre-exec board.
+        let preExecState = null;
+        if (currentPhaseNum > 0) {
+            try {
+                preExecState = await get(`${apiBase}/state/${currentPhaseNum - 1}`);
+            } catch (_) { /* proceed without pre-state */ }
+        }
+
+        const actorPlayer = viewState.player_slot ?? viewState.last_exec_player ?? 1;
+
+        replayInFlight = true;
+        try {
+            await replayExecution(preExecState, viewState, actorPlayer);
+        } finally {
+            replayInFlight = false;
+        }
+
+        if (wasLive) {
+            exitHistoryMode();
+        }
+    });
+}
+
+// ── History navigation ────────────────────────────────────────────────────────
+
+async function navigateToPhase(phaseNum) {
+    try {
+        const state = await get(`${apiBase}/state/${phaseNum}`);
+        knownTotalPhases = state.total_phases ?? knownTotalPhases;
+        viewingPhase = state.phase_number;
+        viewState = state;
+        renderBoard(state);
+        renderOutput(state);
+        updatePastNotice();
+        updateHistoryButtons();
+    } catch (_) {
+        // ignore — leave current view unchanged
+    }
+}
+
+function exitHistoryMode() {
+    viewingPhase = null;
+    gameControlsPastNotice.hidden = true;
+    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm');
+    if (lastLiveState) {
+        viewState = lastLiveState;
+        renderBoard(lastLiveState);
+        renderOutput(lastLiveState);
+        markReplaySeen(lastLiveState);
+    }
+    updateHistoryButtons();
+}
+
+function updatePastNotice() {
+    if (viewingPhase === null) {
+        gameControlsPastNotice.hidden = true;
+        return;
+    }
+    const max = knownTotalPhases - 1;
+    gameControlsPastNotice.textContent = `Viewing past phase ${viewingPhase} (current is ${max})`;
+    gameControlsPastNotice.hidden = false;
+}
+
+function updateHistoryButtons() {
+    const inHistory = viewingPhase !== null;
+    const atStart = inHistory && viewingPhase === 0;
+    const atEnd = inHistory && viewingPhase >= knownTotalPhases - 1;
+    // Disable back when live and no phases yet recorded
+    const noHistory = !inHistory && knownTotalPhases < 2;
+
+    if (btnHistoryBack) btnHistoryBack.disabled = atStart || noHistory;
+    if (btnHistoryForward) btnHistoryForward.disabled = !inHistory || atEnd;
+    if (btnHistoryCurrent) btnHistoryCurrent.disabled = !inHistory;
+}
+
+if (btnHistoryBack) {
+    btnHistoryBack.addEventListener('click', async () => {
+        if (viewingPhase !== null) {
+            if (viewingPhase > 0) navigateToPhase(viewingPhase - 1);
+            return;
+        }
+        // Stepping back from live — discover current total first if needed
+        if (knownTotalPhases === 0) {
+            try {
+                const probe = await get(`${apiBase}/state/0`);
+                knownTotalPhases = probe.total_phases ?? 0;
+            } catch (_) { return; }
+        }
+        const target = knownTotalPhases - 2;
+        if (target >= 0) navigateToPhase(target);
+    });
+}
+
+if (btnHistoryForward) {
+    btnHistoryForward.addEventListener('click', () => {
+        if (viewingPhase === null) return;
+        const next = viewingPhase + 1;
+        if (next >= knownTotalPhases - 1) {
+            exitHistoryMode();
+        } else {
+            navigateToPhase(next);
+        }
+    });
+}
+
+if (btnHistoryCurrent) {
+    btnHistoryCurrent.addEventListener('click', () => {
+        exitHistoryMode();
+    });
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
