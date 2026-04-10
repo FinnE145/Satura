@@ -255,6 +255,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-controls-draw-area` | flex row below the panel for draw offer status message and accept/reject buttons |
 | `.game-controls-draw-btns` | flex row of accept/reject buttons inside `.game-controls-draw-area` |
 | `.game-controls-btn--is-danger` | active-danger state modifier for `.game-controls-btn` — applies error colour without hover requirement |
+| `.game-controls-btn--is-warm` | active-warm state modifier for `.game-controls-btn` — applies warm accent colour without hover requirement |
 | `.gc-player-badge` | small coloured player label — requires `--p1` or `--p2` modifier |
 | `.gc-player-badge--p1` | warm accent badge for P1 |
 | `.gc-player-badge--p2` | cool accent badge for P2 |

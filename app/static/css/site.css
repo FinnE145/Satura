@@ -875,6 +875,12 @@ a[aria-disabled='true'] {
     color: var(--error);
 }
 
+.game-controls-btn--is-warm {
+    background: var(--accent-tint);
+    border-color: var(--accent-dim);
+    color: var(--accent);
+}
+
 /* Time controls card (small screens) */
 
 .time-controls-card {
