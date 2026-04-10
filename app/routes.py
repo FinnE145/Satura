@@ -1137,4 +1137,46 @@ def game_state(game_id):
 
     session.check_clock_expired()
     state = session.get_state(for_player=for_player)
+    state['total_phases'] = ExecutionPhase.query.filter_by(game_id=game_id).count()
     return jsonify(state)
+
+
+@bp.route('/game/<game_id>/state/<int:phase_number>', methods=['GET'])
+def game_phase_state(game_id, phase_number):
+    import json as _json
+
+    game = Game.query.get(game_id)
+    if game is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    phase = (
+        ExecutionPhase.query
+        .filter_by(game_id=game_id, phase_number=phase_number)
+        .first()
+    )
+    if phase is None:
+        return jsonify({'error': 'phase not found'}), 404
+
+    total_phases = (
+        ExecutionPhase.query
+        .filter_by(game_id=game_id)
+        .count()
+    )
+
+    board_raw = _json.loads(phase.board_state_json)
+    # Stored as [[p1, p2], ...] tuples; convert to [{"p1": p1, "p2": p2}, ...] for the client
+    board = [[{'p1': cell[0], 'p2': cell[1]} for cell in row] for row in board_raw]
+    agents_raw = _json.loads(phase.agents_json)
+    exec_log = _json.loads(phase.exec_log_json) if phase.exec_log_json else []
+
+    return jsonify({
+        'board': board,
+        'agents': agents_raw,
+        'exec_log': exec_log,
+        'exec_ops_consumed': phase.ops_consumed,
+        'op_limit': game.op_limit,
+        'phase_number': phase.phase_number,
+        'total_phases': total_phases,
+        'exec_type': phase.exec_type,
+        'player_slot': phase.player_slot,
+    })
