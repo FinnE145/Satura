@@ -219,7 +219,7 @@ def _coerce_bool(value):
     return bool(value)
 
 
-def _parse_test_session_config(payload):
+def _parse_session_config(payload):
     presets = Config.TIME_CONTROL_PRESETS
     preset = str(payload.get('preset', '5'))
     if preset != 'custom' and preset not in presets:
@@ -454,7 +454,7 @@ def game_new():
     if preset_param not in ('60', '30', '15', '5', 'custom'):
         preset_param = '5'
     return render_template(
-        'test_new.html',
+        'game_new.html',
         presets=Config.TIME_CONTROL_PRESETS,
         preset_order=preset_order,
         preset_icons=preset_icons,
@@ -475,7 +475,7 @@ def game_page(game_id):
             player_num = 1
         elif session._player_ids.get(2) == current_user.id:
             player_num = 2
-    return render_template('test.html', game_id=game_id, player_num=player_num, multiplayer=session._multiplayer)
+    return render_template('game.html', game_id=game_id, player_num=player_num, multiplayer=session._multiplayer)
 
 
 @bp.route('/my-games')
@@ -747,13 +747,14 @@ def create_game():
     db.session.add(game)
     db.session.commit()
 
-    create_session(
+    session = create_session(
         game_id=game.id,
         size=Config.BOARD_SIZE,
         op_limit=Config.OP_LIMIT,
         clock_seconds=Config.CLOCK_SECONDS,
         word_rate=Config.WORD_RATE,
     )
+    session.set_multiplayer_players(current_user.id, player2_id)
 
     return jsonify({"game_id": game.id}), 201
 
@@ -782,7 +783,7 @@ def test_create_session():
     """
     data = request.get_json(silent=True) or {}
     try:
-        parsed = _parse_test_session_config(data)
+        parsed = _parse_session_config(data)
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
 
@@ -818,7 +819,7 @@ def game_create_lobby():
     """Create a pending multiplayer lobby. Returns game_id immediately; session is created only when both players ready."""
     data = request.get_json(silent=True) or {}
     try:
-        parsed = _parse_test_session_config(data)
+        parsed = _parse_session_config(data)
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
 
@@ -834,7 +835,7 @@ def game_join_page(game_id):
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
     return render_template(
-        'test_join.html',
+        'game_join.html',
         game_id=game_id,
         settings=lobby.settings,
         p1_username=lobby.player1_username,
@@ -866,7 +867,7 @@ def game_update_lobby_settings(game_id):
         return jsonify({'error': 'forbidden'}), 403
     data = request.get_json(silent=True) or {}
     try:
-        parsed = _parse_test_session_config(data)
+        parsed = _parse_session_config(data)
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     lobby.settings = parsed
@@ -980,6 +981,9 @@ def game_compile_script(game_id):
     if session is None:
         return jsonify({'error': 'game not found'}), 404
 
+    if session._multiplayer and not current_user.is_authenticated:
+        return redirect(url_for('main.login'))
+
     data = request.get_json(silent=True) or {}
     player = data.get('player')
     source = data.get('source', '')
@@ -989,6 +993,8 @@ def game_compile_script(game_id):
 
     user_id = current_user.id if current_user.is_authenticated else None
     result = session.compile_script(player, source, user_id=user_id)
+    if not result.get('ok') and 'forbidden' in result.get('errors', []):
+        return jsonify({'error': 'forbidden'}), 403
     return jsonify(result)
 
 
@@ -997,6 +1003,9 @@ def game_deploy_script(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
+
+    if session._multiplayer and not current_user.is_authenticated:
+        return redirect(url_for('main.login'))
 
     data = request.get_json(silent=True) or {}
     player = data.get('player')
@@ -1007,6 +1016,8 @@ def game_deploy_script(game_id):
 
     user_id = current_user.id if current_user.is_authenticated else None
     result = session.deploy_script(player, source, user_id=user_id)
+    if not result.get('ok') and 'forbidden' in result.get('errors', []):
+        return jsonify({'error': 'forbidden'}), 403
     status = 200 if result.get('ok') else 422
     return jsonify(result), status
 

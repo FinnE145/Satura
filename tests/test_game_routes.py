@@ -52,7 +52,7 @@ def _create_real_game(client):
 def test_test_session_creation_with_preset_payload(client):
     game_id = _create_test_game(client, {'preset': '15'})
 
-    state_response = client.get(f'/test/{game_id}/state')
+    state_response = client.get(f'/game/{game_id}/state')
     assert state_response.status_code == 200
     state = state_response.get_json()
 
@@ -77,7 +77,7 @@ def test_test_session_creation_with_custom_accommodations(client):
         'starting_player': 2,
     })
 
-    state_response = client.get(f'/test/{game_id}/state')
+    state_response = client.get(f'/game/{game_id}/state')
     assert state_response.status_code == 200
     state = state_response.get_json()
 
@@ -106,7 +106,7 @@ def test_test_session_creation_with_random_starting_player(client):
         'starting_player': 'random',
     })
 
-    state_response = client.get(f'/test/{game_id}/state')
+    state_response = client.get(f'/game/{game_id}/state')
     assert state_response.status_code == 200
     state = state_response.get_json()
     assert state['current_player'] in (1, 2)
@@ -125,19 +125,19 @@ def test_test_session_creation_rejects_invalid_payload(client):
     assert 'board_size' in response.get_json()['error']
 
 
-def test_test_routes_do_not_require_login(client):
+def test_game_routes_do_not_require_login(client):
     game_id = _create_test_game(client, {'preset': '5'})
 
-    state_response = client.get(f'/test/{game_id}/state')
+    state_response = client.get(f'/game/{game_id}/state')
     assert state_response.status_code == 200
 
-    compile_response = client.post(f'/test/{game_id}/compile', json={
+    compile_response = client.post(f'/game/{game_id}/compile', json={
         'player': 1,
         'source': '',
     })
     assert compile_response.status_code == 200
 
-    deploy_response = client.post(f'/test/{game_id}/deploy', json={
+    deploy_response = client.post(f'/game/{game_id}/deploy', json={
         'player': 1,
         'source': '',
     })
@@ -180,29 +180,18 @@ def test_real_routes_enforce_player_authorization(client):
     assert response.get_json()['error'] == 'forbidden'
 
 
-def test_test_game_ids_do_not_resolve_on_real_state_route(client):
-    game_id = _create_test_game(client, {'preset': '5'})
-
-    response = client.get(f'/game/{game_id}/state')
-    assert response.status_code == 404
-
-
 def test_real_state_rejects_unknown_game_id(client):
     response = client.get('/game/not-a-real-id/state')
     assert response.status_code == 404
 
 
-def test_page_routes_for_test_and_game_namespaces(client):
-    test_new_response = client.get('/test/new')
-    assert test_new_response.status_code == 200
+def test_page_routes(client):
+    game_new_response = client.get('/game/new')
+    assert game_new_response.status_code == 200
 
     test_game_id = _create_test_game(client, {'preset': '5'})
-    test_page_response = client.get(f'/test/{test_game_id}')
+    test_page_response = client.get(f'/game/{test_game_id}')
     assert test_page_response.status_code == 200
-
-    game_new_requires_login = client.get('/game/new', follow_redirects=False)
-    assert game_new_requires_login.status_code == 302
-    assert '/login' in game_new_requires_login.headers['Location']
 
     real_game_id = _create_real_game(client)
     real_game_response = client.get(f'/game/{real_game_id}')
