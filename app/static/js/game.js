@@ -38,12 +38,11 @@ const btnDrawReject = document.getElementById('btn-draw-reject');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-const testRoot = document.getElementById('test-root');
-const gameId = testRoot?.dataset?.gameId || null;
+const gameRoot = document.getElementById('game-root');
+const gameId = gameRoot?.dataset?.gameId || null;
 const apiBase = gameId ? `/game/${encodeURIComponent(gameId)}` : null;
-const myPlayer = parseInt(testRoot?.dataset?.playerNum) || null;
-const isMultiplayer = testRoot?.dataset?.multiplayer === 'true';
-const minePlayer = (isMultiplayer && myPlayer) ? myPlayer : 1;
+const myPlayer = parseInt(gameRoot?.dataset?.playerNum) || null;
+const minePlayer = myPlayer || 1;
 const oppPlayer = minePlayer === 1 ? 2 : 1;
 
 document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
@@ -461,7 +460,7 @@ btnCompile.addEventListener('click', async () => {
 
 async function runCompile() {
     const data = await post(`${apiBase}/compile`, {
-        player: isMultiplayer ? myPlayer : 1,
+        player: myPlayer,
         source: editor.value,
     });
     compileState = { errors: data.errors ?? [], warnings: data.warnings ?? [] };
@@ -509,7 +508,7 @@ btnDeploy.addEventListener('click', async () => {
         setSessionReady(false);
 
         const data = await post(`${apiBase}/deploy`, {
-            player: isMultiplayer ? myPlayer : 1,
+            player: myPlayer,
             source: editor.value,
         });
 
@@ -533,7 +532,7 @@ btnDeploy.addEventListener('click', async () => {
         applySessionState(state);
         replayInFlight = true;
         try {
-            await replayExecution(preExecState, state, isMultiplayer ? myPlayer : 1);
+            await replayExecution(preExecState, state, myPlayer);
         } finally {
             replayInFlight = false;
         }
@@ -1116,9 +1115,7 @@ function applySessionState(state) {
     const phase = state?.phase ?? 'unknown';
     const isWrite = phase === 'write';
     const currentPlayer = Number(state?.current_player ?? 0);
-    const isMyTurn = isMultiplayer
-        ? currentPlayer === myPlayer
-        : currentPlayer === 1;
+    const isMyTurn = currentPlayer === myPlayer;
     updateStepDelayFromState(state);
     updatePhaseSnapshot(state);
     updateClockSnapshot(state);

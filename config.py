@@ -61,25 +61,3 @@ class Config:
     ANIMATION_STEP_DURATION = 0.5  # seconds for each step in the animation to wait
     INITIAL_PRE_WRITE_SECONDS = 30.0  # one-time opening think timer before first write phase
 
-    # ── Test bench overrides ──────────────────────────────────────────────────
-    TEST_CLOCK_SECONDS  = 7.0
-    TEST_WORD_RATE      = 1.0
-    TEST_WORD_BANK_START = 10.0   # words pre-loaded at session start
-    TEST_BOT_WRITE_DELAY_SECONDS = 8.0
-    TEST_BOT_FIRST_SCRIPT = (
-        "while get_friction(RIGHT) != NULL and $ops_remaining > 1 {\n"
-        "    move(RIGHT)\n"
-        "}\n"
-        "while get_friction(DOWN) != NULL and $ops_remaining > 1 {\n"
-        "    move(DOWN)\n"
-        "}"
-    )
-    TEST_BOT_REPEAT_SCRIPT = (
-        "paint(1)\n"
-        "if get_friction(LEFT) == NULL {\n"
-        "    move(RIGHT)\n"
-        "    move(UP)\n"
-        "} else {\n"
-        "    move(LEFT)\n"
-        "}"
-    )

@@ -32,15 +32,7 @@ def _login(client, username='P1_Test', password='test123'):
     }, follow_redirects=False)
 
 
-def _create_test_game(client, payload):
-    response = client.post('/test/session', json=payload)
-    assert response.status_code == 201
-    game_id = response.get_json()['game_id']
-    assert game_id
-    return game_id
-
-
-def _create_real_game(client):
+def _create_game(client):
     _login(client)
     response = client.post('/game', json={})
     assert response.status_code == 201
@@ -49,102 +41,7 @@ def _create_real_game(client):
     return game_id
 
 
-def test_test_session_creation_with_preset_payload(client):
-    game_id = _create_test_game(client, {'preset': '15'})
-
-    state_response = client.get(f'/game/{game_id}/state')
-    assert state_response.status_code == 200
-    state = state_response.get_json()
-
-    assert state['op_limit'] == Config.TIME_CONTROL_PRESETS['15']['op_limit']
-    assert state['word_rate'] == Config.TIME_CONTROL_PRESETS['15']['word_rate']
-    assert len(state['board']) == Config.TIME_CONTROL_PRESETS['15']['board_size']
-
-
-def test_test_session_creation_with_custom_accommodations(client):
-    game_id = _create_test_game(client, {
-        'preset': 'custom',
-        'clock_seconds': 300,
-        'board_size': 12,
-        'op_limit': 33,
-        'word_rate': 1.5,
-        'starting_words': 17,
-        'accommodations_enabled': True,
-        'p1_clock_seconds': 111,
-        'p2_clock_seconds': 222,
-        'p1_starting_words': 11,
-        'p2_starting_words': 22,
-        'starting_player': 2,
-    })
-
-    state_response = client.get(f'/game/{game_id}/state')
-    assert state_response.status_code == 200
-    state = state_response.get_json()
-
-    assert state['current_player'] == 2
-    assert state['op_limit'] == 33
-    assert state['word_rate'] == 1.5
-    assert state['clock']['1'] == pytest.approx(111, abs=1e-4)
-    assert state['clock']['2'] == pytest.approx(222, abs=1e-4)
-    assert state['word_bank']['1'] == pytest.approx(11, abs=1e-4)
-    assert state['word_bank']['2'] == pytest.approx(22, abs=1e-4)
-
-
-def test_test_session_creation_with_random_starting_player(client):
-    game_id = _create_test_game(client, {
-        'preset': 'custom',
-        'clock_seconds': 300,
-        'board_size': 12,
-        'op_limit': 33,
-        'word_rate': 1.5,
-        'starting_words': 17,
-        'accommodations_enabled': True,
-        'p1_clock_seconds': 111,
-        'p2_clock_seconds': 222,
-        'p1_starting_words': 11,
-        'p2_starting_words': 22,
-        'starting_player': 'random',
-    })
-
-    state_response = client.get(f'/game/{game_id}/state')
-    assert state_response.status_code == 200
-    state = state_response.get_json()
-    assert state['current_player'] in (1, 2)
-
-
-def test_test_session_creation_rejects_invalid_payload(client):
-    response = client.post('/test/session', json={
-        'preset': 'custom',
-        'clock_seconds': 300,
-        'board_size': 11,
-        'op_limit': 33,
-        'word_rate': 1.5,
-        'starting_words': 17,
-    })
-    assert response.status_code == 400
-    assert 'board_size' in response.get_json()['error']
-
-
-def test_game_routes_do_not_require_login(client):
-    game_id = _create_test_game(client, {'preset': '5'})
-
-    state_response = client.get(f'/game/{game_id}/state')
-    assert state_response.status_code == 200
-
-    compile_response = client.post(f'/game/{game_id}/compile', json={
-        'player': 1,
-        'source': '',
-    })
-    assert compile_response.status_code == 200
-
-    deploy_response = client.post(f'/game/{game_id}/deploy', json={
-        'player': 1,
-        'source': '',
-    })
-    assert deploy_response.status_code in (200, 422)
-
-
-def test_real_routes_require_login_for_compile_and_deploy(client):
+def test_routes_require_login_for_compile_and_deploy(client):
     _login(client)
     create_response = client.post('/game', json={})
     game_id = create_response.get_json()['game_id']
@@ -166,8 +63,8 @@ def test_real_routes_require_login_for_compile_and_deploy(client):
     assert '/login' in deploy_response.headers['Location']
 
 
-def test_real_routes_enforce_player_authorization(client):
-    game_id = _create_real_game(client)
+def test_routes_enforce_player_authorization(client):
+    game_id = _create_game(client)
     client.get('/logout')
     _login(client, username='P2_Test', password='test123')
 
@@ -180,7 +77,7 @@ def test_real_routes_enforce_player_authorization(client):
     assert response.get_json()['error'] == 'forbidden'
 
 
-def test_real_state_rejects_unknown_game_id(client):
+def test_state_rejects_unknown_game_id(client):
     response = client.get('/game/not-a-real-id/state')
     assert response.status_code == 404
 
@@ -189,13 +86,9 @@ def test_page_routes(client):
     game_new_response = client.get('/game/new')
     assert game_new_response.status_code == 200
 
-    test_game_id = _create_test_game(client, {'preset': '5'})
-    test_page_response = client.get(f'/game/{test_game_id}')
-    assert test_page_response.status_code == 200
-
-    real_game_id = _create_real_game(client)
-    real_game_response = client.get(f'/game/{real_game_id}')
-    assert real_game_response.status_code == 200
+    game_id = _create_game(client)
+    game_response = client.get(f'/game/{game_id}')
+    assert game_response.status_code == 200
 
     missing_game_response = client.get('/game/not-a-real-id')
     assert missing_game_response.status_code == 404

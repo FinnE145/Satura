@@ -470,12 +470,12 @@ def game_page(game_id):
     if session is None:
         return render_template('stub.html', page_title='Game not found'), 404
     player_num = None
-    if session._multiplayer and current_user.is_authenticated:
+    if current_user.is_authenticated:
         if session._player_ids.get(1) == current_user.id:
             player_num = 1
         elif session._player_ids.get(2) == current_user.id:
             player_num = 2
-    return render_template('game.html', game_id=game_id, player_num=player_num, multiplayer=session._multiplayer)
+    return render_template('game.html', game_id=game_id, player_num=player_num)
 
 
 @bp.route('/my-games')
@@ -754,63 +754,9 @@ def create_game():
         clock_seconds=Config.CLOCK_SECONDS,
         word_rate=Config.WORD_RATE,
     )
-    session.set_multiplayer_players(current_user.id, player2_id)
+    session.set_players(current_user.id, player2_id)
 
     return jsonify({"game_id": game.id}), 201
-
-
-@bp.route('/test')
-def test_page_legacy():
-    return redirect(url_for('main.game_new'))
-
-
-@bp.route('/test/new')
-def test_new_legacy():
-    return redirect(url_for('main.game_new'))
-
-
-@bp.route('/test/<game_id>')
-def test_game_page_legacy(game_id):
-    return redirect(url_for('main.game_page', game_id=game_id))
-
-
-@bp.route('/test/session', methods=['POST'])
-def test_create_session():
-    """
-    Create a single-player in-memory session against a bot opponent.
-    No DB accounts required. Word banks are pre-filled and an auto-writer
-    is configured for player 2.
-    """
-    data = request.get_json(silent=True) or {}
-    try:
-        parsed = _parse_session_config(data)
-    except ValueError as exc:
-        return jsonify({'error': str(exc)}), 400
-
-    game_id = str(uuid.uuid4())
-    session = create_session(
-        game_id=game_id,
-        size=parsed['size'],
-        op_limit=parsed['op_limit'],
-        clock_seconds=parsed['clock_seconds'],
-        word_rate=parsed['word_rate'],
-        starting_player=parsed['starting_player'],
-    )
-    session.engine._word_bank[1] = parsed['p1_starting_words']
-    session.engine._word_bank[2] = parsed['p2_starting_words']
-    session.engine._word_tick[1] = None
-    session.engine._word_tick[2] = None
-    session.engine._clock_remaining[1] = parsed['p1_clock_seconds']
-    session.engine._clock_remaining[2] = parsed['p2_clock_seconds']
-    session.engine._clock_tick[1] = None
-    session.engine._clock_tick[2] = None
-    session.configure_auto_writer(
-        player=2,
-        first_script=Config.TEST_BOT_FIRST_SCRIPT,
-        repeat_script=Config.TEST_BOT_REPEAT_SCRIPT,
-        write_delay_seconds=Config.TEST_BOT_WRITE_DELAY_SECONDS,
-    )
-    return jsonify({'game_id': game_id}), 201
 
 
 @bp.route('/game/lobby', methods=['POST'])
@@ -878,7 +824,7 @@ def game_update_lobby_settings(game_id):
 def game_lobby_status(game_id):
     lobby = get_lobby(game_id)
     session = get_session(game_id)
-    if session is not None and session._multiplayer:
+    if session is not None:
         return jsonify({
             "player2_joined": True,
             "player2_username": None,
@@ -971,18 +917,16 @@ def _start_lobby_game(game_id: str, lobby) -> None:
     session.engine._clock_remaining[2] = parsed['p2_clock_seconds']
     session.engine._clock_tick[1] = None
     session.engine._clock_tick[2] = None
-    session.set_multiplayer_players(lobby.player1_id, lobby.player2_id)
+    session.set_players(lobby.player1_id, lobby.player2_id)
     remove_lobby(game_id)
 
 
 @bp.route('/game/<game_id>/compile', methods=['POST'])
+@login_required
 def game_compile_script(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
-
-    if session._multiplayer and not current_user.is_authenticated:
-        return redirect(url_for('main.login'))
 
     data = request.get_json(silent=True) or {}
     player = data.get('player')
@@ -999,13 +943,11 @@ def game_compile_script(game_id):
 
 
 @bp.route('/game/<game_id>/deploy', methods=['POST'])
+@login_required
 def game_deploy_script(game_id):
     session = get_session(game_id)
     if session is None:
         return jsonify({'error': 'game not found'}), 404
-
-    if session._multiplayer and not current_user.is_authenticated:
-        return redirect(url_for('main.login'))
 
     data = request.get_json(silent=True) or {}
     player = data.get('player')
@@ -1124,10 +1066,9 @@ def game_begin_write(game_id):
         return jsonify({'error': 'player must be 1 or 2'}), 400
     if player != session.current_player:
         return jsonify({'error': 'forbidden'}), 403
-    if session._multiplayer:
-        user_id = current_user.id if current_user.is_authenticated else None
-        if user_id != session._player_ids.get(player):
-            return jsonify({'error': 'forbidden'}), 403
+    user_id = current_user.id if current_user.is_authenticated else None
+    if user_id != session._player_ids.get(player):
+        return jsonify({'error': 'forbidden'}), 403
 
     session.skip_opening_pre_write()
     return jsonify({'ok': True})
@@ -1140,7 +1081,7 @@ def game_state(game_id):
         return jsonify({'error': 'game not found'}), 404
 
     for_player = None
-    if session._multiplayer and current_user.is_authenticated:
+    if current_user.is_authenticated:
         if session._player_ids.get(1) == current_user.id:
             for_player = 1
         elif session._player_ids.get(2) == current_user.id:

@@ -661,39 +661,6 @@ class TestWordBankAccumulation:
         assert abs(bank - 50.0) < 0.1
 
 
-# ================================================================== auto writer (test bench bot)
-
-class TestAutoWriter:
-    def test_auto_writer_waits_until_deadline(self):
-        s = _session()
-        s.current_player = 2
-        s.phase = "write"
-        s.configure_auto_writer(2, "", "", 8.0)
-        s._auto_write_ready_at = time.monotonic() + 30.0
-
-        with patch.object(s, "deploy_script", return_value={"ok": True}) as deploy:
-            s.get_state()
-            deploy.assert_not_called()
-            assert s._auto_deploy_count == 0
-
-    def test_auto_writer_uses_first_then_repeat_script(self):
-        s = _session()
-        s.current_player = 2
-        s.phase = "write"
-        s.configure_auto_writer(2, "first-script", "repeat-script", 0.0)
-        s._auto_write_ready_at = time.monotonic() - 1.0
-
-        with patch.object(s, "deploy_script", return_value={"ok": True}) as deploy:
-            s.get_state()
-            assert deploy.call_args[0] == (2, "first-script")
-            assert s._auto_deploy_count == 1
-
-            s._auto_write_ready_at = time.monotonic() - 1.0
-            s.get_state()
-            assert deploy.call_args[0] == (2, "repeat-script")
-            assert s._auto_deploy_count == 2
-
-
 # ================================================================== animation timing
 
 class TestAnimationTiming:

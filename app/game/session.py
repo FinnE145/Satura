@@ -67,15 +67,8 @@ class GameSession:
         self._exec_log: list[dict] = []
         self._exec_ops: int = 0
         self._last_exec_player: int | None = None
-        self._auto_player: int | None = None
-        self._auto_first_script: str | None = None
-        self._auto_repeat_script: str | None = None
-        self._auto_write_delay: float = 0.0
-        self._auto_write_ready_at: float | None = None
-        self._auto_deploy_count: int = 0
         self._write_started_at: float | None = None
         self._opening_pre_write_pending: bool = True
-        self._multiplayer: bool = False
         self._player_ids: dict[int, int | None] = {1: None, 2: None}
         self._draw_offer_player: int | None = None
         self._draw_cooldown: dict[int, float] = {}
@@ -88,28 +81,15 @@ class GameSession:
 
     _SENSING_OPS = {"get_friction", "has_agent", "my_paint", "opp_paint"}
 
-    def set_multiplayer_players(self, p1_id: int, p2_id: int) -> None:
-        self._multiplayer = True
+    def set_players(self, p1_id: int, p2_id: int | None) -> None:
         self._player_ids[1] = p1_id
         self._player_ids[2] = p2_id
-
-    def configure_auto_writer(
-        self,
-        player: int,
-        first_script: str,
-        repeat_script: str,
-        write_delay_seconds: float,
-    ) -> None:
-        self._auto_player = player
-        self._auto_first_script = first_script
-        self._auto_repeat_script = repeat_script
-        self._auto_write_delay = max(0.0, write_delay_seconds)
 
     # ------------------------------------------------------------------ public API
 
     def compile_script(self, player: int, source: str, user_id: int | None = None) -> dict:
         """Lint only — no state change, no clock interaction."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "errors": ["forbidden"], "warnings": [], "word_count": 0}
         if player != self.current_player or self.phase != "write":
             return {"ok": False, "errors": ["not your write phase"], "warnings": [], "word_count": 0}
@@ -126,12 +106,11 @@ class GameSession:
 
     def deploy_script(self, player: int, source: str, user_id: int | None = None) -> dict:
         """Compile, spend words, store program, run exec1, enter post-exec1 animation."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "errors": ["forbidden"], "warnings": []}
         if player != self.current_player or self.phase != "write":
             return {"ok": False, "errors": ["not your write phase"], "warnings": []}
 
-        self._auto_write_ready_at = None
         self.engine.pause_clock(player)
         self.engine.pause_word_accumulation(player)
 
@@ -186,8 +165,6 @@ class GameSession:
         """
         self._maybe_advance_animation()
         self.check_clock_expired()
-        self._maybe_auto_deploy()
-        self.check_clock_expired()
         p1, p2, black, total = self.engine.board.territory()
 
         if for_player is not None and for_player != self._last_exec_player:
@@ -236,7 +213,7 @@ class GameSession:
 
     def offer_draw(self, player: int, user_id: int | None = None) -> dict:
         """Player offers a draw; rejected if a cooldown is still active."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "error": "forbidden"}
         if self.game_over:
             return {"ok": False, "error": "game already over"}
@@ -251,7 +228,7 @@ class GameSession:
 
     def cancel_draw(self, player: int, user_id: int | None = None) -> dict:
         """Offering player withdraws their own pending draw offer."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "error": "forbidden"}
         if self._draw_offer_player != player:
             return {"ok": False, "error": "no draw offer from this player"}
@@ -260,7 +237,7 @@ class GameSession:
 
     def accept_draw(self, player: int, user_id: int | None = None) -> dict:
         """Non-offering player accepts; ends the game as a draw."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "error": "forbidden"}
         if self.game_over:
             return {"ok": False, "error": "game already over"}
@@ -273,7 +250,7 @@ class GameSession:
 
     def reject_draw(self, player: int, user_id: int | None = None) -> dict:
         """Non-offering player rejects; offering player gets a 30-second cooldown."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "error": "forbidden"}
         if self._draw_offer_player is None:
             return {"ok": False, "error": "no draw offer"}
@@ -285,7 +262,7 @@ class GameSession:
 
     def resign(self, player: int, user_id: int | None = None) -> dict:
         """Forfeit the game on behalf of player; the opponent wins."""
-        if self._multiplayer and user_id != self._player_ids.get(player):
+        if user_id != self._player_ids.get(player):
             return {"ok": False, "error": "forbidden"}
         if self.game_over:
             return {"ok": False, "error": "game already over"}
@@ -527,8 +504,6 @@ class GameSession:
         self._write_started_at = time.monotonic()
         self.engine.resume_clock(self.current_player)
         self.engine.resume_word_accumulation(self.current_player)
-        if self.current_player == self._auto_player:
-            self._auto_write_ready_at = time.monotonic() + self._auto_write_delay
 
     def _phase_timer_payload(self) -> dict | None:
         now = time.monotonic()
@@ -544,30 +519,6 @@ class GameSession:
                 "seconds": max(0.0, now - started_at),
             }
         return None
-
-    def _maybe_auto_deploy(self) -> None:
-        if self.game_over:
-            return
-        if self._auto_player is None or self.current_player != self._auto_player:
-            return
-        if self.phase != "write":
-            return
-        if self._auto_first_script is None or self._auto_repeat_script is None:
-            return
-
-        now = time.monotonic()
-        if self._auto_write_ready_at is None:
-            self._auto_write_ready_at = now + self._auto_write_delay
-            return
-        if now < self._auto_write_ready_at:
-            return
-
-        source = self._auto_first_script if self._auto_deploy_count == 0 else self._auto_repeat_script
-        result = self.deploy_script(self._auto_player, source)
-        if result.get("ok"):
-            self._auto_deploy_count += 1
-        elif "insufficient word bank" in result.get("errors", []):
-            self._auto_write_ready_at = time.monotonic() + 1.0
 
     def _check_win_stalemate(self) -> None:
         w = self.engine.check_winner()
