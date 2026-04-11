@@ -167,6 +167,7 @@ async function init() {
 
         wordBankEl.innerHTML = `<strong>${Math.floor(lastBank)}</strong> in bank`;
         startBankPoll();
+        loadHistoryData();
     } catch (e) {
         setStatus('error');
         setPhase('error');
@@ -538,6 +539,7 @@ btnDeploy.addEventListener('click', async () => {
         }
         markReplaySeen(state);
         maybeShowGameOverModal(state);
+        loadHistoryData();
     } catch (e) {
         renderNetworkError(diagBadge, diagBody, e.message);
     } finally {
@@ -1528,6 +1530,166 @@ if (btnHistoryForward) {
 if (btnHistoryCurrent) {
     btnHistoryCurrent.addEventListener('click', () => {
         exitHistoryMode();
+    });
+}
+
+// ── Script history panel ──────────────────────────────────────────────────────
+
+const scriptHistoryCard = document.getElementById('script-history-card');
+const scriptHistoryPanel = document.getElementById('script-history-panel');
+const btnHistoryToggle = document.getElementById('btn-history-toggle');
+
+let historyPanelOpen = false;
+
+function isSmallScreen() {
+    return window.innerWidth < 1700;
+}
+
+async function loadHistoryData() {
+    if (!gameId || !myPlayer) return;
+    try {
+        const [scripts, funcs] = await Promise.all([
+            get(`${apiBase}/scripts`),
+            get(`${apiBase}/functions`),
+        ]);
+        renderHistoryInto(scriptHistoryCard, scripts, funcs);
+        renderHistoryInto(scriptHistoryPanel, scripts, funcs);
+    } catch (_) {
+        // history panel is non-critical — ignore failures silently
+    }
+}
+
+function renderHistoryInto(container, scripts, funcs) {
+    if (!container) return;
+    const scriptsList = container.querySelector('[data-sh-list="scripts"]');
+    const funcsList = container.querySelector('[data-sh-list="funcs"]');
+    if (scriptsList) renderScriptsList(scriptsList, scripts);
+    if (funcsList) renderFuncsList(funcsList, funcs);
+}
+
+function renderScriptsList(container, scripts) {
+    container.innerHTML = '';
+    if (!scripts || scripts.length === 0) {
+        container.appendChild(el('span', 'empty-label', 'No scripts yet'));
+        return;
+    }
+    for (const s of scripts) {
+        container.appendChild(makeHistoryItem(
+            `Turn ${s.turn}`,
+            null,
+            s.source,
+            () => doCopy(s.source, s.turn),
+        ));
+    }
+}
+
+function renderFuncsList(container, funcs) {
+    container.innerHTML = '';
+    if (!funcs || funcs.length === 0) {
+        container.appendChild(el('span', 'empty-label', 'No functions yet'));
+        return;
+    }
+    for (const f of funcs) {
+        container.appendChild(makeHistoryItem(
+            f.name,
+            f.args.length > 0 ? `(${f.args.join(', ')})` : '()',
+            f.source,
+            () => doCopy(f.source, null),
+        ));
+    }
+}
+
+function makeHistoryItem(label, sub, source, onClick) {
+    const item = document.createElement('div');
+    item.className = 'script-history-item';
+
+    // Tooltip: first ~70 chars of source, trimmed
+    const preview = source ? source.trim().slice(0, 70).replace(/\s+/g, ' ') : '';
+    if (preview) item.title = preview;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'script-history-item__label-wrap';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'script-history-item__label';
+    labelEl.textContent = label;
+    wrap.appendChild(labelEl);
+
+    if (sub) {
+        const argsEl = document.createElement('span');
+        argsEl.className = 'script-history-item__args';
+        argsEl.textContent = sub;
+        wrap.appendChild(argsEl);
+    }
+
+    const copyIcon = document.createElement('span');
+    copyIcon.className = 'material-symbols-outlined script-history-item__copy';
+    copyIcon.textContent = 'content_copy';
+    copyIcon.setAttribute('aria-hidden', 'true');
+
+    item.appendChild(wrap);
+    item.appendChild(copyIcon);
+    item.addEventListener('click', onClick);
+    return item;
+}
+
+async function doCopy(source, turnNum) {
+    const copied = await tryClipboard(source);
+
+    if (!copied) {
+        // Clipboard blocked — append to editor as fallback
+        const prefix = turnNum != null ? `\n// Turn ${turnNum} script\n` : '\n';
+        editor.value += prefix + source;
+        editor.dispatchEvent(new Event('input'));
+    }
+
+    // On small screens, close the panel after copying
+    if (isSmallScreen() && historyPanelOpen) {
+        closeHistoryPanel();
+    }
+}
+
+async function tryClipboard(text) {
+    if (navigator.clipboard) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (_) {}
+    }
+    // execCommand fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none;top:0;left:0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
+    return ok;
+}
+
+function openHistoryPanel() {
+    if (!scriptHistoryPanel) return;
+    historyPanelOpen = true;
+    scriptHistoryPanel.hidden = false;
+    if (btnHistoryToggle) btnHistoryToggle.setAttribute('aria-expanded', 'true');
+    loadHistoryData();
+}
+
+function closeHistoryPanel() {
+    if (!scriptHistoryPanel) return;
+    historyPanelOpen = false;
+    scriptHistoryPanel.hidden = true;
+    if (btnHistoryToggle) btnHistoryToggle.setAttribute('aria-expanded', 'false');
+}
+
+if (btnHistoryToggle) {
+    btnHistoryToggle.addEventListener('click', () => {
+        if (historyPanelOpen) {
+            closeHistoryPanel();
+        } else {
+            openHistoryPanel();
+        }
     });
 }
 

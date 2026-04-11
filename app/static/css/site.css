@@ -1400,6 +1400,185 @@ a[aria-disabled='true'] {
     user-select: none;
 }
 
+/* Game page outer layout */
+
+.game-outer {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: var(--gap);
+}
+
+.game-container {
+    width: 100%;
+    max-width: 1440px;
+    padding: 0 2em;
+    min-width: 0;
+}
+
+/* Script history sidebar — shown only on large screens, outside the container */
+
+.script-history-card {
+    display: none;
+    width: 220px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    position: sticky;
+    top: calc(3.5em + 1em);
+    max-height: calc(100vh - 3.5em - 2em);
+    flex-direction: column;
+    overflow: hidden;
+}
+
+@media (min-width: 1700px) {
+    .script-history-card {
+        display: flex;
+    }
+}
+
+/* Script history toggle button — shown only on small screens */
+
+.script-history-toggle {
+    display: none;
+    align-items: center;
+    gap: 0.3em;
+    flex-shrink: 0;
+}
+
+.script-history-toggle .material-symbols-outlined {
+    font-size: 1em;
+    line-height: 1;
+}
+
+@media (max-width: 1699px) {
+    .script-history-toggle {
+        display: inline-flex;
+    }
+}
+
+/* Script history panel — small-screen dropdown overlaying the editor textarea */
+
+.editor-card-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.script-history-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.script-history-panel[hidden] {
+    display: none;
+}
+
+/* Shared history content — used inside both sidebar card and small-screen panel */
+
+.script-history-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    padding: 0.75em;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-tint-12) transparent;
+}
+
+.script-history-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.script-history-body::-webkit-scrollbar-thumb {
+    background: var(--text-tint-12);
+    border-radius: 0.1875em;
+}
+
+.script-history-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.script-history-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+}
+
+.script-history-section-title {
+    padding: 0 0.125em;
+    color: var(--text-subtle);
+}
+
+.script-history-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.script-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375em;
+    padding: 0.3em 0.375em;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: background 0.12s;
+}
+
+.script-history-item:hover {
+    background: var(--bg-hover);
+}
+
+.script-history-item__label-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+}
+
+.script-history-item__label {
+    font-size: 0.8em;
+    font-family: var(--font-ui);
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.script-history-item__args {
+    font-size: 0.72em;
+    font-family: var(--font-code);
+    color: var(--text-subtle);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.script-history-item__copy {
+    font-size: 0.875em;
+    line-height: 1;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+    margin-top: 0.1em;
+}
+
+.script-history-item:hover .script-history-item__copy {
+    opacity: 1;
+}
+
 /* Workspace grid */
 
 .workspace {

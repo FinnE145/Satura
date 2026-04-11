@@ -53,17 +53,17 @@ class Game(db.Model):
     created_by  = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True)
 
     # Game settings
-    preset                = db.Column(db.String(8), nullable=True)
-    board_size            = db.Column(db.Integer, nullable=True)
-    op_limit              = db.Column(db.Integer, nullable=True)
-    clock_seconds         = db.Column(db.Float, nullable=True)
-    word_rate             = db.Column(db.Float, nullable=True)
-    starting_player       = db.Column(db.Integer, nullable=True)
+    preset                 = db.Column(db.String(8), nullable=True)
+    board_size             = db.Column(db.Integer, nullable=True)
+    op_limit               = db.Column(db.Integer, nullable=True)
+    clock_seconds          = db.Column(db.Float, nullable=True)
+    word_rate              = db.Column(db.Float, nullable=True)
+    starting_player        = db.Column(db.Integer, nullable=True)
     accommodations_enabled = db.Column(db.Boolean, nullable=False, default=False)
-    p1_clock_seconds      = db.Column(db.Float, nullable=True)
-    p2_clock_seconds      = db.Column(db.Float, nullable=True)
-    p1_starting_words     = db.Column(db.Float, nullable=True)
-    p2_starting_words     = db.Column(db.Float, nullable=True)
+    p1_clock_seconds       = db.Column(db.Float, nullable=True)
+    p2_clock_seconds       = db.Column(db.Float, nullable=True)
+    p1_starting_words      = db.Column(db.Float, nullable=True)
+    p2_starting_words      = db.Column(db.Float, nullable=True)
 
     # Relationships to new tables
     scripts    = db.relationship('Script', backref='game', lazy='dynamic')
@@ -96,21 +96,21 @@ class ExecutionPhase(db.Model):
         db.Index('ix_exec_phases_game', 'game_id', 'phase_number'),
     )
 
-    id                  = db.Column(db.Integer, primary_key=True)
-    game_id             = db.Column(db.String(36), db.ForeignKey('games.id'), nullable=False)
-    phase_number        = db.Column(db.Integer, nullable=False)
-    player_slot         = db.Column(db.Integer, nullable=False)
-    exec_type           = db.Column(db.String(8), nullable=False)  # 'exec1', 'exec2', 'initial'
-    script_id           = db.Column(db.Integer, db.ForeignKey('scripts.id'), nullable=True)
-    outcome             = db.Column(db.String(8), nullable=True)   # 'normal', 'halt', 'reset'
-    exec_log_json       = db.Column(db.Text, nullable=True)
-    ops_consumed        = db.Column(db.Integer, nullable=False, default=0)
-    board_state_json    = db.Column(db.Text, nullable=False)
-    agents_json         = db.Column(db.Text, nullable=False)
-    word_banks_json     = db.Column(db.Text, nullable=True)
+    id                   = db.Column(db.Integer, primary_key=True)
+    game_id              = db.Column(db.String(36), db.ForeignKey('games.id'), nullable=False)
+    phase_number         = db.Column(db.Integer, nullable=False)
+    player_slot          = db.Column(db.Integer, nullable=False)
+    exec_type            = db.Column(db.String(8), nullable=False)  # 'exec1', 'exec2', 'initial'
+    script_id            = db.Column(db.Integer, db.ForeignKey('scripts.id'), nullable=True)
+    outcome              = db.Column(db.String(8), nullable=True)   # 'normal', 'halt', 'reset'
+    exec_log_json        = db.Column(db.Text, nullable=True)
+    ops_consumed         = db.Column(db.Integer, nullable=False, default=0)
+    board_state_json     = db.Column(db.Text, nullable=False)
+    agents_json          = db.Column(db.Text, nullable=False)
+    word_banks_json      = db.Column(db.Text, nullable=True)
     clock_remaining_json = db.Column(db.Text, nullable=True)
-    prev_phase_id       = db.Column(db.Integer, db.ForeignKey('execution_phases.id'), nullable=True)
-    created_at          = db.Column(db.DateTime, nullable=False,
+    prev_phase_id        = db.Column(db.Integer, db.ForeignKey('execution_phases.id'), nullable=True)
+    created_at           = db.Column(db.DateTime, nullable=False,
                                     default=lambda: datetime.now(timezone.utc))
 
     script     = db.relationship('Script', foreign_keys=[script_id])
@@ -140,12 +140,12 @@ class DefinedFunction(db.Model):
 class AccountSettings(db.Model):
     __tablename__ = 'account_settings'
 
-    id = db.Column(db.Integer, primary_key=True)
-    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, unique=True)
+    id                   = db.Column(db.Integer, primary_key=True)
+    account_id           = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, unique=True)
     default_time_control = db.Column(db.String(16), nullable=False, default='15')
-    custom_minutes = db.Column(db.Integer, nullable=True)
-    default_player = db.Column(db.String(8), nullable=False, default='random')
-    default_board_size = db.Column(db.Integer, nullable=False, default=16)
-    palette = db.Column(db.String(16), nullable=False, default='solstice')
+    custom_minutes       = db.Column(db.Integer, nullable=True)
+    default_player       = db.Column(db.String(8), nullable=False, default='random')
+    default_board_size   = db.Column(db.Integer, nullable=False, default=16)
+    palette              = db.Column(db.String(16), nullable=False, default='solstice')
 
     account = db.relationship('Account', back_populates='settings')

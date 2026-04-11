@@ -4,7 +4,30 @@
 
 {% block content %}
 <main class="site-main" id="game-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}">
-    <div class="container">
+    <div class="game-outer">
+
+        <!-- Script history sidebar (large screens — outside the container) -->
+        <aside class="script-history-card card" id="script-history-card">
+            <div class="card-header">
+                <h2 class="card-title">History</h2>
+            </div>
+            <div class="script-history-body">
+                <div class="script-history-section">
+                    <div class="script-history-section-title label">Past Scripts</div>
+                    <div class="script-history-list" data-sh-list="scripts">
+                        <span class="empty-label">No scripts yet</span>
+                    </div>
+                </div>
+                <div class="script-history-section">
+                    <div class="script-history-section-title label">Functions</div>
+                    <div class="script-history-list" data-sh-list="funcs">
+                        <span class="empty-label">No functions yet</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="game-container">
 
         <!-- Workspace: editor + board -->
         <div class="workspace">
@@ -19,13 +42,37 @@
                         <span class="script-meta-sep" id="word-bank-sep" hidden aria-hidden="true">·</span>
                         <span class="word-bank" id="word-bank"></span>
                     </span>
+                    <button class="btn btn--ghost btn--sm script-history-toggle" id="btn-history-toggle"
+                        type="button" aria-expanded="false" aria-controls="script-history-panel">
+                        <span class="material-symbols-outlined" aria-hidden="true">history</span>
+                        History
+                    </button>
                 </div>
-                <textarea class="script-editor" id="script-editor" spellcheck="false" autocomplete="off"
-                    autocorrect="off" autocapitalize="off" placeholder="// write your script here"
-                    aria-label="Script editor"></textarea>
+                <div class="editor-card-body">
+                    <div class="script-history-panel" id="script-history-panel" hidden
+                        aria-label="Script history panel">
+                        <div class="script-history-body">
+                            <div class="script-history-section">
+                                <div class="script-history-section-title label">Past Scripts</div>
+                                <div class="script-history-list" data-sh-list="scripts">
+                                    <span class="empty-label">No scripts yet</span>
+                                </div>
+                            </div>
+                            <div class="script-history-section">
+                                <div class="script-history-section-title label">Functions</div>
+                                <div class="script-history-list" data-sh-list="funcs">
+                                    <span class="empty-label">No functions yet</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <textarea class="script-editor" id="script-editor" spellcheck="false" autocomplete="off"
+                        autocorrect="off" autocapitalize="off" placeholder="// write your script here"
+                        aria-label="Script editor"></textarea>
+                </div>
                 <div class="card-footer">
-                    <button class="btn btn--ghost" id="btn-compile" disabled>Compile</button>
-                    <button class="btn btn--accent" id="btn-deploy" disabled>Deploy</button>
+                    <button class="btn btn--ghost" id="btn-compile" type="button" disabled>Compile</button>
+                    <button class="btn btn--accent" id="btn-deploy" type="button" disabled>Deploy</button>
                 </div>
             </div>
 
@@ -161,7 +208,7 @@
                     <p class="game-over-modal__message text-small-sans" id="game-over-message"></p>
                 </div>
                 <div class="card-footer">
-                    <button class="btn btn--secondary" id="game-over-dismiss">Close</button>
+                    <button class="btn btn--secondary" id="game-over-dismiss" type="button">Close</button>
                 </div>
             </div>
         </div>
@@ -177,7 +224,9 @@
             </span>
         </div>
 
-    </div><!-- .container -->
+        </div><!-- .game-container -->
+
+    </div><!-- .game-outer -->
 </main>
 {% endblock %}
 

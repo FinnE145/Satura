@@ -1132,3 +1132,66 @@ def game_phase_state(game_id, phase_number):
         'exec_type': phase.exec_type,
         'player_slot': phase.player_slot,
     })
+
+
+@bp.route('/game/<game_id>/scripts', methods=['GET'])
+@login_required
+def game_scripts(game_id):
+    game = Game.query.get(game_id)
+    if game is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    if game.player1_id != current_user.id and game.player2_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    scripts = (
+        Script.query
+        .filter_by(game_id=game_id, account_id=current_user.id)
+        .order_by(Script.turn_number)
+        .all()
+    )
+
+    return jsonify([
+        {'turn': s.turn_number, 'source': s.source_text}
+        for s in scripts
+    ])
+
+
+@bp.route('/game/<game_id>/functions', methods=['GET'])
+@login_required
+def game_functions(game_id):
+    game = Game.query.get(game_id)
+    if game is None:
+        return jsonify({'error': 'game not found'}), 404
+
+    if game.player1_id != current_user.id and game.player2_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    functions = (
+        DefinedFunction.query
+        .filter_by(game_id=game_id, account_id=current_user.id)
+        .order_by(DefinedFunction.id)
+        .all()
+    )
+
+    # Keep latest definition per name (functions can be redefined across turns)
+    seen = {}
+    for f in functions:
+        seen[f.func_name] = f
+
+    result = []
+    for f in seen.values():
+        first_line = f.func_body_text.split('\n')[0] if f.func_body_text else ''
+        args = []
+        m = re.search(r'\(([^)]*)\)', first_line)
+        if m:
+            args_str = m.group(1).strip()
+            if args_str:
+                args = [a.strip() for a in args_str.split(',') if a.strip()]
+        result.append({
+            'name': f.func_name,
+            'args': args,
+            'source': f.func_body_text,
+        })
+
+    return jsonify(result)

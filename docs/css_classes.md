@@ -42,6 +42,8 @@ Update this file whenever a class is added, changed, or removed.
 | Class | Description |
 |---|---|
 | `.container` | 1440px max-width centred wrapper with horizontal padding |
+| `.game-outer` | flex row wrapper for the game page; centers sidebar + container as a group |
+| `.game-container` | game-page content area — like `.container` but flex-child-friendly (no auto margin) |
 | `.create-page-stack` | vertical stack wrapper for create/new-game style pages |
 | `.create-form-grid` | responsive two-column form grid for core game-creation fields |
 | `.toggle-row` | bordered row for inline toggle controls and helper text |
@@ -190,6 +192,19 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.phase-pill--p1` | warm accent variant for P1-controlled phases |
 | `.phase-pill--p2` | cool accent variant for P2-controlled phases |
 | `.phase-pill--write` | stronger emphasis modifier for write phases (with P1/P2 colour) |
+| `.script-history-card` | sticky sidebar card for script history; outside the container, shown only at ≥1700px |
+| `.script-history-toggle` | toggle button in editor card header; shown only at <1700px to open/close the history panel |
+| `.editor-card-body` | positioned flex wrapper for the editor textarea area; contains the small-screen history panel overlay |
+| `.script-history-panel` | absolute overlay panel inside `.editor-card-body`; covers the editor on small screens when open |
+| `.script-history-body` | scrollable body shared by sidebar card and small-screen panel; contains sections |
+| `.script-history-section` | section grouping inside history body (e.g. "Past Scripts", "Functions") |
+| `.script-history-section-title` | small label heading inside a `.script-history-section` |
+| `.script-history-list` | flex column list of history items inside a section |
+| `.script-history-item` | single clickable history entry (script or function); shows copy icon on hover |
+| `.script-history-item__label-wrap` | flex column wrapper for label + args inside a history item |
+| `.script-history-item__label` | primary text (turn number or function name) in a history item |
+| `.script-history-item__args` | monospace argument list below the function label |
+| `.script-history-item__copy` | clipboard icon at the right of a history item; visible on hover only |
 | `.workspace` | 55/45 grid: script editor left, board right |
 | `.editor-card` | flex column card wrapping the script editor |
 | `.script-meta` | flex row showing word cost, ETA, and bank in the editor card header |
