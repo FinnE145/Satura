@@ -777,6 +777,12 @@ def game_create_lobby():
 @bp.route('/game/<game_id>/join', methods=['GET'])
 @login_required
 def game_join_page(game_id):
+    session = get_session(game_id)
+    if session is not None:
+        player_ids = [session._player_ids[1], session._player_ids[2]]
+        if not session.game_over and current_user.id in player_ids:
+            return redirect(url_for('main.game_page', game_id=game_id))
+        return render_template('stub.html', page_title='Game not found'), 404
     lobby = get_lobby(game_id)
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
