@@ -2137,6 +2137,33 @@ body:has(.login-wrap) {
     font-size: 0.875em;
 }
 
+.info-msg {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    margin-top: 0.75em;
+    padding: 0.55em 0.75em;
+    background: var(--accent-tint);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-size: 0.875em;
+}
+
+.card .info-msg {
+    background: var(--accent-bright-tint);
+    border-color: var(--accent-bright-dim);
+    color: var(--accent-bright);
+}
+
+.info-msg__url {
+    font-family: monospace;
+    word-break: break-all;
+    -webkit-user-select: all;
+    user-select: all;
+    cursor: text;
+}
+
 /* ─── Contact ────────────────────────────────────────────────────────────────── */
 
 .contact-form {

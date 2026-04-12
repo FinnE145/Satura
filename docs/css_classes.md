@@ -86,6 +86,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.error-msg` | red-tinted box with border — form validation errors |
+| `.info-msg` | warm-accent-tinted box with border — informational messages |
+| `.info-msg__url` | monospace URL span inside `.info-msg` — selects all text on click |
 | `.empty-label` | small italic placeholder when a list or panel is empty |
 | `.is-disabled` | generic disabled-state utility (reduced opacity); use with `a` for non-interactive disabled links |
 

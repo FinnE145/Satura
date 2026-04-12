@@ -28,6 +28,8 @@
     const startingOptOpp = document.getElementById('starting-opt-opp');
 
     const errorBox = document.getElementById('test-create-error');
+    const linkDisplay = document.getElementById('link-display');
+    const linkDisplayUrl = document.getElementById('link-display-url');
     const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));
     const copyLinkBtn = document.getElementById('copy-link-btn');
     const lobbyPanel = document.getElementById('lobby-panel');
@@ -285,11 +287,15 @@
             const joinUrl = alias
                 ? `${location.origin}/join/${encodeURIComponent(alias)}`
                 : `${location.origin}/game/${encodeURIComponent(gameId)}/join`;
+            let copied = false;
             try {
                 await navigator.clipboard.writeText(joinUrl);
-            } catch (_) {
-                // Clipboard may fail in non-secure context — show the link as fallback
-                setError(`Copy this link: ${joinUrl}`);
+                copied = true;
+            } catch (_) {}
+            if (linkDisplay) {
+                linkDisplay.firstChild.textContent = copied ? 'Copied link: ' : 'Copy this link: ';
+                if (linkDisplayUrl) linkDisplayUrl.textContent = joinUrl;
+                linkDisplay.hidden = false;
             }
 
             if (lobbyPanel) lobbyPanel.hidden = false;
