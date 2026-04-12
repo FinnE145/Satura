@@ -35,6 +35,7 @@ class PendingLobby:
     settings: dict
     player1_id: int
     player1_username: str
+    join_alias: str = ''
     player2_id: int | None = None
     player2_username: str | None = None
     player1_ready: bool = False
@@ -562,17 +563,32 @@ class GameSession:
 
 _sessions: dict[str, "GameSession"] = {}
 _pending_lobbies: dict[str, PendingLobby] = {}
+_alias_index: dict[str, str] = {}  # join_alias (uppercase) -> game_id
 
 
-def create_lobby(game_id: str, settings: dict, player1_id: int, username: str) -> PendingLobby:
+def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '') -> PendingLobby:
     lobby = PendingLobby(
         game_id=game_id,
         settings=settings,
         player1_id=player1_id,
         player1_username=username,
+        join_alias=join_alias,
     )
     _pending_lobbies[game_id] = lobby
+    if join_alias:
+        _alias_index[join_alias.upper()] = game_id
     return lobby
+
+
+def alias_in_use(alias: str) -> bool:
+    return alias.upper() in _alias_index
+
+
+def get_lobby_by_alias(alias: str) -> PendingLobby | None:
+    game_id = _alias_index.get(alias.upper())
+    if game_id is None:
+        return None
+    return _pending_lobbies.get(game_id)
 
 
 def get_lobby(game_id: str) -> PendingLobby | None:
@@ -580,7 +596,9 @@ def get_lobby(game_id: str) -> PendingLobby | None:
 
 
 def remove_lobby(game_id: str) -> None:
-    _pending_lobbies.pop(game_id, None)
+    lobby = _pending_lobbies.pop(game_id, None)
+    if lobby and lobby.join_alias:
+        _alias_index.pop(lobby.join_alias.upper(), None)
 
 
 def create_session(

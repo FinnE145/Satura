@@ -281,7 +281,10 @@
             }
 
             currentGameId = gameId;
-            const joinUrl = `${location.origin}/game/${encodeURIComponent(gameId)}/join`;
+            const alias = data.join_alias;
+            const joinUrl = alias
+                ? `${location.origin}/join/${encodeURIComponent(alias)}`
+                : `${location.origin}/game/${encodeURIComponent(gameId)}/join`;
             try {
                 await navigator.clipboard.writeText(joinUrl);
             } catch (_) {

@@ -15,12 +15,22 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
 from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction
-from .game.session import create_session, get_session, create_lobby, get_lobby, remove_lobby
+from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby
 from config import Config
 
 bp = Blueprint('main', __name__)
 
 _LOG_DIR = Path(__file__).parent.parent
+
+_ALIAS_CHARS = 'BCDFGHJKLMNPQRSTVWXZ'  # consonants only, no I or O
+
+
+def _gen_join_alias() -> str:
+    """Generate a unique 6-letter consonant-only join alias."""
+    while True:
+        code = ''.join(random.choices(_ALIAS_CHARS, k=6))
+        if not alias_in_use(code):
+            return code
 
 
 def _populate_game_settings(game: Game, parsed: dict, created_by: int | None = None) -> None:
@@ -770,8 +780,17 @@ def game_create_lobby():
         return jsonify({'error': str(exc)}), 400
 
     game_id = str(uuid.uuid4())
-    create_lobby(game_id, parsed, current_user.id, current_user.username)
-    return jsonify({'game_id': game_id}), 201
+    alias = _gen_join_alias()
+    create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias)
+    return jsonify({'game_id': game_id, 'join_alias': alias}), 201
+
+
+@bp.route('/join/<alias>', methods=['GET'])
+def join_by_alias(alias):
+    lobby = get_lobby_by_alias(alias)
+    if lobby is None:
+        return render_template('stub.html', page_title='Game not found'), 404
+    return redirect(url_for('main.game_join_page', game_id=lobby.game_id))
 
 
 @bp.route('/game/<game_id>/join', methods=['GET'])
@@ -902,6 +921,7 @@ def _start_lobby_game(game_id: str, lobby) -> None:
         player1_id=lobby.player1_id,
         player2_id=lobby.player2_id,
         status='active',
+        join_alias=lobby.join_alias or None,
     )
     _populate_game_settings(game, parsed, created_by=lobby.player1_id)
     db.session.add(game)

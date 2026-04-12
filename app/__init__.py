@@ -95,6 +95,9 @@ def _upgrade_schema():
             for col_name, col_def in new_game_cols.items():
                 if col_name not in game_cols:
                     conn.execute(text(f'ALTER TABLE games ADD COLUMN {col_name} {col_def}'))
+            if 'join_alias' not in game_cols:
+                conn.execute(text('ALTER TABLE games ADD COLUMN join_alias VARCHAR(6)'))
+                conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS ix_games_join_alias ON games (join_alias)'))
 
 
 @login_manager.user_loader

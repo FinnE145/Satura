@@ -65,6 +65,8 @@ class Game(db.Model):
     p1_starting_words      = db.Column(db.Float, nullable=True)
     p2_starting_words      = db.Column(db.Float, nullable=True)
 
+    join_alias  = db.Column(db.String(6), unique=True, nullable=True)
+
     # Relationships to new tables
     scripts    = db.relationship('Script', backref='game', lazy='dynamic')
     phases     = db.relationship('ExecutionPhase', backref='game', lazy='dynamic')
