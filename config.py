@@ -25,16 +25,16 @@ class Config:
     TIME_CONTROL_PRESETS = {
         '60': {
             'clock_seconds': 3600.0,
-            'board_size': 12,
+            'board_size': 16,
             'op_limit': 75,
-            'word_rate': 0.3,
+            'word_rate': 0.1,
             'starting_words': 50.0,
         },
         '30': {
             'clock_seconds': 1800.0,
-            'board_size': 10,
+            'board_size': 12,
             'op_limit': 50,
-            'word_rate': 0.4,
+            'word_rate': 0.2,
             'starting_words': 25.0,
         },
         '15': {
