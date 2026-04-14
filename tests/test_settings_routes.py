@@ -121,6 +121,7 @@ def test_legacy_profile_account_settings_endpoints_removed(client):
 def test_profile_recent_games_matches_my_games_timeline_and_limits_to_four(client):
     _login(client)
     created_ids = [_create_game(client) for _ in range(5)]
+    expected_ids = created_ids[-4:]
 
     response = client.get('/settings/profile')
     assert response.status_code == 200
@@ -128,10 +129,8 @@ def test_profile_recent_games_matches_my_games_timeline_and_limits_to_four(clien
 
     assert html.count('class="game-timeline-row"') == 4
     assert html.count('href="/my-games/') == 4
-    assert f'href="/my-games/{created_ids[0]}"' in html
-    assert f'href="/my-games/{created_ids[1]}"' in html
-    assert f'href="/my-games/{created_ids[2]}"' in html
-    assert f'href="/my-games/{created_ids[3]}"' in html
-    assert f'href="/my-games/{created_ids[4]}"' not in html
+    for game_id in expected_ids:
+        assert f'href="/my-games/{game_id}"' in html
+    assert f'href="/my-games/{created_ids[0]}"' not in html
     assert 'href="/my-games"' in html
     assert 'Show more' in html
