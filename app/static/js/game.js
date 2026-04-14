@@ -20,7 +20,6 @@ const outputBody = document.getElementById('output-body');
 const outcomeLabel = document.getElementById('outcome-label');
 const gameOverModal = document.getElementById('game-over-modal');
 const gameOverMessage = document.getElementById('game-over-message');
-const gameOverDismissBtn = document.getElementById('game-over-dismiss');
 const gameOverBackdrop = document.getElementById('game-over-backdrop');
 const btnDraw = document.getElementById('btn-draw');
 const btnResign = document.getElementById('btn-resign');
@@ -119,9 +118,6 @@ function updateActiveTime() {
 window.addEventListener('resize', updateActiveTime);
 updateActiveTime();
 
-if (gameOverDismissBtn) {
-    gameOverDismissBtn.addEventListener('click', hideGameOverModal);
-}
 if (gameOverBackdrop) {
     gameOverBackdrop.addEventListener('click', hideGameOverModal);
 }
@@ -345,7 +341,7 @@ if (btnDraw) {
         if (drawUiState === 'offering') {
             try {
                 await post(`${apiBase}/cancel_draw`, { player: minePlayer });
-            } catch (_) {}
+            } catch (_) { }
             drawUiState = 'idle';
             renderDrawUiState();
             return;
@@ -384,7 +380,7 @@ if (btnResign) {
                 await post(`${apiBase}/resign`, { player: minePlayer });
                 if (!bankPollTimer) startBankPoll();
                 refreshBank();
-            } catch (_) {}
+            } catch (_) { }
             return;
         }
         if (drawUiState === 'confirm') {
@@ -418,7 +414,7 @@ if (btnDrawAccept) {
             gameControlsDrawArea.hidden = true;
             if (!bankPollTimer) startBankPoll();
             refreshBank();
-        } catch (_) {}
+        } catch (_) { }
     });
 }
 
@@ -428,7 +424,7 @@ if (btnDrawReject) {
             await post(`${apiBase}/reject_draw`, { player: minePlayer });
             drawUiState = 'idle';
             gameControlsDrawArea.hidden = true;
-        } catch (_) {}
+        } catch (_) { }
     });
 }
 
@@ -437,7 +433,7 @@ function signalBeginWrite() {
         return;
     }
     hasSignaledBeginWrite = true;
-    post(`${apiBase}/begin_write`, { player: minePlayer }).catch(() => {});
+    post(`${apiBase}/begin_write`, { player: minePlayer }).catch(() => { });
 }
 
 // ── Compile ───────────────────────────────────────────────────────────────────
@@ -931,7 +927,7 @@ boardGrid.addEventListener('mouseover', (e) => {
 
 boardGrid.addEventListener('mousemove', (e) => {
     cellTooltip.style.left = `${e.clientX + 12}px`;
-    cellTooltip.style.top  = `${e.clientY - 10}px`;
+    cellTooltip.style.top = `${e.clientY - 10}px`;
 });
 
 boardGrid.addEventListener('mouseleave', () => {
@@ -1063,12 +1059,12 @@ function updateBoardCoverage(board) {
     }
 
     const mineOwned = minePlayer === 1 ? p1Owned : p2Owned;
-    const oppOwned  = minePlayer === 1 ? p2Owned : p1Owned;
+    const oppOwned = minePlayer === 1 ? p2Owned : p1Owned;
     const minePct = total > 0 ? ((mineOwned / total) * 100).toFixed(1) : '0.0';
-    const oppPct  = total > 0 ? ((oppOwned  / total) * 100).toFixed(1) : '0.0';
+    const oppPct = total > 0 ? ((oppOwned / total) * 100).toFixed(1) : '0.0';
 
     boardLegendMineEl.textContent = `P${minePlayer} ${mineOwned} (${minePct}%)`;
-    boardLegendOppEl.textContent  = `P${oppPlayer} ${oppOwned} (${oppPct}%)`;
+    boardLegendOppEl.textContent = `P${oppPlayer} ${oppOwned} (${oppPct}%)`;
 
     if (boardLegendInfoEl) {
         const threshold = Math.ceil(total * 0.6);
@@ -1654,7 +1650,7 @@ async function tryClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
             return true;
-        } catch (_) {}
+        } catch (_) { }
     }
     // execCommand fallback
     const ta = document.createElement('textarea');
@@ -1663,7 +1659,7 @@ async function tryClipboard(text) {
     document.body.appendChild(ta);
     ta.select();
     let ok = false;
-    try { ok = document.execCommand('copy'); } catch (_) {}
+    try { ok = document.execCommand('copy'); } catch (_) { }
     document.body.removeChild(ta);
     return ok;
 }
