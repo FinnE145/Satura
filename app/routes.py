@@ -469,6 +469,7 @@ def _fmt_duration(seconds):
 
 
 def _build_my_game_rows(account):
+    """Build my-games timeline row data for an account, newest-first."""
     games = (
         Game.query
         .filter(
