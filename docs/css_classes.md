@@ -81,6 +81,10 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.badge--ok` | neutral grey badge |
 | `.badge--error` | red badge |
 | `.badge--warn` | yellow badge |
+| `.badge--win` | warm accent badge — game win result |
+| `.badge--loss` | cool accent badge — game loss result |
+| `.badge--draw` | warn-yellow badge — game draw result |
+| `.badge--stalemate` | neutral grey badge — stalemate result |
 
 ### Feedback
 | Class | Description |
@@ -288,6 +292,53 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.contact-form` | flex column form with consistent field gaps |
+
+### My Games page
+| Class | Description |
+|---|---|
+| `.my-games-page` | full-width flex column page wrapper with vertical padding |
+| `.my-games-featured` | flex row holding the two featured game cards (equal width, same height) |
+| `.my-games-featured-card` | equal-flex featured game card; second one hides below 768px |
+| `.featured-card-inner` | flex column inside a featured card (board top, stats below) |
+| `.featured-board-area` | square aspect-ratio canvas container inside a featured card |
+| `.featured-board-placeholder` | dark gradient fallback when board data is unavailable |
+| `.featured-stats-area` | flex column for stats in the right panel of a featured card |
+| `.featured-result-row` | flex row holding result badge + opponent name |
+| `.featured-opponent` | opponent username; `[data-slot="1"]` = warm, `[data-slot="2"]` = cool |
+| `.featured-reason` | muted end-reason line below result row |
+| `.featured-clocks` | flex row of two player clock values |
+| `.featured-clock` | single player clock with icon — use `--warm` or `--cool` modifier |
+| `.featured-clock--warm` | warm accent (P1) clock colour |
+| `.featured-clock--cool` | cool accent (P2) clock colour |
+| `.featured-stat-list` | two-column `<dl>` grid (dt label / dd value) for game stats |
+| `.featured-custom-section` | bordered sub-section for non-default game settings |
+| `.coverage-bar` | horizontal flex bar split into 5 colour segments (warm/cool/contested/black/blank) |
+| `.coverage-segment--warm` | warm-accent segment in a coverage bar |
+| `.coverage-segment--cool` | cool-accent segment in a coverage bar |
+| `.coverage-segment--contested` | grey segment — equal paint both sides |
+| `.coverage-segment--black` | near-black segment — both players at max paint |
+| `.coverage-segment--blank` | border-mid segment — unpainted cells |
+| `.my-games-list-section` | flex column wrapper for date filter + timeline list |
+| `.game-date-filter` | flex row holding date label, input, and clear button |
+| `.date-filter-label` | uppercase "date" button label that expands into the input on click |
+| `.date-filter-input` | styled date input revealed on label click |
+| `.date-filter-clear` | icon button to cancel date filtering |
+| `.game-timeline` | flex column game list with a vertical rule `::before` pseudo-element |
+| `.game-timeline-row` | two-column grid (date + row inner); full-row `<a>` link |
+| `.game-timeline-date` | short `m/d` date label in the left column; background masks the vertical rule |
+| `.game-row-inner` | three-column grid (thumb \| meta \| arrow) inside each timeline row |
+| `.game-row-thumb` | 64×64 relative container for board canvas + overlays |
+| `.game-row-thumb-placeholder` | dark fallback for rows without board data |
+| `.thumb-overlay` | semi-transparent pill overlaid in a corner of the board thumb |
+| `.thumb-overlay--bl` | bottom-left corner position (time control) |
+| `.thumb-overlay--br` | bottom-right corner position (board size) |
+| `.accom-dot` | small icon in the top-right corner of the thumb signalling custom accommodations |
+| `.game-row-meta` | flex column for result line and end reason |
+| `.game-row-result-line` | inline flex row holding result badge + opponent name on one line |
+| `.game-row-opponent` | opponent username; `[data-slot="1"]` = warm, `[data-slot="2"]` = cool |
+| `.game-row-reason` | muted end-reason text beneath the result line |
+| `.game-row-arrow` | chevron that slides in on row hover |
+| `.my-games-featured-card` | equal-flex featured game card; second one hides below 768px |
 
 ### Settings hub
 | Class | Description |

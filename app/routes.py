@@ -6,6 +6,7 @@
 import uuid
 import re
 import random
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -488,6 +489,17 @@ def game_page(game_id):
     return render_template('game.html', game_id=game_id, player_num=player_num)
 
 
+def _fmt_duration(seconds):
+    """Format a number of seconds as 'Xm Ys' or 'Ys'."""
+    if seconds is None:
+        return '—'
+    m = int(seconds // 60)
+    s = int(seconds % 60)
+    if m > 0:
+        return f'{m}m {s:02d}s'
+    return f'{s}s'
+
+
 @bp.route('/my-games')
 @login_required
 def my_games():
@@ -499,7 +511,96 @@ def my_games():
         .order_by(Game.created_at.desc())
         .all()
     )
-    return render_template('my_games.html', games=games)
+
+    game_data = []
+    for g in games:
+        is_p1 = (g.player1_id == current_user.id)
+        my_slot = 1 if is_p1 else 2
+        opp_slot = 2 if is_p1 else 1
+
+        opp = g.player2 if is_p1 else g.player1
+        opp_username = opp.username if opp else None
+
+        if g.is_draw:
+            result = 'stalemate' if g.end_reason == 'stalemate' else 'draw'
+        elif g.winner == my_slot:
+            result = 'win'
+        elif g.winner == opp_slot:
+            result = 'loss'
+        else:
+            result = None
+
+        last_phase = g.phases.order_by(ExecutionPhase.phase_number.desc()).first()
+        turn_count = g.scripts.count()
+
+        total_time_s = None
+        if g.finished_at and g.created_at:
+            total_time_s = (g.finished_at - g.created_at).total_seconds()
+
+        # Parse clock remaining from last phase
+        p1_clock_s = None
+        p2_clock_s = None
+        if last_phase and last_phase.clock_remaining_json:
+            try:
+                clk = json.loads(last_phase.clock_remaining_json)
+                p1_clock_s = clk.get('1') or clk.get(1)
+                p2_clock_s = clk.get('2') or clk.get(2)
+            except (ValueError, TypeError):
+                pass
+
+        # Detect non-default settings
+        preset_key = g.preset
+        preset_defaults = Config.TIME_CONTROL_PRESETS.get(preset_key) if preset_key else None
+        custom_settings = {}
+        has_custom = False
+
+        if preset_defaults and g.word_rate is not None:
+            if abs(g.word_rate - preset_defaults['word_rate']) > 0.001:
+                custom_settings['Word rate'] = g.word_rate
+                has_custom = True
+
+        if g.accommodations_enabled:
+            has_custom = True
+            if g.p1_clock_seconds is not None and g.clock_seconds is not None:
+                if abs(g.p1_clock_seconds - g.clock_seconds) > 0.001:
+                    custom_settings['P1 clock'] = _fmt_duration(g.p1_clock_seconds)
+            if g.p2_clock_seconds is not None and g.clock_seconds is not None:
+                if abs(g.p2_clock_seconds - g.clock_seconds) > 0.001:
+                    custom_settings['P2 clock'] = _fmt_duration(g.p2_clock_seconds)
+            if preset_defaults and g.p1_starting_words is not None:
+                if abs(g.p1_starting_words - preset_defaults['starting_words']) > 0.001:
+                    custom_settings['P1 starting words'] = int(g.p1_starting_words)
+            if preset_defaults and g.p2_starting_words is not None:
+                if abs(g.p2_starting_words - preset_defaults['starting_words']) > 0.001:
+                    custom_settings['P2 starting words'] = int(g.p2_starting_words)
+
+        game_data.append({
+            'game_id': g.id,
+            'is_p1': is_p1,
+            'my_slot': my_slot,
+            'opp_slot': opp_slot,
+            'opponent_username': opp_username,
+            'result': result,
+            'end_reason': g.end_reason,
+            'board_size': g.board_size,
+            'preset': g.preset,
+            'clock_seconds': g.clock_seconds,
+            'accommodations_enabled': g.accommodations_enabled,
+            'final_board_json': last_phase.board_state_json if last_phase else None,
+            'p1_clock_remaining': _fmt_duration(p1_clock_s),
+            'p2_clock_remaining': _fmt_duration(p2_clock_s),
+            'total_turns': turn_count,
+            'total_time': _fmt_duration(total_time_s),
+            'finished_at': g.finished_at,
+            'has_custom': has_custom,
+            'custom_settings': custom_settings,
+            'status': g.status,
+        })
+
+    finished = [g for g in game_data if g['status'] == 'finished']
+    featured_games = finished[:1]
+
+    return render_template('my_games.html', game_data=game_data, featured_games=featured_games)
 
 
 @bp.route('/my-games/<game_id>')
