@@ -353,39 +353,7 @@ def _make_recent_games(account):
         elif game.winner in (1, 2):
             losses += 1
 
-    rows = []
-    for game in finished[:6]:
-        user_slot = _player_slot_for_game(account.id, game)
-        opponent = game.player2 if user_slot == 1 else game.player1
-        opponent_name = opponent.username if opponent is not None else 'Unassigned'
-
-        if game.winner is None:
-            result = 'Draw'
-            why = 'Stalemate'
-        elif user_slot == game.winner:
-            result = 'Won'
-            why = 'Board control at finish'
-        else:
-            result = 'Lost'
-            why = 'Opponent reached control threshold'
-
-        rows.append({
-            'opponent': opponent_name,
-            'turns': '--',
-            'result': result,
-            'why': why,
-            'game_id': game.id,
-        })
-
-    while len(rows) < 4:
-        idx = len(rows) + 1
-        rows.append({
-            'opponent': '—',
-            'turns': '--',
-            'result': '—',
-            'why': 'Data pending',
-            'game_id': f'placeholder-{idx}',
-        })
+    rows = _build_my_game_rows(account)[:4]
 
     return {
         'wins': wins,
@@ -500,13 +468,12 @@ def _fmt_duration(seconds):
     return f'{s}s'
 
 
-@bp.route('/my-games')
-@login_required
-def my_games():
+def _build_my_game_rows(account):
+    """Build my-games timeline row data for an account, newest-first."""
     games = (
         Game.query
         .filter(
-            (Game.player1_id == current_user.id) | (Game.player2_id == current_user.id)
+            (Game.player1_id == account.id) | (Game.player2_id == account.id)
         )
         .order_by(Game.created_at.desc())
         .all()
@@ -514,7 +481,7 @@ def my_games():
 
     game_data = []
     for g in games:
-        is_p1 = (g.player1_id == current_user.id)
+        is_p1 = (g.player1_id == account.id)
         my_slot = 1 if is_p1 else 2
         opp_slot = 2 if is_p1 else 1
 
@@ -596,6 +563,14 @@ def my_games():
             'custom_settings': custom_settings,
             'status': g.status,
         })
+
+    return game_data
+
+
+@bp.route('/my-games')
+@login_required
+def my_games():
+    game_data = _build_my_game_rows(current_user)
 
     finished = [g for g in game_data if g['status'] == 'finished']
     featured_games = finished[:1]

@@ -33,6 +33,14 @@ def _login(client, username='P1_Test', password='test123'):
     }, follow_redirects=False)
 
 
+def _create_game(client):
+    response = client.post('/game', json={})
+    assert response.status_code == 201
+    game_id = response.get_json()['game_id']
+    assert game_id
+    return game_id
+
+
 def test_settings_requires_login(client):
     response = client.get('/settings/profile', follow_redirects=False)
     assert response.status_code == 302
@@ -108,3 +116,21 @@ def test_legacy_profile_account_settings_endpoints_removed(client):
     for path in ('/profile', '/account', '/settings'):
         response = client.get(path)
         assert response.status_code == 404
+
+
+def test_profile_recent_games_matches_my_games_timeline_and_limits_to_four(client):
+    _login(client)
+    created_ids = [_create_game(client) for _ in range(5)]
+    expected_ids = created_ids[-4:]
+
+    response = client.get('/settings/profile')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+
+    assert html.count('class="game-timeline-row"') == 4
+    assert html.count('href="/my-games/') == 4
+    for game_id in expected_ids:
+        assert f'href="/my-games/{game_id}"' in html
+    assert f'href="/my-games/{created_ids[0]}"' not in html
+    assert 'href="/my-games"' in html
+    assert 'Show more' in html
