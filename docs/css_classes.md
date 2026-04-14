@@ -377,3 +377,21 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-palette-card` | selectable palette card/button with SVG preview |
 | `.settings-palette-card--active` | selected palette card state |
 | `.settings-link-list` | vertical list of legal/about links |
+
+### Past Game Detail Page
+
+| Class | Purpose |
+|---|---|
+| `.detail-page` | Page-level flex column with gap and padding (wraps `.container`) |
+| `.page-breadcrumb` | Breadcrumb nav row — flex, DM Sans 0.85em |
+| `.page-breadcrumb__back` | Back arrow + label link with warm hover |
+| `.page-breadcrumb__sep` | Separator glyph between crumbs |
+| `.page-breadcrumb__current` | Current page label (monospace, muted) |
+| `.detail-stats-card` | Stats-only card above the graphs — flex column |
+| `.detail-stat-list` | Responsive auto-fill grid of `<dt>/<dd>` pairs |
+| `.detail-graphs` | 3-column responsive grid containing the 3 chart cards |
+| `.detail-graph-card` | Individual chart card (min-width 0) |
+| `.detail-graph-body` | Fixed-height chart canvas wrapper (200px) |
+| `.detail-funcs-body` | Functions card body — flex column, list top / code bottom |
+| `.detail-funcs-list` | Scrollable top section of the functions panel (~40% height) |
+| `.detail-funcs-code` | Read-only code box at bottom of functions panel |

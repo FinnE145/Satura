@@ -3245,3 +3245,140 @@ body:has(.login-wrap) {
 .game-row-arrow .material-symbols-outlined {
     font-size: 1.25em;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Past Game Detail Page
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.detail-page {
+    padding-top: 1.25rem;
+    padding-bottom: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ── Breadcrumb ─────────────────────────────────────────────────────────── */
+
+.page-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.85em;
+}
+
+.page-breadcrumb__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    color: var(--text-subtle);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.page-breadcrumb__back:hover {
+    color: var(--accent);
+}
+
+.page-breadcrumb__back .material-symbols-outlined {
+    font-size: 1.1em;
+}
+
+.page-breadcrumb__sep {
+    color: var(--text-tint-04);
+}
+
+.page-breadcrumb__current {
+    color: var(--text-subtle);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+/* ── Stats card ─────────────────────────────────────────────────────────── */
+
+.detail-stats-card {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.detail-stat-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.375rem 1rem;
+    margin: 0;
+}
+
+/* ── Graphs ─────────────────────────────────────────────────────────────── */
+
+.detail-graphs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.detail-graph-card {
+    min-width: 0;
+}
+
+.detail-graph-body {
+    padding: 0.5rem 0.75rem 0.875rem;
+    height: 200px;
+    position: relative;
+}
+
+.detail-graph-body canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Functions panel ────────────────────────────────────────────────────── */
+
+.detail-funcs-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.detail-funcs-list {
+    flex: 0 0 40%;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.detail-funcs-code {
+    flex: 1;
+    min-height: 0;
+    resize: none;
+    border: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8em;
+}
+
+/* ── Responsive breakpoints ─────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+    .detail-graphs {
+        grid-template-columns: 1fr 1fr;
+    }
+    .detail-graphs .detail-graph-card:last-child {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 720px) {
+    .detail-graphs {
+        grid-template-columns: 1fr;
+    }
+    .detail-graphs .detail-graph-card:last-child {
+        grid-column: span 1;
+    }
+}

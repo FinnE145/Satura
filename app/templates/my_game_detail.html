@@ -1,178 +1,256 @@
 {% extends "base.html" %}
-{% block title %}Satura — Game {{ game.id[:8] }}{% endblock %}
+{% block title %}Satura — Game {{ game_id_short }}{% endblock %}
 
 {% block content %}
-<div style="padding: 2rem; font-family: monospace;">
-    <p><a href="{{ url_for('main.my_games') }}">← My Games</a></p>
-    <h1>Game <code>{{ game.id }}</code></h1>
+<main class="site-main" id="detail-root"
+  data-game-id="{{ game.id }}"
+  data-my-slot="{{ my_slot }}"
+  data-op-limit="{{ game.op_limit or '' }}">
 
-    <!-- ── Game metadata ────────────────────────────────── -->
-    <h2>Game Info</h2>
-    <table border="1" cellpadding="6" cellspacing="0">
-        <tr>
-            <th>Status</th>
-            <td>{{ game.status }}</td>
-        </tr>
-        <tr>
-            <th>Player 1</th>
-            <td>{{ game.player1_id }}</td>
-        </tr>
-        <tr>
-            <th>Player 2</th>
-            <td>{{ game.player2_id or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Created by</th>
-            <td>{{ game.created_by or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Winner slot</th>
-            <td>{{ game.winner or ('draw' if game.is_draw else '—') }}</td>
-        </tr>
-        <tr>
-            <th>End reason</th>
-            <td>{{ ('Reason: ' ~ (game.end_reason | replace('_', ' ') | capitalize)) if game.end_reason else '—' }}</td>
-        </tr>
-        <tr>
-            <th>Created at</th>
-            <td>{{ game.created_at }}</td>
-        </tr>
-        <tr>
-            <th>Finished at</th>
-            <td>{{ game.finished_at or '—' }}</td>
-        </tr>
-    </table>
+  <div class="container detail-page">
 
-    <h2>Settings</h2>
-    <table border="1" cellpadding="6" cellspacing="0">
-        <tr>
-            <th>Preset</th>
-            <td>{{ game.preset or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Board size</th>
-            <td>{{ game.board_size or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Op limit</th>
-            <td>{{ game.op_limit or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Clock seconds</th>
-            <td>{{ game.clock_seconds or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Word rate</th>
-            <td>{{ game.word_rate or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Starting player</th>
-            <td>{{ game.starting_player or '—' }}</td>
-        </tr>
-        <tr>
-            <th>Accommodations</th>
-            <td>{{ 'Yes' if game.accommodations_enabled else 'No' }}</td>
-        </tr>
-        <tr>
-            <th>P1 clock</th>
-            <td>{{ game.p1_clock_seconds or '—' }}</td>
-        </tr>
-        <tr>
-            <th>P2 clock</th>
-            <td>{{ game.p2_clock_seconds or '—' }}</td>
-        </tr>
-        <tr>
-            <th>P1 starting words</th>
-            <td>{{ game.p1_starting_words or '—' }}</td>
-        </tr>
-        <tr>
-            <th>P2 starting words</th>
-            <td>{{ game.p2_starting_words or '—' }}</td>
-        </tr>
-    </table>
+    {# ── Breadcrumb ─────────────────────────────────────────────────────── #}
+    <nav class="page-breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ url_for('main.my_games') }}" class="page-breadcrumb__back">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        My Games
+      </a>
+      <span class="page-breadcrumb__sep" aria-hidden="true">›</span>
+      <span class="page-breadcrumb__current">Game {{ game_id_short }}</span>
+    </nav>
 
-    <!-- ── Execution phases ─────────────────────────────── -->
-    <h2>Execution Phases ({{ phases|length }})</h2>
-    {% if not phases %}
-    <p>No phases recorded.</p>
-    {% else %}
-    {% for phase in phases %}
-    <details style="margin-bottom: 0.5rem;">
-        <summary>
-            Phase {{ phase.phase_number }} — {{ phase.exec_type }}
-            (P{{ phase.player_slot }})
-            {% if phase.outcome %} → {{ phase.outcome }}{% endif %}
-            {% if phase.ops_consumed %} | {{ phase.ops_consumed }} ops{% endif %}
-        </summary>
-        <div style="padding: 0.5rem 1rem; background: #f8f8f8; border: 1px solid #ccc;">
-            <p><strong>Script ID:</strong> {{ phase.script_id or '—' }}</p>
-            <p><strong>Prev phase ID:</strong> {{ phase.prev_phase_id or '—' }}</p>
+    {# ── Stats card ─────────────────────────────────────────────────────── #}
+    <section class="card detail-stats-card">
 
-            <p><strong>Agents:</strong> <code>{{ phase.agents_json }}</code></p>
-            <p><strong>Word banks:</strong> <code>{{ phase.word_banks_json }}</code></p>
-            <p><strong>Clock remaining:</strong> <code>{{ phase.clock_remaining_json }}</code></p>
+      {# Result + opponent #}
+      <div class="featured-result-row">
+        {% if result %}
+        <span class="badge badge--{{ result }}">{{ result | capitalize }}</span>
+        {% endif %}
+        <span class="featured-opponent" data-slot="{{ opp_slot }}">
+          vs.&nbsp;{{ opponent_username }}
+        </span>
+      </div>
 
-            {% if phase.exec_log_json and phase.exec_log_json != 'null' %}
-            <p><strong>Exec log ({{ phase.exec_log_json | fromjson | length }} ops):</strong></p>
-            <ol style="margin: 0;">
-                {% for op in phase.exec_log_json | fromjson %}
-                <li><code>{{ op }}</code></li>
-                {% endfor %}
-            </ol>
-            {% else %}
-            <p><strong>Exec log:</strong> —</p>
-            {% endif %}
+      {% if game.end_reason %}
+      <p class="featured-reason text-subtle">
+        Reason: {{ game.end_reason | replace('_', ' ') | capitalize }}
+      </p>
+      {% endif %}
 
-            <p><strong>Board state:</strong></p>
-            <pre style="font-size: 0.75rem; overflow-x: auto;">{% for row in phase.board_state_json | fromjson %}{{ row }}
-{% endfor %}</pre>
+      {# Coverage bar — filled by JS from the final board state #}
+      <div class="coverage-bar" id="stats-coverage-bar"></div>
+
+      {# Clocks #}
+      <div class="featured-clocks">
+        <span class="featured-clock featured-clock--warm">
+          <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+          P1 — {{ p1_clock_remaining }}
+        </span>
+        <span class="featured-clock featured-clock--cool">
+          <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+          P2 — {{ p2_clock_remaining }}
+        </span>
+      </div>
+
+      {# Core stat list #}
+      <dl class="featured-stat-list detail-stat-list">
+        <div><dt>Result</dt><dd>{{ result | capitalize if result else '—' }}</dd></div>
+        <div><dt>My slot</dt><dd>P{{ my_slot }}</dd></div>
+        <div><dt>Turns</dt><dd>{{ total_turns }}</dd></div>
+        <div><dt>Duration</dt><dd>{{ total_time }}</dd></div>
+        <div><dt>Board</dt><dd>{{ game.board_size }}×{{ game.board_size }}</dd></div>
+        <div><dt>Time control</dt><dd>{{ game.preset or 'Custom' }}</dd></div>
+        <div><dt>Op limit</dt><dd>{{ game.op_limit or '—' }}</dd></div>
+        <div>
+          <dt>Starting player</dt>
+          <dd>{{ ('P' ~ game.starting_player) if game.starting_player else '—' }}</dd>
         </div>
-    </details>
-    {% endfor %}
-    {% endif %}
-
-    <!-- ── Scripts (own only) ───────────────────────────── -->
-    <h2>My Scripts ({{ scripts|length }})</h2>
-    {% if not scripts %}
-    <p>No scripts recorded for your account in this game.</p>
-    {% else %}
-    {% for script in scripts %}
-    <details style="margin-bottom: 0.5rem;">
-        <summary>
-            Turn {{ script.turn_number }} — {{ script.word_count }} words
-            (P{{ script.player_slot }})
-            {% if script.write_duration_seconds %}
-            | {{ '%.1f'|format(script.write_duration_seconds) }}s write time
-            {% endif %}
-        </summary>
-        <div style="padding: 0.5rem 1rem; background: #f8f8f8; border: 1px solid #ccc;">
-            <p><strong>Script ID:</strong> {{ script.id }}</p>
-            {% if script.source_text %}
-            <pre style="white-space: pre-wrap;">{{ script.source_text }}</pre>
-            {% else %}
-            <p><em>(source text scrubbed)</em></p>
-            {% endif %}
+        <div>
+          <dt>Word rate</dt>
+          <dd>{{ ('%.2f'|format(game.word_rate) ~ '/s') if game.word_rate else '—' }}</dd>
         </div>
-    </details>
-    {% endfor %}
-    {% endif %}
+        <div><dt>Avg write time</dt><dd>{{ avg_write_duration }}</dd></div>
+        <div><dt>Finished</dt><dd>{{ finished_at_str }}</dd></div>
+      </dl>
 
-    <!-- ── Defined functions (own only) ────────────────── -->
-    <h2>My Defined Functions ({{ functions|length }})</h2>
-    {% if not functions %}
-    <p>No functions recorded for your account in this game.</p>
-    {% else %}
-    {% for fn in functions %}
-    <details style="margin-bottom: 0.5rem;">
-        <summary>
-            <code>{{ fn.func_name }}</code>
-            (defined in script {{ fn.script_id }})
-        </summary>
-        <div style="padding: 0.5rem 1rem; background: #f8f8f8; border: 1px solid #ccc;">
-            <pre style="white-space: pre-wrap;">{{ fn.func_body_text }}</pre>
+      {# Custom / accommodation settings #}
+      {% if has_custom %}
+      <div class="featured-custom-section">
+        <p class="label">Custom settings</p>
+        <dl class="featured-stat-list">
+          {%- for k, v in custom_settings.items() -%}
+          <div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>
+          {%- endfor -%}
+          {%- if game.accommodations_enabled and not custom_settings -%}
+          <div><dt>Accommodations</dt><dd>Enabled</dd></div>
+          {%- endif -%}
+        </dl>
+      </div>
+      {% endif %}
+
+    </section>
+
+    {# ── Graphs ─────────────────────────────────────────────────────────── #}
+    <div class="detail-graphs">
+
+      <div class="card detail-graph-card">
+        <div class="card-header">
+          <h2 class="card-title">Board Dominance</h2>
         </div>
-    </details>
-    {% endfor %}
-    {% endif %}
-</div>
+        <div class="detail-graph-body">
+          <canvas id="chart-dominance" aria-label="Board dominance over time"></canvas>
+        </div>
+      </div>
+
+      <div class="card detail-graph-card">
+        <div class="card-header">
+          <h2 class="card-title">Time Per Turn</h2>
+        </div>
+        <div class="detail-graph-body">
+          <canvas id="chart-time" aria-label="Write time per turn"></canvas>
+        </div>
+      </div>
+
+      <div class="card detail-graph-card">
+        <div class="card-header">
+          <h2 class="card-title">Word Count &amp; Ops</h2>
+        </div>
+        <div class="detail-graph-body">
+          <canvas id="chart-words-ops" aria-label="Word count and ops used per phase"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    {# ── Workspace: script + board ───────────────────────────────────────── #}
+    <div class="workspace">
+
+      {# Script card (read-only) #}
+      <div class="card editor-card">
+        <div class="card-header">
+          <h2 class="card-title">Script</h2>
+          <span class="script-meta" id="script-meta-info"></span>
+        </div>
+        <div class="editor-card-body">
+          <textarea class="script-editor" id="script-editor"
+            readonly spellcheck="false" autocomplete="off"
+            placeholder="// no script for this phase"
+            aria-label="Script viewer"></textarea>
+        </div>
+      </div>
+
+      {# Board card #}
+      <div class="card board-card">
+        <div class="card-header">
+          <h2 class="card-title">Board</h2>
+          <span class="board-legend" id="board-legend">
+            <span class="text-small-sans text-muted" id="board-legend-info"></span>
+            <span class="board-legend-pills">
+              <span class="board-legend-item" id="board-legend-mine"></span>
+              <span class="board-legend-item" id="board-legend-opp"></span>
+            </span>
+          </span>
+        </div>
+        <div class="board-wrap">
+          <div class="board-grid" id="board-grid"></div>
+        </div>
+      </div>
+
+    </div>{# .workspace #}
+
+    {# ── Navigation controls ─────────────────────────────────────────────── #}
+    <div class="card game-controls active-time" id="game-controls">
+      <div class="game-controls-main">
+
+        <div class="game-controls-side game-controls-side--mine">
+          <span class="gc-player-badge" id="badge-mine"></span>
+          <span class="gc-clock" id="clock-mine">--:--</span>
+          <span class="phase-pill-wrap">
+            <span class="phase-pill" id="phase-mine" hidden></span>
+          </span>
+        </div>
+
+        <div class="game-controls-btns">
+          <button type="button" class="game-controls-btn btn-warm-hover" id="btn-replay"
+              title="Replay execution step by step">
+            <span class="material-symbols-outlined" aria-hidden="true">replay</span>
+            <span class="icon-btn-label">Replay</span>
+          </button>
+          <button type="button" class="game-controls-btn btn-cool-hover" id="btn-back"
+              title="Previous phase">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            <span class="icon-btn-label">Back</span>
+          </button>
+          <button type="button" class="game-controls-btn btn-cool-hover" id="btn-forward"
+              title="Next phase">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+            <span class="icon-btn-label">Forward</span>
+          </button>
+          <button type="button" class="game-controls-btn btn-warm-hover" id="btn-end"
+              title="Jump to final phase">
+            <span class="material-symbols-outlined" aria-hidden="true">last_page</span>
+            <span class="icon-btn-label">End</span>
+          </button>
+        </div>
+
+        <div class="game-controls-side game-controls-side--opp">
+          <span class="phase-pill-wrap">
+            <span class="phase-pill" id="phase-opp" hidden></span>
+          </span>
+          <span class="gc-clock" id="clock-opp">--:--</span>
+          <span class="gc-player-badge" id="badge-opp"></span>
+        </div>
+
+      </div>
+      <span class="game-controls-confirm text-small-sans" id="phase-notice"></span>
+    </div>
+
+    {# ── Results row: functions + ops ────────────────────────────────────── #}
+    <div class="results-row">
+
+      {# Functions panel #}
+      <div class="card result-card" id="functions-card">
+        <div class="card-header">
+          <h2 class="card-title">Functions</h2>
+          <span class="badge badge--ok" id="funcs-badge" hidden></span>
+        </div>
+        <div class="detail-funcs-body">
+          <div class="detail-funcs-list" id="funcs-list">
+            <span class="empty-label">No functions defined</span>
+          </div>
+          <textarea class="script-editor detail-funcs-code" id="funcs-code"
+            readonly spellcheck="false"
+            placeholder="// select a function to view its body"
+            aria-label="Function body viewer"></textarea>
+        </div>
+      </div>
+
+      {# Ops output panel #}
+      <div class="card result-card" id="output-card">
+        <div class="card-header">
+          <h2 class="card-title">Output</h2>
+          <span class="outcome-label" id="outcome-label"></span>
+        </div>
+        <div class="card-body" id="output-body">
+          <span class="empty-label">No output yet</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>{# .container #}
+
+  {# ── Embedded data ───────────────────────────────────────────────────── #}
+  <script type="application/json" id="phases-meta">{{ phases_meta_json | safe }}</script>
+  <script type="application/json" id="scripts-meta">{{ scripts_meta_json | safe }}</script>
+  <script type="application/json" id="functions-meta">{{ functions_meta_json | safe }}</script>
+  <script type="application/json" id="opp-write-times">{{ opp_write_times_json | safe }}</script>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/my_game_detail.js') }}"></script>
 {% endblock %}

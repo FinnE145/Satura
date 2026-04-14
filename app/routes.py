@@ -610,6 +610,28 @@ def my_game_detail(game_id):
     if game.player1_id != current_user.id and game.player2_id != current_user.id:
         return render_template('stub.html', page_title='Not found'), 404
 
+    is_p1 = (game.player1_id == current_user.id)
+    my_slot = 1 if is_p1 else 2
+    opp_slot = 2 if is_p1 else 1
+
+    opp = game.player2 if is_p1 else game.player1
+    opponent_username = opp.username if opp else '(unknown)'
+
+    # Result
+    if game.is_draw:
+        result = 'stalemate' if game.end_reason == 'stalemate' else 'draw'
+    elif game.winner == my_slot:
+        result = 'win'
+    elif game.winner == opp_slot:
+        result = 'loss'
+    else:
+        result = None
+
+    # Game duration
+    total_time_s = None
+    if game.finished_at and game.created_at:
+        total_time_s = (game.finished_at - game.created_at).total_seconds()
+
     phases = (
         game.phases
         .order_by(ExecutionPhase.phase_number)
@@ -621,18 +643,169 @@ def my_game_detail(game_id):
         .order_by(Script.turn_number)
         .all()
     )
-    functions = (
+    all_functions = (
         game.functions
         .filter_by(account_id=current_user.id)
         .order_by(DefinedFunction.id)
         .all()
     )
+
+    # Clocks at game end (last phase)
+    p1_clock_s = None
+    p2_clock_s = None
+    if phases:
+        last_clk_json = phases[-1].clock_remaining_json
+        if last_clk_json:
+            try:
+                clk = json.loads(last_clk_json)
+                p1_clock_s = clk.get('1') or clk.get(1)
+                p2_clock_s = clk.get('2') or clk.get(2)
+            except (ValueError, TypeError):
+                pass
+
+    # Average write duration for my turns
+    my_durations = [
+        s.write_duration_seconds for s in scripts
+        if s.write_duration_seconds is not None
+    ]
+    avg_write_s = (sum(my_durations) / len(my_durations)) if my_durations else None
+
+    # Custom settings detection (same logic as my_games)
+    preset_key = game.preset
+    preset_defaults = Config.TIME_CONTROL_PRESETS.get(preset_key) if preset_key else None
+    custom_settings = {}
+    has_custom = False
+
+    if preset_defaults and game.word_rate is not None:
+        if abs(game.word_rate - preset_defaults['word_rate']) > 0.001:
+            custom_settings['Word rate'] = game.word_rate
+            has_custom = True
+
+    if game.accommodations_enabled:
+        has_custom = True
+        if game.p1_clock_seconds is not None and game.clock_seconds is not None:
+            if abs(game.p1_clock_seconds - game.clock_seconds) > 0.001:
+                custom_settings['P1 clock'] = _fmt_duration(game.p1_clock_seconds)
+        if game.p2_clock_seconds is not None and game.clock_seconds is not None:
+            if abs(game.p2_clock_seconds - game.clock_seconds) > 0.001:
+                custom_settings['P2 clock'] = _fmt_duration(game.p2_clock_seconds)
+        if preset_defaults and game.p1_starting_words is not None:
+            if abs(game.p1_starting_words - preset_defaults['starting_words']) > 0.001:
+                custom_settings['P1 starting words'] = int(game.p1_starting_words)
+        if preset_defaults and game.p2_starting_words is not None:
+            if abs(game.p2_starting_words - preset_defaults['starting_words']) > 0.001:
+                custom_settings['P2 starting words'] = int(game.p2_starting_words)
+
+    # Build phases_meta JSON — includes coverage % (cheap to compute here,
+    # avoids N client requests for the dominance graph)
+    board_size = game.board_size or 8
+    total_cells = board_size * board_size
+    phases_meta = []
+    for p in phases:
+        coverage_p1 = 0.0
+        coverage_p2 = 0.0
+        if p.board_state_json:
+            try:
+                board_raw = json.loads(p.board_state_json)
+                p1_cells = sum(1 for row in board_raw for cell in row if cell[0] > cell[1])
+                p2_cells = sum(1 for row in board_raw for cell in row if cell[1] > cell[0])
+                coverage_p1 = round(p1_cells / total_cells * 100, 1)
+                coverage_p2 = round(p2_cells / total_cells * 100, 1)
+            except (ValueError, TypeError, IndexError):
+                pass
+
+        clock_remaining = {}
+        if p.clock_remaining_json:
+            try:
+                clock_remaining = json.loads(p.clock_remaining_json)
+            except (ValueError, TypeError):
+                pass
+
+        phases_meta.append({
+            'phase_number': p.phase_number,
+            'exec_type': p.exec_type,
+            'player_slot': p.player_slot,
+            'ops_consumed': p.ops_consumed,
+            'clock_remaining': clock_remaining,
+            'script_id': p.script_id,
+            'coverage_p1': coverage_p1,
+            'coverage_p2': coverage_p2,
+        })
+
+    # Scripts metadata
+    scripts_meta = [
+        {
+            'id': s.id,
+            'turn': s.turn_number,
+            'word_count': s.word_count,
+            'write_duration': s.write_duration_seconds,
+            'source': s.source_text,
+            'player_slot': s.player_slot,
+        }
+        for s in scripts
+    ]
+
+    # Opponent write times — write_duration only, no script content
+    opp_id = game.player2_id if is_p1 else game.player1_id
+    opp_scripts = (
+        Script.query
+        .filter_by(game_id=game.id, account_id=opp_id)
+        .order_by(Script.turn_number)
+        .all()
+    )
+    opp_write_times = [
+        {'turn': s.turn_number, 'write_duration': s.write_duration_seconds}
+        for s in opp_scripts
+    ]
+
+    # Functions metadata — de-duplicate by name (keep latest definition)
+    seen_funcs = {}
+    for f in all_functions:
+        seen_funcs[f.func_name] = f
+
+    functions_meta = []
+    for f in seen_funcs.values():
+        first_line = f.func_body_text.split('\n')[0] if f.func_body_text else ''
+        args = []
+        m = re.search(r'\(([^)]*)\)', first_line)
+        if m:
+            args_str = m.group(1).strip()
+            if args_str:
+                args = [a.strip() for a in args_str.split(',') if a.strip()]
+        defined_at_turn = f.script.turn_number if f.script else None
+        functions_meta.append({
+            'name': f.func_name,
+            'args': args,
+            'source': f.func_body_text,
+            'defined_at_turn': defined_at_turn,
+        })
+
+    # Finished datetime formatted for display
+    finished_at_str = (
+        game.finished_at.strftime('%-d %b %Y, %-I:%M %p')
+        if game.finished_at else '—'
+    )
+
     return render_template(
         'my_game_detail.html',
         game=game,
-        phases=phases,
-        scripts=scripts,
-        functions=functions,
+        game_id_short=game.id[:8],
+        my_slot=my_slot,
+        opp_slot=opp_slot,
+        opponent_username=opponent_username,
+        result=result,
+        total_turns=len(scripts),
+        total_time=_fmt_duration(total_time_s),
+        p1_clock_remaining=_fmt_duration(p1_clock_s),
+        p2_clock_remaining=_fmt_duration(p2_clock_s),
+        avg_write_duration=(_fmt_duration(avg_write_s) if avg_write_s is not None else '—'),
+        finished_at_str=finished_at_str,
+        has_custom=has_custom,
+        custom_settings=custom_settings,
+        phases_meta_json=json.dumps(phases_meta),
+        scripts_meta_json=json.dumps(scripts_meta),
+        functions_meta_json=json.dumps(functions_meta),
+        opp_write_times_json=json.dumps(opp_write_times),
     )
 
 
