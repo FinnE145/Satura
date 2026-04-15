@@ -48,7 +48,9 @@ const activePalette = {
     name: (bodyData?.activePalette || fallbackPalette.name).toLowerCase(),
     warm:  bodyData?.paletteWarm   || fallbackPalette.warm,
     cool:  bodyData?.paletteCool   || fallbackPalette.cool,
-    warmBright: bodyData?.uiWarmBright || fallbackPalette.warm,
+    uiWarm:      bodyData?.uiWarm      || bodyData?.paletteWarm  || fallbackPalette.warm,
+    uiCool:      bodyData?.uiCool      || bodyData?.paletteCool  || fallbackPalette.cool,
+    warmBright:  bodyData?.uiWarmBright || fallbackPalette.warm,
 };
 
 // ── Navigation state ───────────────────────────────────────────────────────────
@@ -593,9 +595,9 @@ function highlightChartPoints(phaseIdx) {
 function initCharts() {
     if (!window.Chart || phasesMeta.length === 0) return;
 
-    const warm      = activePalette.warm;
+    const warm       = activePalette.uiWarm;
     const warmBright = activePalette.warmBright;
-    const cool      = activePalette.cool;
+    const cool       = activePalette.uiCool;
     const textColor = 'rgba(246, 245, 244, 0.7)';
     const gridColor = 'rgba(246, 245, 244, 0.08)';
     const fontDef   = { family: "'DM Sans', sans-serif", size: 10 };
@@ -695,6 +697,16 @@ function initCharts() {
     if (allTurns.length > 0) {
         const myByTurn  = Object.fromEntries(myScripts.map(s => [s.turn, s]));
         const oppByTurn = Object.fromEntries(oppWriteTimes.map(s => [s.turn, s]));
+
+        const allDurations = [
+            ...myScripts.map(s => s.write_duration),
+            ...oppWriteTimes.map(s => s.write_duration),
+        ].filter(d => d != null);
+        const maxDuration = allDurations.length > 0 ? Math.max(...allDurations) : 0;
+        const useMinutes  = maxDuration >= 130;
+        const toUnit      = v => useMinutes ? +(v / 60).toFixed(2) : +v.toFixed(1);
+        const unitSuffix  = useMinutes ? 'm' : 's';
+
         charts.timePer = new Chart(document.getElementById('chart-time'), {
             type: 'line',
             data: {
@@ -704,7 +716,7 @@ function initCharts() {
                         label: `P${mySlot} write time`,
                         data: allTurns.map(t => {
                             const s = myByTurn[t];
-                            return s?.write_duration != null ? +(s.write_duration / 60).toFixed(2) : null;
+                            return s?.write_duration != null ? toUnit(s.write_duration) : null;
                         }),
                         borderColor: warm, backgroundColor: 'transparent',
                         pointBackgroundColor: warm, pointRadius: 3,
@@ -714,7 +726,7 @@ function initCharts() {
                         label: `P${oppSlot} write time`,
                         data: allTurns.map(t => {
                             const s = oppByTurn[t];
-                            return s?.write_duration != null ? +(s.write_duration / 60).toFixed(2) : null;
+                            return s?.write_duration != null ? toUnit(s.write_duration) : null;
                         }),
                         borderColor: cool, backgroundColor: 'transparent',
                         pointBackgroundColor: cool, pointRadius: 3,
@@ -730,7 +742,7 @@ function initCharts() {
                         ...sharedPlugins.tooltip,
                         callbacks: {
                             title: items => `Turn ${items[0].label}`,
-                            label: item  => item.raw != null ? `${item.dataset.label}: ${item.raw}m` : 'N/A',
+                            label: item  => item.raw != null ? `${item.dataset.label}: ${item.raw}${unitSuffix}` : 'N/A',
                         },
                     },
                 },
@@ -742,7 +754,7 @@ function initCharts() {
                     },
                     y: {
                         ...sharedScales.y,
-                        ticks: { ...sharedScales.y.ticks, callback: v => `${v}m` },
+                        ticks: { ...sharedScales.y.ticks, callback: v => `${v}${unitSuffix}` },
                     },
                 },
                 onClick: (evt, elements) => {
