@@ -401,6 +401,42 @@ def login():
     return render_template('login.html', next=next_url)
 
 
+@bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not username:
+            flash('Username is required.')
+        elif not email:
+            flash('Email is required.')
+        elif not _valid_email(email):
+            flash('Please enter a valid email address.')
+        elif not password:
+            flash('Password is required.')
+        elif password != confirm_password:
+            flash('Passwords do not match.')
+        elif Account.query.filter_by(username=username).first():
+            flash('That username is already taken.')
+        elif Account.query.filter_by(email=email).first():
+            flash('An account with that email already exists.')
+        else:
+            account = Account(username=username, email=email)
+            account.set_password(password)
+            db.session.add(account)
+            db.session.commit()
+            login_user(account)
+            return redirect(url_for('main.index'))
+
+    return render_template('signup.html')
+
+
 @bp.route('/logout')
 @login_required
 def logout():
