@@ -361,11 +361,14 @@ def _make_recent_games(account):
 
     wins = 0
     losses = 0
+    draws = 0
     for game in finished:
         user_slot = _player_slot_for_game(account.id, game)
-        if user_slot is None or game.winner is None:
+        if user_slot is None:
             continue
-        if game.winner == user_slot:
+        if game.winner is None:
+            draws += 1
+        elif game.winner == user_slot:
             wins += 1
         elif game.winner in (1, 2):
             losses += 1
@@ -375,6 +378,7 @@ def _make_recent_games(account):
     return {
         'wins': wins,
         'losses': losses,
+        'draws': draws,
         'games_played': len(finished),
         'recent_games': rows,
     }
