@@ -7,6 +7,7 @@ import uuid
 import re
 import random
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -24,6 +25,22 @@ bp = Blueprint('main', __name__)
 _LOG_DIR = Path(__file__).parent.parent
 
 _ALIAS_CHARS = 'BCDFGHJKLMNPQRSTVWXZ'  # consonants only, no I or O
+
+# Viewer presence tracking: game_id → {viewer_key → last_ping_time}
+_viewers: dict[str, dict[str, float]] = {}
+_VIEWER_TTL = 30.0  # seconds before a viewer ping expires
+
+
+def _viewer_count(game_id: str) -> int:
+    """Return the number of active viewers for a game, expiring stale pings."""
+    now = time.monotonic()
+    game_viewers = _viewers.get(game_id)
+    if not game_viewers:
+        return 0
+    stale = [k for k, t in game_viewers.items() if now - t > _VIEWER_TTL]
+    for k in stale:
+        del game_viewers[k]
+    return len(game_viewers)
 
 
 def _gen_join_alias() -> str:
@@ -490,7 +507,56 @@ def game_page(game_id):
             player_num = 1
         elif session._player_ids.get(2) == current_user.id:
             player_num = 2
+        else:
+            return redirect(url_for('main.game_view', game_id=game_id))
+    else:
+        return redirect(url_for('main.login', next=url_for('main.game_view', game_id=game_id)))
     return render_template('game.html', game_id=game_id, player_num=player_num)
+
+
+@bp.route('/game/<game_id>/view')
+@login_required
+def game_view(game_id):
+    session = get_session(game_id)
+    if session is None:
+        game = Game.query.get(game_id)
+        if game and game.status == 'finished':
+            return redirect(url_for('main.game_history', game_id=game_id))
+        return render_template('stub.html', page_title='Game not found'), 404
+
+    # Players should use the full game page
+    if session._player_ids.get(1) == current_user.id or session._player_ids.get(2) == current_user.id:
+        return redirect(url_for('main.game_page', game_id=game_id))
+
+    p1_id = session._player_ids.get(1)
+    p2_id = session._player_ids.get(2)
+    p1 = Account.query.get(p1_id) if p1_id else None
+    p2 = Account.query.get(p2_id) if p2_id else None
+
+    return render_template(
+        'game_view.html',
+        game_id=game_id,
+        p1_username=p1.username if p1 else 'P1',
+        p2_username=p2.username if p2 else 'P2',
+    )
+
+
+@bp.route('/game/<game_id>/view/ping', methods=['POST'])
+@login_required
+def game_viewer_ping(game_id):
+    """Register the current user as an active spectator of this game."""
+    viewer_key = str(current_user.id)
+    if game_id not in _viewers:
+        _viewers[game_id] = {}
+    _viewers[game_id][viewer_key] = time.monotonic()
+    return jsonify({'viewers': _viewer_count(game_id)})
+
+
+@bp.route('/game/<game_id>/viewers', methods=['GET'])
+@login_required
+def game_viewers(game_id):
+    """Return the current active spectator count for a game."""
+    return jsonify({'viewers': _viewer_count(game_id)})
 
 
 def _fmt_duration(seconds):
@@ -619,7 +685,9 @@ def my_games():
 def my_game_detail(game_id):
     game = Game.query.get_or_404(game_id)
     if game.player1_id != current_user.id and game.player2_id != current_user.id:
-        return render_template('stub.html', page_title='Not found'), 404
+        if game.status == 'finished':
+            return redirect(url_for('main.game_history', game_id=game_id))
+        return redirect(url_for('main.game_view', game_id=game_id))
 
     is_p1 = (game.player1_id == current_user.id)
     my_slot = 1 if is_p1 else 2
@@ -817,6 +885,176 @@ def my_game_detail(game_id):
         scripts_meta_json=json.dumps(scripts_meta),
         functions_meta_json=json.dumps(functions_meta),
         opp_write_times_json=json.dumps(opp_write_times),
+    )
+
+
+@bp.route('/history/<game_id>')
+@login_required
+def game_history(game_id):
+    game = Game.query.get_or_404(game_id)
+
+    # Players should use their own detail page
+    if game.player1_id == current_user.id or game.player2_id == current_user.id:
+        return redirect(url_for('main.my_game_detail', game_id=game_id))
+
+    # Active games → redirect to spectator live view
+    if game.status != 'finished':
+        return redirect(url_for('main.game_view', game_id=game_id))
+
+    p1 = game.player1
+    p2 = game.player2
+    p1_username = p1.username if p1 else 'P1'
+    p2_username = p2.username if p2 else 'P2'
+
+    # Determine game outcome in spectator terms
+    if game.is_draw:
+        if game.end_reason == 'stalemate':
+            result_text = 'Stalemate'
+            result_badge = 'stalemate'
+        else:
+            result_text = 'Draw'
+            result_badge = 'draw'
+    elif game.winner == 1:
+        result_text = 'P1 Won'
+        result_badge = 'win'
+    elif game.winner == 2:
+        result_text = 'P2 Won'
+        result_badge = 'loss'
+    else:
+        result_text = None
+        result_badge = None
+
+    # Game duration
+    total_time_s = None
+    if game.finished_at and game.created_at:
+        total_time_s = (game.finished_at - game.created_at).total_seconds()
+
+    phases = (
+        game.phases
+        .order_by(ExecutionPhase.phase_number)
+        .all()
+    )
+
+    # Clocks at game end
+    p1_clock_s = None
+    p2_clock_s = None
+    if phases:
+        last_clk_json = phases[-1].clock_remaining_json
+        if last_clk_json:
+            try:
+                clk = json.loads(last_clk_json)
+                p1_clock_s = clk.get('1') or clk.get(1)
+                p2_clock_s = clk.get('2') or clk.get(2)
+            except (ValueError, TypeError):
+                pass
+
+    # Custom settings detection
+    preset_key = game.preset
+    preset_defaults = Config.TIME_CONTROL_PRESETS.get(preset_key) if preset_key else None
+    custom_settings = {}
+    has_custom = False
+
+    if preset_defaults and game.word_rate is not None:
+        if abs(game.word_rate - preset_defaults['word_rate']) > 0.001:
+            custom_settings['Word rate'] = game.word_rate
+            has_custom = True
+
+    if game.accommodations_enabled:
+        has_custom = True
+        if game.p1_clock_seconds is not None and game.clock_seconds is not None:
+            if abs(game.p1_clock_seconds - game.clock_seconds) > 0.001:
+                custom_settings['P1 clock'] = _fmt_duration(game.p1_clock_seconds)
+        if game.p2_clock_seconds is not None and game.clock_seconds is not None:
+            if abs(game.p2_clock_seconds - game.clock_seconds) > 0.001:
+                custom_settings['P2 clock'] = _fmt_duration(game.p2_clock_seconds)
+        if preset_defaults and game.p1_starting_words is not None:
+            if abs(game.p1_starting_words - preset_defaults['starting_words']) > 0.001:
+                custom_settings['P1 starting words'] = int(game.p1_starting_words)
+        if preset_defaults and game.p2_starting_words is not None:
+            if abs(game.p2_starting_words - preset_defaults['starting_words']) > 0.001:
+                custom_settings['P2 starting words'] = int(game.p2_starting_words)
+
+    # Build phases_meta — no script_ids, just board coverage and op counts
+    board_size = game.board_size or 8
+    total_cells = board_size * board_size
+    phases_meta = []
+    for p in phases:
+        coverage_p1 = 0.0
+        coverage_p2 = 0.0
+        if p.board_state_json:
+            try:
+                board_raw = json.loads(p.board_state_json)
+                p1_cells = sum(1 for row in board_raw for cell in row if cell[0] > cell[1])
+                p2_cells = sum(1 for row in board_raw for cell in row if cell[1] > cell[0])
+                coverage_p1 = round(p1_cells / total_cells * 100, 1)
+                coverage_p2 = round(p2_cells / total_cells * 100, 1)
+            except (ValueError, TypeError, IndexError):
+                pass
+
+        clock_remaining = {}
+        if p.clock_remaining_json:
+            try:
+                clock_remaining = json.loads(p.clock_remaining_json)
+            except (ValueError, TypeError):
+                pass
+
+        phases_meta.append({
+            'phase_number': p.phase_number,
+            'exec_type': p.exec_type,
+            'player_slot': p.player_slot,
+            'ops_consumed': p.ops_consumed,
+            'clock_remaining': clock_remaining,
+            'coverage_p1': coverage_p1,
+            'coverage_p2': coverage_p2,
+        })
+
+    # Write times for both players (timing only, no script content)
+    p1_scripts = (
+        Script.query
+        .filter_by(game_id=game.id, account_id=game.player1_id)
+        .order_by(Script.turn_number)
+        .all()
+    ) if game.player1_id else []
+    p2_scripts = (
+        Script.query
+        .filter_by(game_id=game.id, account_id=game.player2_id)
+        .order_by(Script.turn_number)
+        .all()
+    ) if game.player2_id else []
+
+    p1_write_times = [
+        {'turn': s.turn_number, 'write_duration': s.write_duration_seconds}
+        for s in p1_scripts
+    ]
+    p2_write_times = [
+        {'turn': s.turn_number, 'write_duration': s.write_duration_seconds}
+        for s in p2_scripts
+    ]
+
+    total_phases_count = len(phases)
+    finished_at_str = (
+        game.finished_at.strftime('%-d %b %Y, %-I:%M %p')
+        if game.finished_at else '—'
+    )
+
+    return render_template(
+        'game_history.html',
+        game=game,
+        game_id_short=game.id[:8],
+        p1_username=p1_username,
+        p2_username=p2_username,
+        result_text=result_text,
+        result_badge=result_badge,
+        total_phases=total_phases_count,
+        total_time=_fmt_duration(total_time_s),
+        p1_clock_remaining=_fmt_duration(p1_clock_s),
+        p2_clock_remaining=_fmt_duration(p2_clock_s),
+        finished_at_str=finished_at_str,
+        has_custom=has_custom,
+        custom_settings=custom_settings,
+        phases_meta_json=json.dumps(phases_meta),
+        p1_write_times_json=json.dumps(p1_write_times),
+        p2_write_times_json=json.dumps(p2_write_times),
     )
 
 
@@ -1385,6 +1623,9 @@ def game_begin_write(game_id):
     return jsonify({'ok': True})
 
 
+_SENSING_OPS = frozenset(['get_friction', 'has_agent', 'my_paint', 'opp_paint'])
+
+
 @bp.route('/game/<game_id>/state', methods=['GET'])
 def game_state(game_id):
     session = get_session(game_id)
@@ -1401,6 +1642,17 @@ def game_state(game_id):
     session.check_clock_expired()
     state = session.get_state(for_player=for_player)
     state['total_phases'] = ExecutionPhase.query.filter_by(game_id=game_id).count()
+
+    # Spectators: strip private player data and filter sensing ops from exec log
+    if for_player is None:
+        state.pop('word_bank', None)
+        state.pop('word_rate', None)
+        state.pop('draw_offer', None)
+        state['exec_log'] = [
+            e for e in state.get('exec_log', [])
+            if e.get('op') not in _SENSING_OPS
+        ]
+
     return jsonify(state)
 
 
@@ -1431,6 +1683,14 @@ def game_phase_state(game_id, phase_number):
     board = [[{'p1': cell[0], 'p2': cell[1]} for cell in row] for row in board_raw]
     agents_raw = _json.loads(phase.agents_json)
     exec_log = _json.loads(phase.exec_log_json) if phase.exec_log_json else []
+
+    # Filter sensing ops for non-players (spectators and history viewers)
+    is_player = (
+        current_user.is_authenticated
+        and (game.player1_id == current_user.id or game.player2_id == current_user.id)
+    )
+    if not is_player:
+        exec_log = [e for e in exec_log if e.get('op') not in _SENSING_OPS]
 
     return jsonify({
         'board': board,
