@@ -682,6 +682,11 @@ def _build_my_game_rows(account):
     return game_data
 
 
+@bp.route('/history')
+def history_redirect():
+    return redirect(url_for('main.my_games'))
+
+
 @bp.route('/my-games')
 @login_required
 def my_games():
