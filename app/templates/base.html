@@ -23,7 +23,7 @@
     data-ui-cool-bright="{{ active_palette.ui_cool_bright }}">
 
     <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
-    <nav class="site-nav">
+    {% block nav %}<nav class="site-nav">
         <div class="nav-inner container">
             <a href="/" class="brand">
                 <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura Logo"
@@ -46,12 +46,12 @@
                 {% endif %}
             </div>
         </div>
-    </nav>
+    </nav>{% endblock nav %}
 
     {% block content %}{% endblock %}
 
     <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
-    <footer class="site-footer">
+    {% block footer %}<footer class="site-footer">
         <div class="footer-inner container">
             <div class="left">
                 <a href="/about">About Satura</a>
@@ -63,7 +63,7 @@
                 <a href="/legal/cookies">Cookie Policy</a>
             </div>
         </div>
-    </footer>
+    </footer>{% endblock footer %}
 
     <script>
         (function () {

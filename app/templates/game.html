@@ -1,9 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Satura — Test Bench{% endblock %}
+{% block title %}Satura — In Game{% endblock %}
+
+{% block nav %}
+<header class="game-header">
+    <a href="/" class="brand">
+        <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura" class="brand-mark"
+            width="28" height="28">
+        <span class="brand-wordmark">Satura</span>
+    </a>
+    <span class="game-viewer-count" id="game-viewer-count" hidden>
+        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+        <span id="game-viewer-count-num"></span>
+    </span>
+</header>
+{% endblock %}
+{% block footer %}{% endblock %}
 
 {% block content %}
 <main class="site-main" id="game-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}">
+
     <div class="game-outer">
 
         <!-- Script history sidebar (large screens — outside the container) -->

@@ -1689,6 +1689,28 @@ if (btnHistoryToggle) {
     });
 }
 
+// ── Viewer count ──────────────────────────────────────────────────────────────
+
+const gameViewerCountEl = document.getElementById('game-viewer-count');
+const gameViewerCountNumEl = document.getElementById('game-viewer-count-num');
+
+async function refreshViewerCount() {
+    if (!apiBase) return;
+    try {
+        const data = await get(`${apiBase}/viewers`);
+        const count = data.viewers ?? 0;
+        if (gameViewerCountEl && gameViewerCountNumEl) {
+            gameViewerCountNumEl.textContent = count;
+            gameViewerCountEl.hidden = count === 0;
+        }
+    } catch (_) {
+        // ignore
+    }
+}
+
+refreshViewerCount();
+setInterval(refreshViewerCount, 10000);
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 init();

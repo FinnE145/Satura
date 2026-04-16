@@ -175,6 +175,12 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.cta-desc` | small muted description inside a CTA card |
 | `.cta-arrow` | animated arrow icon that appears on CTA hover |
 
+### Game screen header
+| Class | Description |
+|---|---|
+| `.game-header` | sticky-height header bar shown on the game screen in place of `.site-nav` — brand left, viewer count right |
+| `.game-viewer-count` | muted eye icon + number showing active spectator count; hidden when count is 0 |
+
 ### Test bench
 | Class | Description |
 |---|---|
@@ -223,6 +229,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.word-bank` | word-bank count display in `.script-meta` |
 | `.script-editor` | full-height monospace textarea for script input |
 | `.board-card` | flex column card wrapping the game board |
+| `.board-card--solo` | modifier: board displayed without a side-by-side editor — constrains to max 1000px and centers |
+| `.game-controls--solo` | modifier: game-controls row paired with a solo board — constrains to max 1000px and centers |
 | `.board-legend` | flex row legend showing player board-coverage stats; stacks to column at ≤1080px |
 | `.board-legend-pills` | flex row grouping the two ownership pill items within `.board-legend` |
 | `.board-legend-item` | pill legend item showing player owned-cell count and board percentage (use with `--p1` or `--p2`) |
