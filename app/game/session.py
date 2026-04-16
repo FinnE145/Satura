@@ -6,6 +6,28 @@ from .engine import Engine
 from config import Config
 
 
+def _restore_funcs(engine: Engine, func_bodies: dict) -> None:
+    """Rebuild engine.persisted_funcs from {name: source_text} of stored function bodies."""
+    from ..lang.lexer import tokenize
+    from ..lang.parser import parse
+    from ..lang.nodes import FuncDef
+    from ..lang.compiler import Type
+
+    _BODIES_KEY = 0
+    bodies = engine.persisted_funcs.setdefault(_BODIES_KEY, {})
+    for name, body_text in func_bodies.items():
+        try:
+            tokens = tokenize(body_text)
+            program = parse(tokens)
+            for stmt in program.stmts:
+                if isinstance(stmt, FuncDef):
+                    bodies[stmt.name] = stmt
+                    engine.persisted_funcs[stmt.name] = (stmt.params, Type(0))
+                    break
+        except Exception:
+            pass
+
+
 def _extract_func_text(source_lines: list[str], start_line: int) -> str:
     """Extract a function definition from source lines given its 1-based start line.
 
@@ -566,6 +588,116 @@ _pending_lobbies: dict[str, PendingLobby] = {}
 _alias_index: dict[str, str] = {}  # join_alias (uppercase) -> game_id
 
 
+def _restore_session_from_db(game_id: str) -> "GameSession | None":
+    """Rebuild a GameSession from the most recent persisted ExecutionPhase for an active game."""
+    try:
+        from .. import db
+        from ..models import Game, ExecutionPhase, Script, DefinedFunction
+
+        game = Game.query.get(game_id)
+        if game is None or game.status != 'active':
+            return None
+
+        last_phase = (
+            ExecutionPhase.query
+            .filter_by(game_id=game_id)
+            .order_by(ExecutionPhase.phase_number.desc())
+            .first()
+        )
+        if last_phase is None:
+            return None
+
+        size = game.board_size or Config.BOARD_SIZE
+        op_limit = game.op_limit or Config.OP_LIMIT
+        clock_seconds = game.clock_seconds or Config.CLOCK_SECONDS
+        word_rate = game.word_rate if game.word_rate is not None else Config.WORD_RATE
+
+        engine = Engine(size, op_limit, clock_seconds, word_rate)
+
+        # Restore board
+        engine.board.restore(json.loads(last_phase.board_state_json))
+
+        # Restore agent positions
+        agents_raw = json.loads(last_phase.agents_json)
+        engine.agents[1].row = agents_raw['1']['row']
+        engine.agents[1].col = agents_raw['1']['col']
+        engine.agents[2].row = agents_raw['2']['row']
+        engine.agents[2].col = agents_raw['2']['col']
+
+        # Restore word banks and clocks (both paused at snapshot values)
+        if last_phase.word_banks_json:
+            wb = json.loads(last_phase.word_banks_json)
+            engine._word_bank[1] = float(wb.get('1') or 0.0)
+            engine._word_bank[2] = float(wb.get('2') or 0.0)
+
+        if last_phase.clock_remaining_json:
+            clk = json.loads(last_phase.clock_remaining_json)
+            p1_clk = clk.get('1') or clk.get(1)
+            p2_clk = clk.get('2') or clk.get(2)
+            if p1_clk is not None:
+                engine._clock_remaining[1] = float(p1_clk)
+            if p2_clk is not None:
+                engine._clock_remaining[2] = float(p2_clk)
+
+        # Restore persisted function definitions
+        all_funcs = (
+            DefinedFunction.query
+            .filter_by(game_id=game_id)
+            .order_by(DefinedFunction.id)
+            .all()
+        )
+        func_bodies = {}
+        for f in all_funcs:
+            func_bodies[f.func_name] = f.func_body_text
+        _restore_funcs(engine, func_bodies)
+
+        session = GameSession(game_id, engine)
+        session._opening_pre_write_pending = False
+        session._phase_counter = last_phase.phase_number + 1
+        session._prev_phase_id = last_phase.id
+        session._turn_counter = Script.query.filter_by(game_id=game_id).count()
+        session.set_players(game.player1_id, game.player2_id)
+
+        exec_type = last_phase.exec_type
+        player_slot = last_phase.player_slot
+
+        if exec_type in ('exec2', 'initial'):
+            current_player = player_slot if exec_type == 'exec2' else (game.starting_player or 1)
+            session.current_player = current_player
+        else:
+            # exec1 for player_slot just ran but exec2 for the other player never persisted.
+            # Re-run exec2 for the other player to bring board state up to date.
+            other = 3 - player_slot
+            session.current_player = other
+            last_script = (
+                Script.query
+                .filter_by(game_id=game_id, player_slot=other)
+                .order_by(Script.turn_number.desc())
+                .first()
+            )
+            if last_script:
+                try:
+                    result = engine.compile(last_script.source_text)
+                    if result.ok:
+                        session._program[other] = result.program
+                except Exception:
+                    pass
+            session._run_exec2()
+            # Skip the animation — go straight to write phase
+            session._anim_deadline = None
+
+        if not session.game_over:
+            session.phase = 'write'
+            session._write_started_at = time.monotonic()
+            engine.resume_clock(session.current_player)
+            engine.resume_word_accumulation(session.current_player)
+
+        _sessions[game_id] = session
+        return session
+    except Exception:
+        return None
+
+
 def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '') -> PendingLobby:
     lobby = PendingLobby(
         game_id=game_id,
@@ -620,4 +752,7 @@ def create_session(
 
 
 def get_session(game_id: str) -> GameSession | None:
-    return _sessions.get(game_id)
+    session = _sessions.get(game_id)
+    if session is not None:
+        return session
+    return _restore_session_from_db(game_id)
