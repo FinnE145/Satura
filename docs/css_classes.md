@@ -13,6 +13,7 @@ Update this file whenever a class is added, changed, or removed.
 | `.text-muted` | 50% opacity text — often hard to see, low contrast for minor details |
 | `.text-subtle` | 70% opacity text — secondary/supporting text |
 | `.text-italic` | italic text |
+| `.text-center` | `text-align: center` utility |
 | `.text-small-sans` | 0.78em DM Sans — timestamps, metadata, disclaimers |
 | `.subheading` | italic Lora 0.9rem — taglines, subtitles, section intros |
 | `.heading-display` | 2rem Lora 600 — large page or section headings |
@@ -298,6 +299,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 |---|---|
 | `.login-wrap` | centred narrow wrapper for the login form |
 | `.login-card` | card containing the login form fields |
+| `.login-footer` | spacing for the "create account" link below the login form |
 
 ### Contact page
 | Class | Description |
