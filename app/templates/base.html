@@ -35,6 +35,12 @@
                 <a href="/my-games" class="nav-link">My games</a>
                 <a href="/how-to-play" class="nav-link">How to play</a>
             </div>
+            {% if active_game_id %}
+            <a href="/game/{{ active_game_id }}" class="nav-in-game" data-game-id="{{ active_game_id }}">
+                <span class="nav-in-game-title">In game</span>
+                <span class="nav-in-game-phase" data-nav="phase"></span>
+            </a>
+            {% endif %}
             <div class="nav-actions">
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.settings_profile') }}" class="nav-profile-btn"
@@ -110,6 +116,70 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        (function () {
+            const indicator = document.querySelector('.nav-in-game');
+            if (!indicator) return;
+            const gameId = indicator.dataset.gameId;
+            const phaseEl = indicator.querySelector('[data-nav="phase"]');
+            if (!gameId || !phaseEl) return;
+
+            let snapshot = null;
+            let renderTimer = null;
+
+            function formatClock(seconds) {
+                const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+                const mins = Math.floor(safe / 60);
+                const secs = safe % 60;
+                return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            }
+
+            function phaseLabel(phase) {
+                if (phase === 'anim_post_exec1' || phase === 'exec1') return 'Exec 1';
+                if (phase === 'anim_pre_write' || phase === 'exec2') return 'Exec 2';
+                if (phase === 'opening_pre_write') return 'Pre-Write';
+                if (phase === 'write') return 'Write';
+                return phase || '';
+            }
+
+            function render() {
+                if (!snapshot) return;
+                const elapsed = Math.max(0, (performance.now() - snapshot.sampledAt) / 1000);
+                let text = snapshot.label;
+                if (snapshot.mode === 'countdown') {
+                    text += ' ' + formatClock(Math.max(0, snapshot.seconds - elapsed));
+                } else if (snapshot.mode === 'countup') {
+                    text += ' +' + formatClock(snapshot.seconds + elapsed);
+                }
+                phaseEl.textContent = text;
+            }
+
+            async function poll() {
+                try {
+                    const res = await fetch('/game/' + gameId + '/state');
+                    if (!res.ok) return;
+                    const state = await res.json();
+                    const timer = state.phase_timer;
+                    const label = phaseLabel(state.phase);
+                    const player = String(state.current_player ?? '');
+                    const isWrite = state.phase === 'write';
+                    indicator.dataset.player = player;
+                    indicator.dataset.write = isWrite ? 'true' : 'false';
+                    if (timer && timer.mode && Number.isFinite(Number(timer.seconds))) {
+                        snapshot = { label, mode: timer.mode, seconds: Number(timer.seconds), sampledAt: performance.now() };
+                    } else {
+                        snapshot = { label, mode: null, seconds: 0, sampledAt: performance.now() };
+                    }
+                    render();
+                } catch (_) { }
+            }
+
+            poll();
+            setInterval(poll, 2000);
+            renderTimer = setInterval(render, 250);
+        })();
+    </script>
 </body>
 
 </html>

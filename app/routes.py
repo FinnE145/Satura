@@ -162,8 +162,17 @@ def _active_palette_for_user():
 @bp.app_context_processor
 def inject_theme_context():
     palette = _active_palette_for_user()
+    active_game_id = None
+    if current_user.is_authenticated:
+        active_game = Game.query.filter(
+            Game.status == 'active',
+            or_(Game.player1_id == current_user.id, Game.player2_id == current_user.id)
+        ).first()
+        if active_game:
+            active_game_id = active_game.id
     return {
         'active_palette': palette,
+        'active_game_id': active_game_id,
     }
 
 
