@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Satura – Join Test Game{% endblock %}
+{% block title %}Satura | Join Game{% endblock %}
 
 {% block content %}
 <main class="site-main">
     <div class="container create-page-stack" id="join-root" data-game-id="{{ game_id }}" data-my-username="{{ current_user.username if current_user.is_authenticated else '' }}" data-p1-username="{{ p1_username }}">
         <article class="card">
             <header class="card-header">
-                <h1 class="card-title">Join Test Game</h1>
+                <h1 class="card-title">Join Game</h1>
                 <p class="subheading text-subtle">Hosted by {{ p1_username }}</p>
             </header>
             <div class="settings-card-body settings-stack" id="join-body">

@@ -396,7 +396,7 @@ h6 {
 
 /* Sign-in button: use .btn.btn--secondary.btn--sm */
 
-/* ─── Alt header (test bench style — no nav links) ───────────────────────────── */
+/* ─── Alt header (game page — no nav links) ──────────────────────────────────── */
 
 .site-header {
     background: var(--bg-header);
@@ -1243,7 +1243,7 @@ a[aria-disabled='true'] {
     transform: translateX(0);
 }
 
-/* ─── Test bench ─────────────────────────────────────────────────────────────── */
+/* ─── Game page ──────────────────────────────────────────────────────────────── */
 
 /* Session status bar */
 

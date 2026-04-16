@@ -1,8 +1,8 @@
 (function () {
     'use strict';
 
-    const presetsEl = document.getElementById('test-presets-json');
-    const defaultPresetEl = document.getElementById('test-default-preset-json');
+    const presetsEl = document.getElementById('presets-json');
+    const defaultPresetEl = document.getElementById('default-preset-json');
 
     let presets = {};
     let defaultPreset = '5';
@@ -22,12 +22,12 @@
         }
     }
 
-    const createRoot = document.getElementById('test-create-root');
+    const createRoot = document.getElementById('create-root');
     const myUsername = createRoot?.dataset?.username || '';
     const startingOptMe = document.getElementById('starting-opt-me');
     const startingOptOpp = document.getElementById('starting-opt-opp');
 
-    const errorBox = document.getElementById('test-create-error');
+    const errorBox = document.getElementById('create-error');
     const linkDisplay = document.getElementById('link-display');
     const linkDisplayUrl = document.getElementById('link-display-url');
     const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));

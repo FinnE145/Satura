@@ -124,7 +124,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.nav-dropdown` | absolute dropdown panel below the profile button |
 | `.nav-dropdown-item` | link row inside the dropdown |
 
-### Alt header (test bench, stripped nav)
+### Alt header (game page — no nav links)
 | Class | Description |
 |---|---|
 | `.site-header` | sticky header without nav links |
@@ -181,10 +181,10 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-header` | sticky-height header bar shown on the game screen in place of `.site-nav` — brand left, viewer count right |
 | `.game-viewer-count` | muted eye icon + number showing active spectator count; hidden when count is 0 |
 
-### Test bench
+### Game page
 | Class | Description |
 |---|---|
-| `.session-bar` | status bar at the bottom of the test bench page |
+| `.session-bar` | status bar at the bottom of the game page |
 | `.session-bar-left` | left cluster inside `.session-bar` for session id and phase pill |
 | `.status-dot` | small coloured indicator dot (use with a state modifier) |
 | `.status-dot--ready` | green dot |

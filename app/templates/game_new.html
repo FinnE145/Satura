@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Satura - New Test Game{% endblock %}
+{% block title %}Satura | New Game{% endblock %}
 
 {% block content %}
 <main class="site-main">
-    <div class="container create-page-stack" id="test-create-root" data-username="{{ username }}">
+    <div class="container create-page-stack" id="create-root" data-username="{{ username }}">
         <article class="card">
             <header class="card-header">
-                <h1 class="card-title">Create Test Game</h1>
+                <h1 class="card-title">Create Game</h1>
             </header>
             <div class="settings-card-body settings-stack">
                 <div>
                     <p class="hero-create-label">Preset</p>
-                    <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Test game preset">
+                    <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Game preset">
                         {% for key in preset_order %}
                         <button type="button" class="icon-btn btn-warm-hover" data-preset="{{ key }}" role="radio"
                             aria-checked="false">
@@ -28,7 +28,7 @@
                     </div>
                 </div>
 
-                <form id="test-create-form" class="contact-form settings-form" novalidate>
+                <form id="create-form" class="contact-form settings-form" novalidate>
                     <div class="create-form-grid">
                         <div class="field">
                             <label class="form-label" for="clock_seconds">Clock (min)</label>
@@ -113,7 +113,7 @@
                         Copied link: <span id="link-display-url" class="info-msg__url"></span>
                     </div>
 
-                    <div id="test-create-error" class="error-msg" hidden></div>
+                    <div id="create-error" class="error-msg" hidden></div>
                 </form>
 
                 <div id="lobby-panel" hidden class="settings-stack">
@@ -133,7 +133,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script id="test-presets-json" type="application/json">{{ presets | tojson }}</script>
-<script id="test-default-preset-json" type="application/json">{{ default_preset | tojson }}</script>
+<script id="presets-json" type="application/json">{{ presets | tojson }}</script>
+<script id="default-preset-json" type="application/json">{{ default_preset | tojson }}</script>
 <script src="{{ url_for('static', filename='js/game_new.js') }}"></script>
 {% endblock %}
