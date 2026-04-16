@@ -1132,11 +1132,6 @@ def settings_account():
                 db.session.commit()
                 flash('Password updated.')
 
-        elif action == 'disable_account':
-            current_user.disabled = True
-            db.session.commit()
-            flash('Account disabled flag set.')
-
         elif action == 'delete_account':
             confirmation = request.form.get('confirm_username', '').strip()
             if confirmation != current_user.username:
