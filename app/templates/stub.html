@@ -4,7 +4,7 @@
 {% block content %}
     <div class="stub-wrap">
         <h1 class="heading-display">{{ page_title }}</h1>
-        <p class="subheading text-muted">This page is on its way.</p>
+        {% if subtitle %}<p class="subheading text-muted">{{ subtitle }}</p>{% endif %}
         <a href="/" class="stub-back">← Back to home</a>
     </div>
 {% endblock %}

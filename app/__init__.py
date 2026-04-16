@@ -22,6 +22,11 @@ def create_app(config_class=Config):
     from app.routes import bp
     app.register_blueprint(bp)
 
+    @app.errorhandler(404)
+    def not_found(_e):
+        from flask import render_template
+        return render_template('stub.html', page_title='Page Not Found'), 404
+
     with app.app_context():
         from app import models  # noqa: F401 — ensure models are registered
         db.create_all()

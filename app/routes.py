@@ -1078,7 +1078,7 @@ def game_history(game_id):
 
 @bp.route('/how-to-play')
 def how_to_play():
-    return render_template('stub.html', page_title='How to Play')
+    return render_template('stub.html', page_title='How to Play', subtitle='This page is on its way.')
 
 
 @bp.route('/settings/profile')
