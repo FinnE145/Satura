@@ -17,6 +17,11 @@
       </a>
       <span class="page-breadcrumb__sep" aria-hidden="true">›</span>
       <span class="page-breadcrumb__current">Game {{ game_id_short }}</span>
+      {% if game.status != 'finished' %}
+      <span class="page-breadcrumb__action">
+        Game is ongoing.&nbsp;<a href="{{ url_for('main.game_page', game_id=game.id) }}" class="page-breadcrumb__back">Continue →</a>
+      </span>
+      {% endif %}
     </nav>
 
     {# ── Stats card ─────────────────────────────────────────────────────── #}

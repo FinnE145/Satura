@@ -3330,6 +3330,13 @@ body:has(.login-wrap) {
     font-size: 0.9em;
 }
 
+.page-breadcrumb__action {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
 /* ── Stats card ─────────────────────────────────────────────────────────── */
 
 .detail-stats-card {

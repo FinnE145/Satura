@@ -395,6 +395,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.page-breadcrumb__back` | Back arrow + label link with warm hover |
 | `.page-breadcrumb__sep` | Separator glyph between crumbs |
 | `.page-breadcrumb__current` | Current page label (monospace, muted) |
+| `.page-breadcrumb__action` | Right-aligned action link in the breadcrumb row (margin-left: auto, warm accent) |
 | `.detail-stats-card` | Stats-only card above the graphs — flex column |
 | `.detail-stat-list` | Responsive auto-fill grid of `<dt>/<dd>` pairs |
 | `.detail-graphs` | 3-column responsive grid containing the 3 chart cards |
