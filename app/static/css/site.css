@@ -171,6 +171,14 @@ h6 {
     color: var(--text-subtle);
 }
 
+.form-heading {
+    font-family: var(--font-ui);
+    font-size: 1em;
+    font-weight: 500;
+    color: var(--text);
+}
+
+
 /* Small-caps label — section labels, category tags */
 .label {
     font-family: var(--font-ui);
@@ -218,6 +226,15 @@ h6 {
 
 .cool-hover:hover {
     color: var(--accent-cool);
+}
+
+.accent-link {
+    color: var(--accent);
+    transition: color 0.15s;
+}
+
+.accent-link:hover {
+    color: var(--accent-bright);
 }
 
 /* Button hover: border + tint fill change to accent colour on hover */

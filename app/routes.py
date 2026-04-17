@@ -495,9 +495,37 @@ def game_new():
         '5': 'rocket',
         'custom': 'alarm_smart_wake',
     }
-    preset_param = request.args.get('preset', '5')
+    preset_param = request.args.get('preset')
     if preset_param not in ('60', '30', '15', '5', 'custom'):
-        preset_param = '5'
+        preset_param = None
+    if preset_param is None:
+        if current_user.is_authenticated:
+            user_settings = _get_or_create_settings(current_user)
+            preset_param = user_settings.default_time_control or '5'
+        else:
+            preset_param = '5'
+
+    user_custom_defaults = None
+    user_accom_defaults = None
+    if current_user.is_authenticated:
+        user_settings = _get_or_create_settings(current_user)
+        if user_settings.custom_clock_seconds is not None:
+            user_custom_defaults = {
+                'clock_seconds': user_settings.custom_clock_seconds,
+                'board_size': user_settings.custom_board_size_val,
+                'op_limit': user_settings.custom_op_limit,
+                'word_rate': user_settings.custom_word_rate,
+                'starting_words': user_settings.custom_starting_words,
+            }
+        if user_settings.accom_p1_clock_seconds is not None:
+            user_accom_defaults = {
+                'p1_clock_seconds': user_settings.accom_p1_clock_seconds,
+                'p2_clock_seconds': user_settings.accom_p2_clock_seconds,
+                'p1_starting_words': user_settings.accom_p1_starting_words,
+                'p2_starting_words': user_settings.accom_p2_starting_words,
+                'starting_player': user_settings.accom_starting_player or 'random',
+            }
+
     return render_template(
         'game_new.html',
         presets=Config.TIME_CONTROL_PRESETS,
@@ -506,6 +534,8 @@ def game_new():
         board_size_stops=Config.BOARD_SIZE_STOPS,
         default_preset=preset_param,
         username=current_user.username if current_user.is_authenticated else '',
+        user_custom_defaults=user_custom_defaults,
+        user_accom_defaults=user_accom_defaults,
     )
 
 
@@ -1167,30 +1197,78 @@ def settings_game():
             if time_control not in Config.TIME_CONTROL_PRESETS and time_control != 'custom':
                 flash('Invalid time control option.')
             else:
-                custom_minutes = settings.custom_minutes
-                if time_control == 'custom':
-                    try:
-                        custom_minutes = int(request.form.get('custom_minutes', Config.DEFAULT_CUSTOM_MINUTES))
-                    except (TypeError, ValueError):
-                        custom_minutes = Config.DEFAULT_CUSTOM_MINUTES
-                    custom_minutes = max(1, min(custom_minutes, 180))
-                else:
-                    custom_minutes = None
-
-                default_player = request.form.get('default_player', Config.DEFAULT_PLAYER_CHOICE)
-                if default_player not in ('p1', 'p2', 'random'):
-                    default_player = Config.DEFAULT_PLAYER_CHOICE
+                settings.default_time_control = time_control
 
                 try:
-                    board_size = int(request.form.get('default_board_size', Config.BOARD_SIZE))
+                    custom_clock_seconds = float(request.form.get('custom_clock_minutes', 5)) * 60
+                    custom_clock_seconds = max(30.0, min(custom_clock_seconds, 21600.0))
                 except (TypeError, ValueError):
-                    board_size = Config.BOARD_SIZE
-                board_size = _closest_board_size(board_size)
+                    custom_clock_seconds = 300.0
 
-                settings.default_time_control = time_control
-                settings.custom_minutes = custom_minutes
-                settings.default_player = default_player
-                settings.default_board_size = board_size
+                try:
+                    custom_board_size_val = int(request.form.get('custom_board_size', 6))
+                    custom_board_size_val = _closest_board_size(custom_board_size_val)
+                except (TypeError, ValueError):
+                    custom_board_size_val = 6
+
+                try:
+                    custom_op_limit = int(request.form.get('custom_op_limit', 25))
+                    custom_op_limit = max(1, min(custom_op_limit, 200))
+                except (TypeError, ValueError):
+                    custom_op_limit = 25
+
+                try:
+                    custom_word_rate = float(request.form.get('custom_word_rate', 1.0))
+                    custom_word_rate = max(0.1, min(custom_word_rate, 10.0))
+                except (TypeError, ValueError):
+                    custom_word_rate = 1.0
+
+                try:
+                    custom_starting_words = float(request.form.get('custom_starting_words', 30.0))
+                    custom_starting_words = max(0.0, min(custom_starting_words, 500.0))
+                except (TypeError, ValueError):
+                    custom_starting_words = 30.0
+
+                settings.custom_clock_seconds = custom_clock_seconds
+                settings.custom_board_size_val = custom_board_size_val
+                settings.custom_op_limit = custom_op_limit
+                settings.custom_word_rate = custom_word_rate
+                settings.custom_starting_words = custom_starting_words
+
+                try:
+                    accom_p1_clock_seconds = float(request.form.get('accom_p1_clock_minutes', 5)) * 60
+                    accom_p1_clock_seconds = max(30.0, min(accom_p1_clock_seconds, 21600.0))
+                except (TypeError, ValueError):
+                    accom_p1_clock_seconds = 300.0
+
+                try:
+                    accom_p2_clock_seconds = float(request.form.get('accom_p2_clock_minutes', 5)) * 60
+                    accom_p2_clock_seconds = max(30.0, min(accom_p2_clock_seconds, 21600.0))
+                except (TypeError, ValueError):
+                    accom_p2_clock_seconds = 300.0
+
+                try:
+                    accom_p1_starting_words = float(request.form.get('accom_p1_starting_words', 30.0))
+                    accom_p1_starting_words = max(0.0, min(accom_p1_starting_words, 500.0))
+                except (TypeError, ValueError):
+                    accom_p1_starting_words = 30.0
+
+                try:
+                    accom_p2_starting_words = float(request.form.get('accom_p2_starting_words', 30.0))
+                    accom_p2_starting_words = max(0.0, min(accom_p2_starting_words, 500.0))
+                except (TypeError, ValueError):
+                    accom_p2_starting_words = 30.0
+
+                accom_starting_player = request.form.get('accom_starting_player', 'random')
+                if accom_starting_player not in ('random', '1', '2'):
+                    accom_starting_player = 'random'
+
+                settings.accom_p1_clock_seconds = accom_p1_clock_seconds
+                settings.accom_p2_clock_seconds = accom_p2_clock_seconds
+                settings.accom_p1_starting_words = accom_p1_starting_words
+                settings.accom_p2_starting_words = accom_p2_starting_words
+                settings.accom_starting_player = accom_starting_player
+
                 db.session.commit()
                 flash('Game defaults saved.')
 
@@ -1212,6 +1290,20 @@ def settings_game():
         settings=settings,
         board_size_stops=Config.BOARD_SIZE_STOPS,
         time_controls=('60', '30', '15', '5', 'custom'),
+        default_custom={
+            'clock_minutes': round((settings.custom_clock_seconds or 300.0) / 60, 2),
+            'board_size': settings.custom_board_size_val or 6,
+            'op_limit': settings.custom_op_limit or 25,
+            'word_rate': settings.custom_word_rate or 1.0,
+            'starting_words': settings.custom_starting_words or 30.0,
+        },
+        default_accom={
+            'p1_clock_minutes': round((settings.accom_p1_clock_seconds or 300.0) / 60, 2),
+            'p2_clock_minutes': round((settings.accom_p2_clock_seconds or 300.0) / 60, 2),
+            'p1_starting_words': settings.accom_p1_starting_words or 30.0,
+            'p2_starting_words': settings.accom_p2_starting_words or 30.0,
+            'starting_player': settings.accom_starting_player or 'random',
+        },
     )
 
 

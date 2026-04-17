@@ -150,4 +150,18 @@ class AccountSettings(db.Model):
     default_board_size   = db.Column(db.Integer, nullable=False, default=16)
     palette              = db.Column(db.String(16), nullable=False, default='solstice')
 
+    # Custom time control defaults (applied when create page opens in custom mode)
+    custom_clock_seconds  = db.Column(db.Float, nullable=True)
+    custom_board_size_val = db.Column(db.Integer, nullable=True)
+    custom_op_limit       = db.Column(db.Integer, nullable=True)
+    custom_word_rate      = db.Column(db.Float, nullable=True)
+    custom_starting_words = db.Column(db.Float, nullable=True)
+
+    # Accommodation defaults (pre-fill when accommodations are first enabled)
+    accom_p1_clock_seconds  = db.Column(db.Float, nullable=True)
+    accom_p2_clock_seconds  = db.Column(db.Float, nullable=True)
+    accom_p1_starting_words = db.Column(db.Float, nullable=True)
+    accom_p2_starting_words = db.Column(db.Float, nullable=True)
+    accom_starting_player   = db.Column(db.String(8), nullable=True)
+
     account = db.relationship('Account', back_populates='settings')

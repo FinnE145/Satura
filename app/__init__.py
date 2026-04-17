@@ -78,6 +78,25 @@ def _upgrade_schema():
                 """
             ))
 
+        # -- Extend account_settings with custom/accom defaults --
+        if inspector.has_table('account_settings'):
+            settings_cols = {col['name'] for col in inspector.get_columns('account_settings')}
+            new_settings_cols = {
+                'custom_clock_seconds':    'REAL',
+                'custom_board_size_val':   'INTEGER',
+                'custom_op_limit':         'INTEGER',
+                'custom_word_rate':        'REAL',
+                'custom_starting_words':   'REAL',
+                'accom_p1_clock_seconds':  'REAL',
+                'accom_p2_clock_seconds':  'REAL',
+                'accom_p1_starting_words': 'REAL',
+                'accom_p2_starting_words': 'REAL',
+                'accom_starting_player':   'VARCHAR(8)',
+            }
+            for col_name, col_def in new_settings_cols.items():
+                if col_name not in settings_cols:
+                    conn.execute(text(f'ALTER TABLE account_settings ADD COLUMN {col_name} {col_def}'))
+
         # -- Extend games table with settings/result columns --
         if inspector.has_table('games'):
             game_cols = {col['name'] for col in inspector.get_columns('games')}

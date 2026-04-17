@@ -3,9 +3,13 @@
 
     const presetsEl = document.getElementById('presets-json');
     const defaultPresetEl = document.getElementById('default-preset-json');
+    const userCustomDefaultsEl = document.getElementById('user-custom-defaults-json');
+    const userAccomDefaultsEl = document.getElementById('user-accom-defaults-json');
 
     let presets = {};
     let defaultPreset = '5';
+    let userCustomDefaults = null;
+    let userAccomDefaults = null;
 
     if (presetsEl?.textContent) {
         try {
@@ -19,6 +23,20 @@
             defaultPreset = JSON.parse(defaultPresetEl.textContent) || '5';
         } catch (_) {
             defaultPreset = '5';
+        }
+    }
+    if (userCustomDefaultsEl?.textContent) {
+        try {
+            userCustomDefaults = JSON.parse(userCustomDefaultsEl.textContent);
+        } catch (_) {
+            userCustomDefaults = null;
+        }
+    }
+    if (userAccomDefaultsEl?.textContent) {
+        try {
+            userAccomDefaults = JSON.parse(userAccomDefaultsEl.textContent);
+        } catch (_) {
+            userAccomDefaults = null;
         }
     }
 
@@ -63,6 +81,8 @@
     ];
 
     let selectedPreset = 'custom';
+    let customDefaultsActive = false;
+    let accomDefaultsActive = false;
     let currentGameId = null;
     let pollInterval = null;
     let p1IsReady = false;
@@ -132,6 +152,13 @@
         syncCoreDisabledState();
     }
 
+    function syncDefaultsNotice() {
+        const notice = document.getElementById('defaults-loaded-notice');
+        if (!notice) return;
+        const showForAccom = accomDefaultsActive && fields.accommodations_enabled.checked;
+        notice.hidden = !(customDefaultsActive || showForAccom);
+    }
+
     function syncAccommodations() {
         const enabled = fields.accommodations_enabled.checked;
         fields.accommodations_section.hidden = !enabled;
@@ -140,23 +167,46 @@
             selectPreset('custom', { keepValues: true });
         }
 
-        if (!enabled) return;
+        if (!enabled) {
+            syncDefaultsNotice();
+            return;
+        }
 
-        const core = readCoreValues();
-        // core.clock_seconds is in seconds; accommodation fields are in minutes
-        const clockMins = core.clock_seconds != null ? +(core.clock_seconds / 60) : '';
-        if (fields.p1_clock_seconds.value === '') {
-            fields.p1_clock_seconds.value = String(clockMins);
+        const accomFieldsAllEmpty = (
+            fields.p1_clock_seconds.value === '' &&
+            fields.p2_clock_seconds.value === '' &&
+            fields.p1_starting_words.value === '' &&
+            fields.p2_starting_words.value === ''
+        );
+
+        if (accomFieldsAllEmpty && userAccomDefaults) {
+            fields.p1_clock_seconds.value = String(+(userAccomDefaults.p1_clock_seconds / 60));
+            fields.p2_clock_seconds.value = String(+(userAccomDefaults.p2_clock_seconds / 60));
+            fields.p1_starting_words.value = String(userAccomDefaults.p1_starting_words);
+            fields.p2_starting_words.value = String(userAccomDefaults.p2_starting_words);
+            if (fields.starting_player) {
+                fields.starting_player.value = String(userAccomDefaults.starting_player);
+            }
+            accomDefaultsActive = true;
+        } else if (accomFieldsAllEmpty) {
+            const core = readCoreValues();
+            // core.clock_seconds is in seconds; accommodation fields are in minutes
+            const clockMins = core.clock_seconds != null ? +(core.clock_seconds / 60) : '';
+            if (fields.p1_clock_seconds.value === '') {
+                fields.p1_clock_seconds.value = String(clockMins);
+            }
+            if (fields.p2_clock_seconds.value === '') {
+                fields.p2_clock_seconds.value = String(clockMins);
+            }
+            if (fields.p1_starting_words.value === '') {
+                fields.p1_starting_words.value = String(core.starting_words ?? '');
+            }
+            if (fields.p2_starting_words.value === '') {
+                fields.p2_starting_words.value = String(core.starting_words ?? '');
+            }
         }
-        if (fields.p2_clock_seconds.value === '') {
-            fields.p2_clock_seconds.value = String(clockMins);
-        }
-        if (fields.p1_starting_words.value === '') {
-            fields.p1_starting_words.value = String(core.starting_words ?? '');
-        }
-        if (fields.p2_starting_words.value === '') {
-            fields.p2_starting_words.value = String(core.starting_words ?? '');
-        }
+
+        syncDefaultsNotice();
     }
 
     function buildPayload() {
@@ -355,6 +405,7 @@
 
     presetButtons.forEach((button) => {
         button.addEventListener('click', () => {
+            customDefaultsActive = false;
             selectPreset(button.dataset.preset || 'custom');
             syncAccommodations();
             schedulePatchSettings();
@@ -367,11 +418,19 @@
     });
 
     coreInputs.forEach((input) => {
-        if (input) input.addEventListener('input', schedulePatchSettings);
+        if (input) input.addEventListener('input', () => {
+            customDefaultsActive = false;
+            syncDefaultsNotice();
+            schedulePatchSettings();
+        });
     });
 
     [fields.p1_clock_seconds, fields.p2_clock_seconds, fields.p1_starting_words, fields.p2_starting_words, fields.starting_player].forEach((input) => {
-        if (input) input.addEventListener('input', schedulePatchSettings);
+        if (input) input.addEventListener('input', () => {
+            accomDefaultsActive = false;
+            syncDefaultsNotice();
+            schedulePatchSettings();
+        });
     });
 
     if (copyLinkBtn) copyLinkBtn.addEventListener('click', handleCopyLink);
@@ -379,6 +438,15 @@
     if (newLinkBtn) newLinkBtn.addEventListener('click', handleNewLink);
 
     selectPreset(defaultPreset);
+    if (defaultPreset === 'custom') {
+        if (userCustomDefaults) {
+            applyCoreValues(userCustomDefaults);
+            customDefaultsActive = true;
+        } else {
+            applyCoreValues(presets['5']);
+        }
+    }
     syncAccommodations();
+    syncDefaultsNotice();
     updateStartingPlayerOptions(null);
 })();

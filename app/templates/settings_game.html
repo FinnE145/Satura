@@ -22,34 +22,70 @@
                 </select>
             </div>
 
-            <div class="field" id="custom-minutes-wrap" {% if settings.default_time_control !='custom' %}hidden{% endif
-                %}>
-                <label class="form-label" for="custom_minutes">Custom minutes</label>
-                <input type="number" id="custom_minutes" name="custom_minutes" min="1" max="180"
-                    value="{{ settings.custom_minutes or 10 }}" {% if settings.default_time_control !='custom'
-                    %}disabled{% endif %}>
+            <p class="form-heading"><span class="text-italic">Custom</span> Time Control Defaults</p>
+            <div class="create-form-grid">
+                <div class="field">
+                    <label class="form-label" for="custom_clock_minutes">Clock (min)</label>
+                    <input type="number" id="custom_clock_minutes" name="custom_clock_minutes"
+                        min="0.5" max="360" step="0.5" value="{{ default_custom.clock_minutes }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_board_size">Board size</label>
+                    <select id="custom_board_size" name="custom_board_size">
+                        {% for stop in board_size_stops %}
+                        <option value="{{ stop }}" {% if default_custom.board_size == stop %}selected{% endif %}>
+                            {{ stop }} × {{ stop }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_op_limit">Op limit</label>
+                    <input type="number" id="custom_op_limit" name="custom_op_limit"
+                        min="1" max="200" step="1" value="{{ default_custom.op_limit }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_word_rate">Word rate</label>
+                    <input type="number" id="custom_word_rate" name="custom_word_rate"
+                        min="0.1" max="10" step="0.1" value="{{ default_custom.word_rate }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_starting_words">Starting words</label>
+                    <input type="number" id="custom_starting_words" name="custom_starting_words"
+                        min="0" max="500" step="1" value="{{ default_custom.starting_words }}">
+                </div>
             </div>
 
+            <p class="form-heading">Default Accommodations</p>
+            <div class="split-grid">
+                <div class="field">
+                    <label class="form-label" for="accom_p1_clock_minutes">My clock (min)</label>
+                    <input type="number" id="accom_p1_clock_minutes" name="accom_p1_clock_minutes"
+                        min="0.5" max="360" step="0.5" value="{{ default_accom.p1_clock_minutes }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="accom_p2_clock_minutes">Opponent's clock (min)</label>
+                    <input type="number" id="accom_p2_clock_minutes" name="accom_p2_clock_minutes"
+                        min="0.5" max="360" step="0.5" value="{{ default_accom.p2_clock_minutes }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="accom_p1_starting_words">My starting words</label>
+                    <input type="number" id="accom_p1_starting_words" name="accom_p1_starting_words"
+                        min="0" max="500" step="1" value="{{ default_accom.p1_starting_words }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="accom_p2_starting_words">Opponent's starting words</label>
+                    <input type="number" id="accom_p2_starting_words" name="accom_p2_starting_words"
+                        min="0" max="500" step="1" value="{{ default_accom.p2_starting_words }}">
+                </div>
+            </div>
             <div class="field">
-                <label class="form-label" for="default_player">Default player</label>
-                <select id="default_player" name="default_player">
-                    <option value="p1" {% if settings.default_player=='p1' %}selected{% endif %}>Player 1</option>
-                    <option value="p2" {% if settings.default_player=='p2' %}selected{% endif %}>Player 2</option>
-                    <option value="random" {% if settings.default_player=='random' %}selected{% endif %}>Random</option>
+                <label class="form-label" for="accom_starting_player">Who starts</label>
+                <select id="accom_starting_player" name="accom_starting_player">
+                    <option value="random" {% if default_accom.starting_player == 'random' %}selected{% endif %}>Random</option>
+                    <option value="1" {% if default_accom.starting_player == '1' %}selected{% endif %}>Me</option>
+                    <option value="2" {% if default_accom.starting_player == '2' %}selected{% endif %}>Opponent</option>
                 </select>
-            </div>
-
-            <div class="field">
-                <label class="form-label" for="default_board_size">Default board size</label>
-                <input type="range" id="default_board_size" class="settings-slider" name="default_board_size" min="8"
-                    max="32" step="1" value="{{ settings.default_board_size }}" list="board-size-stops">
-                <datalist id="board-size-stops">
-                    {% for stop in board_size_stops %}
-                    <option value="{{ stop }}"></option>
-                    {% endfor %}
-                </datalist>
-                <p class="text-small-sans text-subtle">Selected: <span id="board-size-value">{{
-                        settings.default_board_size }}</span></p>
             </div>
 
             <button type="submit" class="btn btn--accent">Save game defaults</button>
@@ -108,55 +144,6 @@
 <script>
     (function () {
         'use strict';
-
-        const allowed = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32];
-        const slider = document.getElementById('default_board_size');
-        const output = document.getElementById('board-size-value');
-        const timeControl = document.getElementById('time_control');
-        const customWrap = document.getElementById('custom-minutes-wrap');
-
-        function snapBoardSize() {
-            if (!slider || !output) {
-                return;
-            }
-            const raw = Number(slider.value);
-            let closest = allowed[0];
-            let distance = Math.abs(raw - closest);
-
-            allowed.forEach((value) => {
-                const diff = Math.abs(raw - value);
-                if (diff < distance) {
-                    closest = value;
-                    distance = diff;
-                }
-            });
-
-            slider.value = String(closest);
-            output.textContent = String(closest);
-        }
-
-        function syncCustomMinutesVisibility() {
-            if (!timeControl || !customWrap) {
-                return;
-            }
-            const isCustom = timeControl.value === 'custom';
-            customWrap.hidden = !isCustom;
-            const customInput = customWrap.querySelector('input');
-            if (customInput) {
-                customInput.disabled = !isCustom;
-            }
-        }
-
-        if (slider) {
-            slider.addEventListener('input', snapBoardSize);
-            slider.addEventListener('change', snapBoardSize);
-            snapBoardSize();
-        }
-
-        if (timeControl) {
-            timeControl.addEventListener('change', syncCustomMinutesVisibility);
-            syncCustomMinutesVisibility();
-        }
 
         const paletteCards = document.querySelectorAll('.settings-palette-card');
         const paletteInputs = document.querySelectorAll('.settings-palette-card input[type="radio"]');

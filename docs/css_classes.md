@@ -18,6 +18,7 @@ Update this file whenever a class is added, changed, or removed.
 | `.subheading` | italic Lora 0.9rem — taglines, subtitles, section intros |
 | `.heading-display` | 2rem Lora 600 — large page or section headings |
 | `.form-label` | 1em DM Sans 500, subtle colour — form field labels |
+| `.form-heading` | white text modifier for `.form-label` |
 | `.label` | 0.72em DM Sans, uppercase, wide tracking — category/section tags |
 | `.label-warm` | warm accent colour modifier for `.label` |
 | `.label-cool` | cool accent colour modifier for `.label` |
@@ -34,6 +35,7 @@ Update this file whenever a class is added, changed, or removed.
 |---|---|
 | `.warm-hover` | text transitions to warm accent on hover |
 | `.cool-hover` | text transitions to cool accent on hover |
+| `.accent-link` | warm accent colour by default, brighter on hover — inline text links |
 | `.btn-warm-hover` | border + tint fill transitions to warm accent on hover |
 | `.btn-cool-hover` | border + tint fill transitions to cool accent on hover |
 | `.btn-warn-hover` | border + tint fill transitions to warning yellow on hover |
