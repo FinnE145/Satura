@@ -43,3 +43,12 @@ When working on any HTML, CSS, or UI:
 - If you have attempted or reasoned through a problem more than twice without landing on a clean solution, stop. Explain what the constraint is and ask for direction.
 - Do not use hacky workarounds (excessive specificity, arbitrary overrides, layered fixes) to force something to work. If a clean solution isn't emerging, explain why and ask.
 - The signal to stop is when you are layering fixes on top of fixes, or thinking in circles. Surface the problem instead of digging deeper.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
