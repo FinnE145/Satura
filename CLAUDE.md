@@ -29,3 +29,12 @@ If unsure, default to:
 - Clarify ambiguities, edge cases, or missing details before implementing.
 - It is better to pause and confirm than to proceed with incorrect assumptions.
 - Ask me questions first; only read docs/spec.md or docs/language.md if broader clarification is needed (they are large and token-expensive).
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
