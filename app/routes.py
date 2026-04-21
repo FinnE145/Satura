@@ -203,7 +203,6 @@ def _get_or_create_settings(account):
         account=account,
         default_time_control=Config.DEFAULT_TIME_CONTROL,
         custom_minutes=Config.DEFAULT_CUSTOM_MINUTES,
-        default_player=Config.DEFAULT_PLAYER_CHOICE,
         default_board_size=Config.BOARD_SIZE,
         palette=Config.DEFAULT_PALETTE,
     )

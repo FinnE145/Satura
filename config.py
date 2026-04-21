@@ -14,7 +14,6 @@ class Config:
     DELETED_USERNAME = '[Deleted]'
 
     # ── User settings defaults ───────────────────────────────────────────────
-    DEFAULT_PLAYER_CHOICE = 'random'  # 'p1' | 'p2' | 'random'
     DEFAULT_PALETTE = 'solstice'
     DEFAULT_TIME_CONTROL = '15'       # '60' | '30' | '15' | '5' | 'custom'
     DEFAULT_CUSTOM_MINUTES = 10

@@ -146,7 +146,6 @@ class AccountSettings(db.Model):
     account_id           = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, unique=True)
     default_time_control = db.Column(db.String(16), nullable=False, default='15')
     custom_minutes       = db.Column(db.Integer, nullable=True)
-    default_player       = db.Column(db.String(8), nullable=False, default='random')
     default_board_size   = db.Column(db.Integer, nullable=False, default=16)
     palette              = db.Column(db.String(16), nullable=False, default='solstice')
 

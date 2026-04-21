@@ -70,7 +70,6 @@ def _upgrade_schema():
                     account_id INTEGER NOT NULL UNIQUE,
                     default_time_control VARCHAR(16) NOT NULL DEFAULT '15',
                     custom_minutes INTEGER,
-                    default_player VARCHAR(8) NOT NULL DEFAULT 'random',
                     default_board_size INTEGER NOT NULL DEFAULT 16,
                     palette VARCHAR(16) NOT NULL DEFAULT 'solstice',
                     FOREIGN KEY(account_id) REFERENCES accounts (id)
