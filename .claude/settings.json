@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git stash *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
