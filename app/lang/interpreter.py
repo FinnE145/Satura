@@ -37,6 +37,12 @@ class _BreakSignal(Exception):
 
 # --------------------------------------------------------------------------- runtime helpers
 
+def _type_name(v) -> str:
+    if v is None:
+        return "null"
+    return type(v).__name__
+
+
 def _coerce_int(v, ctx: str) -> int:
     """
     Coerce v to int per spec Section 4.3:
@@ -54,7 +60,7 @@ def _coerce_int(v, ctx: str) -> int:
         if v == int(v):
             return int(v)
         raise HaltSignal(f"{ctx}: fractional float {v} cannot be used as int")
-    raise HaltSignal(f"{ctx}: expected int, got {type(v).__name__} ({v!r})")
+    raise HaltSignal(f"{ctx}: expected int, got {_type_name(v)}")
 
 
 def _check_bool(v, ctx: str) -> int:
@@ -235,7 +241,7 @@ class _Interpreter:
             v = self._eval(expr.operand, env)
             if expr.op == TokenType.MINUS:
                 if not isinstance(v, (int, float)):
-                    raise HaltSignal(f"unary minus requires numeric value, got {type(v).__name__}")
+                    raise HaltSignal(f"unary minus requires numeric value, got {_type_name(v)}")
                 return -v
             if expr.op == TokenType.NOT:
                 iv = _check_bool(v, "not operand")
@@ -363,9 +369,9 @@ class _Interpreter:
         if op in (TokenType.PLUS, TokenType.MINUS, TokenType.STAR,
                   TokenType.SLASH, TokenType.PERCENT):
             if not isinstance(l, (int, float)):
-                raise HaltSignal(f"arithmetic requires numeric operands, got {type(l).__name__}")
+                raise HaltSignal(f"arithmetic requires numeric operands, got {_type_name(l)}")
             if not isinstance(r, (int, float)):
-                raise HaltSignal(f"arithmetic requires numeric operands, got {type(r).__name__}")
+                raise HaltSignal(f"arithmetic requires numeric operands, got {_type_name(r)}")
             if op == TokenType.PLUS:    return l + r
             if op == TokenType.MINUS:   return l - r
             if op == TokenType.STAR:    return l * r
