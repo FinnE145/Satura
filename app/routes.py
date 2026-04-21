@@ -333,7 +333,7 @@ def _parse_session_config(payload):
         p2_clock_seconds = base['clock_seconds']
         p1_starting_words = base['starting_words']
         p2_starting_words = base['starting_words']
-        starting_player = 1
+        starting_player = random.choice((1, 2))
 
     return {
         'preset': preset,
