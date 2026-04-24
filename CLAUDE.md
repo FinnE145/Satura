@@ -43,6 +43,7 @@ When working on any HTML, CSS, or UI:
 - If you have attempted or reasoned through a problem more than twice without landing on a clean solution, stop. Explain what the constraint is and ask for direction.
 - Do not use hacky workarounds (excessive specificity, arbitrary overrides, layered fixes) to force something to work. If a clean solution isn't emerging, explain why and ask.
 - The signal to stop is when you are layering fixes on top of fixes, or thinking in circles. Surface the problem instead of digging deeper.
+- Ask me questions first; only read docs/spec.md or docs/language.md if broader clarification is needed (they are large and token-expensive).
 
 ## graphify
 
