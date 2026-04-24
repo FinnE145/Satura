@@ -210,6 +210,10 @@ async function refreshBank() {
             clearInterval(bankPollTimer);
             bankPollTimer = null;
         }
+        if (state?.game_over === true && viewerCountTimer) {
+            clearInterval(viewerCountTimer);
+            viewerCountTimer = null;
+        }
         updateWordEta();
         updateDeployButton();
         updateWordShortageNotice();
@@ -1709,7 +1713,7 @@ async function refreshViewerCount() {
 }
 
 refreshViewerCount();
-setInterval(refreshViewerCount, 10000);
+let viewerCountTimer = setInterval(refreshViewerCount, 10000);
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

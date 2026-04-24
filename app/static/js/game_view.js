@@ -153,6 +153,10 @@ async function refreshState() {
             clearInterval(statePollTimer);
             statePollTimer = null;
         }
+        if (state?.game_over === true && viewerPresenceTimer) {
+            clearInterval(viewerPresenceTimer);
+            viewerPresenceTimer = null;
+        }
         updateHistoryButtons();
     } catch (_) {
         // ignore transient poll failures
@@ -760,6 +764,6 @@ function delay(ms) {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 pingViewerPresence();
-setInterval(pingViewerPresence, 15000);
+let viewerPresenceTimer = setInterval(pingViewerPresence, 15000);
 
 init();
