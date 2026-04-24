@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Satura | Join a Game{% endblock %}
+
+{% block content %}
+<main class="site-main">
+    <div class="container">
+        <div class="join-enter-wrap">
+            <header>
+                <h1 class="heading-display">Join a Game</h1>
+                <p class="subheading text-subtle">Enter a code or paste a link shared by the host.</p>
+            </header>
+
+            <div class="join-code-field">
+                <div class="join-code-row" id="join-code-row">
+                    <span class="join-code-prefix">satura.dev/join/</span>
+                    <input
+                        type="text"
+                        id="join-code-input"
+                        class="join-code-input"
+                        placeholder="XXXXXX"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="characters"
+                        spellcheck="false"
+                        autofocus
+                    >
+                </div>
+                <p class="join-code-msg text-small-sans" id="join-code-msg" hidden></p>
+            </div>
+
+            <div>
+                <button type="button" class="btn btn--accent" id="join-btn" disabled>Join</button>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/join_enter.js') }}"></script>
+{% endblock %}

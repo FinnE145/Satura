@@ -1412,6 +1412,19 @@ def game_create_lobby():
     return jsonify({'game_id': game_id, 'join_alias': alias}), 201
 
 
+@bp.route('/join', methods=['GET'])
+def join_enter():
+    return render_template('join_enter.html')
+
+
+@bp.route('/join/<alias>/info', methods=['GET'])
+def join_alias_info(alias):
+    lobby = get_lobby_by_alias(alias.upper())
+    if lobby is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({'owner': lobby.player1_username})
+
+
 @bp.route('/join/<alias>', methods=['GET'])
 def join_by_alias(alias):
     lobby = get_lobby_by_alias(alias)

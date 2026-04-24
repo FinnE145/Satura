@@ -393,6 +393,18 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-palette-card--active` | selected palette card state |
 | `.settings-link-list` | vertical list of legal/about links |
 
+### Join Enter page
+
+| Class | Description |
+|---|---|
+| `.join-enter-wrap` | Narrow flex-column wrapper for the join code entry page (max 30em) |
+| `.join-code-field` | Flex column wrapping the code row and the validation message |
+| `.join-code-row` | Inline-flex container combining the URL prefix label and the text input |
+| `.join-code-row--error` | Error-state modifier — red border on `.join-code-row` |
+| `.join-code-prefix` | Read-only monospace prefix label (`satura.dev/join/`) inside the code row |
+| `.join-code-input` | Monospace text input for the join code, flex-fills the remaining row width |
+| `.join-code-msg` | Small error/status message rendered below the code row |
+
 ### Past Game Detail Page
 
 | Class | Purpose |

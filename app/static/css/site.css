@@ -3487,6 +3487,71 @@ body:has(.login-wrap) {
     font-size: 0.8em;
 }
 
+/* ── Join enter page ────────────────────────────────────────────────────── */
+
+.join-enter-wrap {
+    max-width: 30em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+}
+
+.join-code-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.join-code-row {
+    display: inline-flex;
+    align-items: stretch;
+    background: var(--bg-card);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+
+.join-code-row:focus-within {
+    border-color: var(--accent-dim);
+}
+
+.join-code-row--error {
+    border-color: var(--error-border-strong) !important;
+}
+
+.join-code-prefix {
+    display: flex;
+    align-items: center;
+    padding: 0.5em 0.75em;
+    font-family: var(--font-code);
+    font-size: 0.875em;
+    color: var(--text-subtle);
+    white-space: nowrap;
+    background: var(--bg-header);
+    border-right: 1px solid var(--border-mid);
+    user-select: none;
+}
+
+.join-code-input {
+    flex: 1;
+    min-width: 6em;
+    padding: 0.5em 0.75em;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--font-code);
+    font-size: 0.875em;
+    line-height: 1.5;
+    outline: none;
+}
+
+.join-code-msg {
+    color: var(--error);
+}
+
 /* ── Responsive breakpoints ─────────────────────────────────────────────── */
 
 @media (max-width: 1100px) {
