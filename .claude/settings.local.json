@@ -9,7 +9,10 @@
       "Bash(git add:*)",
       "Bash(git commit -m ':*)",
       "Bash(git commit -m ' *)",
-      "Bash(graphify update *)"
+      "Bash(graphify update *)",
+      "mcp__gtasks__list-tasklists",
+      "mcp__gtasks__list",
+      "mcp__gtasks__update"
     ]
   }
 }
