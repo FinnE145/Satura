@@ -39,7 +39,7 @@ class If:
 
 @dataclass
 class For:
-    var:      str
+    var:      str | None  # None for anonymous range loops: for range(n) { ... }
     iterable: Expr        # RangeExpr or any list-valued expression
     body:     list[Stmt]
     line:     int = 0
@@ -54,6 +54,11 @@ class While:
 
 @dataclass
 class Halt:
+    line: int = 0
+    col:  int = 0
+
+@dataclass
+class Break:
     line: int = 0
     col:  int = 0
 

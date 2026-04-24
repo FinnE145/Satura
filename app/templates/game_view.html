@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Satura | Spectating Game{% endblock %}
+
+{% block content %}
+<main class="site-main" id="game-root"
+    data-game-id="{{ game_id }}"
+    data-p1-username="{{ p1_username }}"
+    data-p2-username="{{ p2_username }}">
+    <div class="game-outer">
+
+        <div class="game-container">
+
+            <!-- Board card (solo — fills the full container up to 1000px) -->
+            <div class="card board-card board-card--solo">
+                <div class="card-header">
+                    <h2 class="card-title">Board</h2>
+                    <span class="board-legend" id="board-legend">
+                        <span class="text-small-sans text-muted" id="board-legend-info"></span>
+                        <span class="board-legend-pills">
+                            <span class="board-legend-item" id="board-legend-p1"></span>
+                            <span class="board-legend-item" id="board-legend-p2"></span>
+                        </span>
+                    </span>
+                </div>
+                <div class="board-wrap">
+                    <div class="board-grid" id="board-grid"></div>
+                </div>
+            </div>
+
+            <!-- Time controls card (small screens only) -->
+            <div class="card time-controls-card" id="time-controls-card">
+                <div class="game-controls-main">
+                    <div class="game-controls-side game-controls-side--mine">
+                        <span class="gc-player-badge" data-tc="badge-p1"></span>
+                        <span class="gc-clock" data-tc="clock-p1">--:--</span>
+                        <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p1"
+                                hidden></span></span>
+                    </div>
+                    <div class="game-controls-side game-controls-side--opp">
+                        <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p2" hidden></span></span>
+                        <span class="gc-clock" data-tc="clock-p2">--:--</span>
+                        <span class="gc-player-badge" data-tc="badge-p2"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game controls panel -->
+            <div class="card game-controls game-controls--solo" id="game-controls">
+                <div class="game-controls-main">
+
+                    <!-- P1 side (always left, warm) -->
+                    <div class="game-controls-side game-controls-side--mine" id="gc-side-p1">
+                        <span class="gc-player-badge" data-tc="badge-p1"></span>
+                        <span class="gc-clock" data-tc="clock-p1">--:--</span>
+                        <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p1"
+                                hidden></span></span>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="game-controls-btns">
+                        <button type="button" class="game-controls-btn btn-warm-hover" id="btn-replay">
+                            <span class="material-symbols-outlined">replay</span>
+                            <span class="icon-btn-label">Replay</span>
+                        </button>
+                        <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-back">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            <span class="icon-btn-label">Back</span>
+                        </button>
+                        <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-forward">
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                            <span class="icon-btn-label">Forward</span>
+                        </button>
+                        <button type="button" class="game-controls-btn btn-warm-hover" id="btn-history-current">
+                            <span class="material-symbols-outlined">last_page</span>
+                            <span class="icon-btn-label">Current</span>
+                        </button>
+                    </div>
+
+                    <!-- P2 side (always right, cool) -->
+                    <div class="game-controls-side game-controls-side--opp" id="gc-side-p2">
+                        <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p2" hidden></span></span>
+                        <span class="gc-clock" data-tc="clock-p2">--:--</span>
+                        <span class="gc-player-badge" data-tc="badge-p2"></span>
+                    </div>
+
+                </div>
+                <span class="game-controls-confirm text-small-sans" id="game-controls-past-notice" hidden>Viewing a past
+                    game state</span>
+            </div>
+
+            <!-- End-of-game modal -->
+            <div class="game-over-modal" id="game-over-modal" role="dialog" aria-modal="true"
+                aria-labelledby="game-over-title" hidden>
+                <div class="game-over-modal__backdrop" id="game-over-backdrop"></div>
+                <div class="card game-over-modal__card" role="document">
+                    <div class="card-header">
+                        <h2 class="card-title" id="game-over-title">Game Over</h2>
+                    </div>
+                    <div class="card-body game-over-modal__body">
+                        <p class="game-over-modal__message text-small-sans" id="game-over-message"></p>
+                    </div>
+                    <div class="card-footer">
+                        <a class="btn btn--accent" href="/history/{{ game_id }}">View History</a>
+                        <a class="btn btn--secondary" href="/game/new">New Game</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session status bar -->
+            <div class="session-bar" role="status" aria-live="polite">
+                <span class="session-bar-left">
+                    <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+                    <span class="session-bar-group">
+                        <span class="session-bar-key">Spectating</span>
+                        <code class="session-id" id="session-id" title="">—</code>
+                    </span>
+                </span>
+            </div>
+
+        </div><!-- .game-container -->
+
+    </div><!-- .game-outer -->
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/game_view.js') }}"></script>
+{% endblock %}

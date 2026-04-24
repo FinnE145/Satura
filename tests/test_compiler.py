@@ -122,6 +122,28 @@ class TestReturnErrors:
         assert errors("def f() { if $ops_remaining > 0 { return 1 } }") == []
 
 
+class TestBreakErrors:
+    def test_break_at_top_level(self):
+        msgs = error_messages("break")
+        assert any("'break' used outside a loop" in m for m in msgs)
+
+    def test_break_inside_function_without_loop(self):
+        msgs = error_messages("def f() { break }")
+        assert any("'break' used outside a loop" in m for m in msgs)
+
+    def test_break_inside_for_is_fine(self):
+        assert errors("for $i in range(5) { break }") == []
+
+    def test_break_inside_while_is_fine(self):
+        assert errors("while 1 { break }") == []
+
+    def test_break_inside_nested_loop_is_fine(self):
+        assert errors("for $i in range(3) { for $j in range(3) { break } }") == []
+
+    def test_break_inside_anonymous_range_is_fine(self):
+        assert errors("for range(5) { break }") == []
+
+
 # ---------------------------------------------------------- nested def errors
 
 class TestNestedDefErrors:
@@ -306,8 +328,10 @@ class TestTypeWarnings:
     def test_comparison_always_int(self):
         assert warnings("$x = 1.5\npaint($x > 0)") == []
 
-    def test_get_friction_is_int(self):
-        assert warnings("paint(get_friction(HERE))") == []
+    def test_get_friction_nullable_warns_in_paint(self):
+        # get_friction returns NULL for out-of-bounds, so passing it to paint() warns
+        msgs = warning_messages("paint(get_friction(HERE))")
+        assert any("paint" in m for m in msgs)
 
     def test_min_int_or_float_warns(self):
         # min(float, int) → INT|FLOAT — warns because float component could cause runtime halt
@@ -347,6 +371,16 @@ class TestCleanScripts:
 
     def test_conditional_move(self):
         assert_clean("if $ops_remaining > 0 { move(UP) }")
+
+    def test_anonymous_range_loop(self):
+        assert_clean("for range(5) { move(UP) }")
+
+    def test_anonymous_range_loop_with_var_expr(self):
+        assert_clean("$n = 5\nfor range($n) { move(UP) }")
+
+    def test_anonymous_range_float_stop_warns(self):
+        assert errors("for range(1.5) { halt }") == []
+        assert warnings("for range(1.5) { halt }") != []
 
     def test_loop_over_directions(self):
         assert_clean("for $dir in $directions { move($dir) }")

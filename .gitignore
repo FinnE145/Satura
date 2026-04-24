@@ -210,4 +210,6 @@ __marimo__/
 # .agents/
 # CLAUDE.md
 
+.vscode/settings.json
+.hintrc
 graphify-out/

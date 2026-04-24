@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satura — Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+</head>
+<body>
+    <div class="login-wrap">
+        <div class="login-card">
+            <img class="wordmark" src="{{ url_for('static', filename='satura_wordmark_white.svg') }}" alt="Satura">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="error-msg">{{ messages[0] }}</div>
+                {% endif %}
+            {% endwith %}
+            <form method="post">
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                <div class="field">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+                </div>
+                <div class="field">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn--accent">Login</button>
+            </form>
+            <p class="text-small-sans text-subtle text-center login-footer">No account? <a href="/signup">Create one</a></p>
+        </div>
+    </div>
+</body>
+</html>

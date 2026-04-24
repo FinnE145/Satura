@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" width="360" height="360">
+  <rect x="0"   y="0"   width="60" height="60" fill="rgb(255,255,255)"/>
+  <rect x="60"  y="0"   width="60" height="60" fill="rgb(238,210,225)"/>
+  <rect x="120" y="0"   width="60" height="60" fill="rgb(220,166,195)"/>
+  <rect x="180" y="0"   width="60" height="60" fill="rgb(203,121,164)"/>
+  <rect x="240" y="0"   width="60" height="60" fill="rgb(185,77,134)"/>
+  <rect x="300" y="0"   width="60" height="60" fill="rgb(168,32,104)"/>
+
+  <rect x="0"   y="60"  width="60" height="60" fill="rgb(246,224,207)"/>
+  <rect x="60"  y="60"  width="60" height="60" fill="rgb(229,179,177)"/>
+  <rect x="120" y="60"  width="60" height="60" fill="rgb(211,135,146)"/>
+  <rect x="180" y="60"  width="60" height="60" fill="rgb(194,90,116)"/>
+  <rect x="240" y="60"  width="60" height="60" fill="rgb(176,46,86)"/>
+  <rect x="300" y="60"  width="60" height="60" fill="rgb(140,35,71)"/>
+
+  <rect x="0"   y="120" width="60" height="60" fill="rgb(237,193,159)"/>
+  <rect x="60"  y="120" width="60" height="60" fill="rgb(220,148,128)"/>
+  <rect x="120" y="120" width="60" height="60" fill="rgb(202,104,98)"/>
+  <rect x="180" y="120" width="60" height="60" fill="rgb(185,59,68)"/>
+  <rect x="240" y="120" width="60" height="60" fill="rgb(146,44,59)"/>
+  <rect x="300" y="120" width="60" height="60" fill="rgb(108,31,47)"/>
+
+  <rect x="0"   y="180" width="60" height="60" fill="rgb(228,162,110)"/>
+  <rect x="60"  y="180" width="60" height="60" fill="rgb(211,117,80)"/>
+  <rect x="120" y="180" width="60" height="60" fill="rgb(193,73,50)"/>
+  <rect x="180" y="180" width="60" height="60" fill="rgb(151,53,47)"/>
+  <rect x="240" y="180" width="60" height="60" fill="rgb(112,37,39)"/>
+  <rect x="300" y="180" width="60" height="60" fill="rgb(74,23,28)"/>
+
+  <rect x="0"   y="240" width="60" height="60" fill="rgb(219,131,62)"/>
+  <rect x="60"  y="240" width="60" height="60" fill="rgb(202,86,32)"/>
+  <rect x="120" y="240" width="60" height="60" fill="rgb(157,62,35)"/>
+  <rect x="180" y="240" width="60" height="60" fill="rgb(115,43,32)"/>
+  <rect x="240" y="240" width="60" height="60" fill="rgb(76,26,24)"/>
+  <rect x="300" y="240" width="60" height="60" fill="rgb(51,17,18)"/>
+
+  <rect x="0"   y="300" width="60" height="60" fill="rgb(210,100,14)"/>
+  <rect x="60"  y="300" width="60" height="60" fill="rgb(162,71,23)"/>
+  <rect x="120" y="300" width="60" height="60" fill="rgb(119,48,24)"/>
+  <rect x="180" y="300" width="60" height="60" fill="rgb(78,30,19)"/>
+  <rect x="240" y="300" width="60" height="60" fill="rgb(51,19,14)"/>
+  <rect x="300" y="300" width="60" height="60" fill="rgb(0,0,0)"/>
+</svg>

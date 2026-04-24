@@ -40,7 +40,7 @@ $x = 5  // inline comment
 The following identifiers are reserved and may not be used as variable or function names:
 
 ```
-if  elif  else  for  while  halt  return  def  call  in
+if  elif  else  for  while  break  halt  return  def  call  in
 and  or  not  min  max  range  index  length  push  pop  list
 ```
 
@@ -134,7 +134,7 @@ A word is any keyword, operator, or board function that appears in the script. T
 |---|---|---|
 | Conditional keywords | `if`, `elif`, `else` | 1 each |
 | Loop keywords | `for`, `while` | 1 each |
-| Flow keywords | `halt`, `return`, `def` | 1 each |
+| Flow keywords | `halt`, `break`, `return`, `def` | 1 each |
 | Call keyword | `call` | 1 |
 | Variable sigil | `$` | 1 per occurrence |
 | Assignment operator | `=` | 1 |
@@ -318,7 +318,7 @@ Reading a variable before any assignment to it is a **compile error** where the 
 
 - Variables assigned at the **top level** of a script are **globally scoped** within that script execution.
 - Variables assigned inside `if`, `elif`, `else`, `for`, and `while` blocks are still **globally scoped** — there is no block scope.
-- The **loop variable** in a `for` loop (e.g. `$dir` in `for $dir in $directions`) is globally scoped and remains accessible after the loop ends, holding the last value it was assigned.
+- The **loop variable** in a `for` loop (e.g. `$dir` in `for $dir in $directions`) is globally scoped and remains accessible after the loop ends, holding the last value it was assigned. Anonymous range loops (`for range(...)`) define no loop variable.
 - Variables assigned inside a **function body** are **locally scoped** to that function. They are not visible outside the function.
 - **Function scope is fully isolated.** A function body can only access its own parameters and variables assigned within the body. It has no access to script-level (global) variables. This is because functions persist across turns and may be called from scripts that define entirely different global variables.
 - **Function parameters** are declared without `$` in the `def` signature but are accessed with `$` inside the function body (like any other local variable).
@@ -361,9 +361,16 @@ for $i in range(5) { ... }
 for $i in range(0, 10, 2) { ... }   // $i = 0, 2, 4, 6, 8
 ```
 
+When iterating over a `range` and the loop index is not needed, the `$var in` part may be omitted:
+
+```
+for range(5) { ... }               // runs 5 times, no loop variable
+for range(0, 10, 2) { ... }        // runs 5 times, no loop variable
+```
+
 `for` costs **1 word.** `in` is free.
 
-The loop variable is globally scoped (see Section 6.2). Iterating over a non-list, non-range value is a runtime halt.
+The loop variable is globally scoped (see Section 6.2). Anonymous range loops (`for range(...)`) define no loop variable. Iterating over a non-list, non-range value is a runtime halt.
 
 ### 7.3 range
 
@@ -389,13 +396,23 @@ while condition {
 
 `while` costs **1 word.** Condition rules are the same as `if`.
 
-### 7.5 halt
+### 7.5 break
+
+```
+break
+```
+
+`break` costs **1 word.** Immediately exits the innermost enclosing `for` or `while` loop. Execution then continues with the first statement after that loop.
+
+`break` is valid only inside loop bodies. Using `break` outside a `for`/`while` loop is a **compile error.**
+
+### 7.6 halt
 
 ```
 halt
 ```
 
-`halt` costs **1 word.** Immediately stops execution. All actions taken up to this point **stand** (are not undone). See Section 12 for the distinction between halt and reset.
+`halt` costs **1 word.** Immediately stops the entire script execution. All actions taken up to this point **stand** (are not undone). See Section 12 for the distinction between halt and reset.
 
 ---
 
@@ -554,7 +571,7 @@ move($mydir)   // variable also accepted
 
 - `dir` must be a `direction` value (`UP`, `DOWN`, `LEFT`, `RIGHT`). Passing `HERE` or any non-direction value is a **compile error** where detectable, otherwise a **runtime halt.**
 - Costs `get_friction(target_cell)` ops, evaluated at the moment of movement.
-- Moving outside the board boundary is a **runtime halt.**
+- Moving outside the board boundary causes a **runtime reset** (execution rollback).
 - Moving into a cell occupied by the opponent's agent is a **turn reset** (the moving agent's entire execution is undone).
 
 ### 11.2 paint(num)
@@ -667,6 +684,7 @@ Compile errors prevent the script from being deployed. They do not cost words or
 - Syntax errors (malformed statements, mismatched braces, etc.)
 - Uninitialized variable read (where statically detectable)
 - `return` outside a function body
+- `break` outside a loop body
 - Nested `def` inside a function body or block
 - Assignment to a built-in variable (`$directions`, `$locations`, `$ops_remaining`, `$op_limit`)
 - `$` followed by an unrecognized or unassigned name (where statically detectable)
@@ -695,6 +713,7 @@ statement       = def_stmt
                 | if_stmt
                 | for_stmt
                 | while_stmt
+                | break_stmt
                 | halt_stmt
                 | return_stmt
                 | ";" ;
@@ -719,6 +738,8 @@ range_expr      = "range" "(" expression
                   ( "," expression ( "," expression )? )? ")" ;
 
 while_stmt      = "while" expression block ;
+
+break_stmt      = "break" ";"? ;
 
 halt_stmt       = "halt" ";"? ;
 

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Satura | Join Game{% endblock %}
+
+{% block content %}
+<main class="site-main">
+    <div class="container create-page-stack" id="join-root" data-game-id="{{ game_id }}" data-my-username="{{ current_user.username if current_user.is_authenticated else '' }}" data-p1-username="{{ p1_username }}">
+        <article class="card">
+            <header class="card-header">
+                <h1 class="card-title">Join Game</h1>
+                <p class="subheading text-subtle">Hosted by {{ p1_username }}</p>
+            </header>
+            <div class="settings-card-body settings-stack" id="join-body">
+                <div class="create-form-grid" id="join-settings-grid">
+                    <div class="field">
+                        <span class="form-label">Board size</span>
+                        <span id="join-setting-size">{{ settings.size }} × {{ settings.size }}</span>
+                    </div>
+                    <div class="field">
+                        <span class="form-label">Clock (min)</span>
+                        <span id="join-setting-clock">{{ (settings.clock_seconds / 60) | round(1) }}</span>
+                    </div>
+                    <div class="field">
+                        <span class="form-label">Op limit</span>
+                        <span id="join-setting-op-limit">{{ settings.op_limit }}</span>
+                    </div>
+                    <div class="field">
+                        <span class="form-label">Word rate</span>
+                        <span id="join-setting-word-rate">{{ settings.word_rate }} / s</span>
+                    </div>
+                    <div class="field">
+                        <span class="form-label">Starting words</span>
+                        <span id="join-setting-starting-words">{{ settings.p1_starting_words | int }}</span>
+                    </div>
+                </div>
+
+                <section id="join-accommodations-section" hidden>
+                    <div class="split-grid">
+                        <div class="field">
+                            <span class="form-label">My clock (min)</span>
+                            <span id="join-acc-my-clock"></span>
+                        </div>
+                        <div class="field">
+                            <span class="form-label">Opponent's clock (min)</span>
+                            <span id="join-acc-opp-clock"></span>
+                        </div>
+                        <div class="field">
+                            <span class="form-label">My starting words</span>
+                            <span id="join-acc-my-words"></span>
+                        </div>
+                        <div class="field">
+                            <span class="form-label">Opponent's starting words</span>
+                            <span id="join-acc-opp-words"></span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="form-label">Who starts</span>
+                        <span id="join-acc-starting-player"></span>
+                    </div>
+                </section>
+
+                <div class="toggle-row">
+                    <span class="status-dot status-dot--pending" id="p1-ready-dot"></span>
+                    <span class="text-subtle" id="p1-ready-label">{{ p1_username }} not ready</span>
+                </div>
+
+                <div id="join-error" class="error-msg" hidden></div>
+
+                <div class="card-footer">
+                    <button type="button" class="btn btn--ghost" id="leave-btn">Leave</button>
+                    <button type="button" class="btn btn--accent" id="p2-ready-btn" disabled>Ready</button>
+                </div>
+            </div>
+        </article>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/game_join.js') }}"></script>
+{% endblock %}

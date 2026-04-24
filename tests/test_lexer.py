@@ -29,8 +29,8 @@ class TestKeywords:
         ]
 
     def test_flow_keywords(self):
-        assert types("halt return def call") == [
-            TokenType.HALT, TokenType.RETURN, TokenType.DEF, TokenType.CALL,
+        assert types("halt break return def call") == [
+            TokenType.HALT, TokenType.BREAK, TokenType.RETURN, TokenType.DEF, TokenType.CALL,
         ]
 
     def test_logical(self):
@@ -279,6 +279,9 @@ class TestWordCount:
 
     def test_else_costs_one(self):
         assert word_count("else") == 1
+
+    def test_break_costs_one(self):
+        assert word_count("break") == 1
 
     def test_constants_are_free(self):
         assert word_count("UP DOWN LEFT RIGHT HERE") == 0

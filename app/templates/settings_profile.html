@@ -1,0 +1,105 @@
+{% extends "settings_base.html" %}
+
+{% block title %}Satura | Profile{% endblock %}
+
+{% block settings_content %}
+<article class="card settings-card">
+    <header class="card-header">
+        <h1 class="card-title">Profile</h1>
+    </header>
+    <div class="settings-card-body">
+        <div class="settings-profile-head">
+            <h2 class="heading-display">{{ current_user.username }}</h2>
+            <p class="text-subtle">Friends: 0</p>
+        </div>
+
+        <div class="settings-stats-grid">
+            <div class="settings-stat-cell">
+                <span class="label">Win/Loss/Draw</span>
+                <strong>{{ stats.wins }}-{{ stats.losses }}-{{ stats.draws }}</strong>
+            </div>
+            <div class="settings-stat-cell">
+                <span class="label">Games Played</span>
+                <strong>{{ stats.games_played }}</strong>
+            </div>
+        </div>
+    </div>
+</article>
+
+<article class="card settings-card">
+    <header class="card-header">
+        <h2 class="card-title">Recent Games</h2>
+    </header>
+    <div class="settings-card-body">
+        {% if stats.recent_games %}
+        <section class="my-games-list-section">
+            <div class="game-timeline" role="list" id="gameTimeline">
+                {% for g in stats.recent_games %}
+                <a class="game-timeline-row" href="/my-games/{{ g.game_id }}" role="listitem"
+                    data-date="{{ g.finished_at.strftime('%Y-%m-%d') if g.finished_at else '' }}">
+
+                    <span class="game-timeline-date">
+                        {{ g.finished_at.strftime('%-m/%-d') if g.finished_at else '—' }}
+                    </span>
+
+                    <div class="game-row-inner">
+                        <div class="game-row-thumb" data-my-slot="{{ g.my_slot }}">
+                            {% if g.final_board_json %}
+                            <canvas class="board-canvas" data-board='{{ g.final_board_json | safe }}'
+                                data-size="{{ g.board_size }}" data-mode="simple"></canvas>
+                            {% else %}
+                            <div class="game-row-thumb-placeholder"></div>
+                            {% endif %}
+
+                            <span class="thumb-overlay thumb-overlay--bl js-tc-overlay" data-preset="{{ g.preset or '' }}"
+                                data-clock="{{ g.clock_seconds | int if g.clock_seconds else '' }}">
+                                {{ g.preset or '?' }}
+                            </span>
+
+                            <span class="thumb-overlay thumb-overlay--br">{{ g.board_size or '?' }}</span>
+
+                            {% if g.accommodations_enabled %}
+                            <span class="accom-dot" title="Game had custom accommodations">
+                                <span class="material-symbols-outlined">tune</span>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="game-row-meta">
+                            <div class="game-row-result-line">
+                                {% if g.result %}
+                                <span class="badge badge--{{ g.result }}">{{ g.result | capitalize }}</span>
+                                {% else %}
+                                <span class="badge badge--stalemate">In progress</span>
+                                {% endif %}
+                                <span class="game-row-opponent" data-slot="{{ g.opp_slot }}">
+                                    vs.&nbsp;{{ g.opponent_username or '(unknown)' }}
+                                </span>
+                            </div>
+                            {% if g.end_reason %}
+                            <span class="game-row-reason">Reason: {{ g.end_reason | replace('_', ' ') | capitalize }}</span>
+                            {% endif %}
+                        </div>
+
+                        <span class="game-row-arrow" aria-hidden="true">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            <a href="/my-games" class="btn btn--ghost btn--sm">
+                Show more
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+            </a>
+        </section>
+        {% else %}
+        <p class="empty-label">No games yet.</p>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}
+
+{% block settings_scripts %}
+<script src="{{ url_for('static', filename='js/my_games.js') }}"></script>
+{% endblock %}

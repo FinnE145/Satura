@@ -1,7 +1,7 @@
 from __future__ import annotations
 import copy
 from .nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -21,14 +21,7 @@ _VALID_DIRECTIONS = frozenset(_DIRECTIONS)
 _VALID_LOCATIONS  = frozenset(_LOCATIONS)
 
 
-# --------------------------------------------------------------------------- signals
-
-class HaltSignal(Exception):
-    """Raised by halt keyword or a runtime halt condition. Actions taken stand."""
-
-
-class ResetSignal(Exception):
-    """Raised when the entire execution must be undone."""
+from .signals import HaltSignal, ResetSignal
 
 
 # --------------------------------------------------------------------------- internal control flow
@@ -36,6 +29,10 @@ class ResetSignal(Exception):
 class _ReturnSignal(Exception):
     def __init__(self, value):
         self.value = value
+
+
+class _BreakSignal(Exception):
+    pass
 
 
 # --------------------------------------------------------------------------- runtime helpers
@@ -168,17 +165,27 @@ class _Interpreter:
 
         elif isinstance(stmt, For):
             for val in self._iter(stmt.iterable, env):
-                env[stmt.var] = val       # globally scoped; persists after loop
-                for s in stmt.body:
-                    self._exec(s, env)
+                if stmt.var is not None:
+                    env[stmt.var] = val   # globally scoped; persists after loop
+                try:
+                    for s in stmt.body:
+                        self._exec(s, env)
+                except _BreakSignal:
+                    break
 
         elif isinstance(stmt, While):
             while _check_bool(self._eval(stmt.cond, env), "while condition"):
-                for s in stmt.body:
-                    self._exec(s, env)
+                try:
+                    for s in stmt.body:
+                        self._exec(s, env)
+                except _BreakSignal:
+                    break
 
         elif isinstance(stmt, Halt):
             raise HaltSignal("halt")
+
+        elif isinstance(stmt, Break):
+            raise _BreakSignal()
 
         elif isinstance(stmt, Return):
             val = 0 if stmt.value is None else self._eval(stmt.value, env)
@@ -413,7 +420,7 @@ class _Interpreter:
         except RecursionError:
             raise HaltSignal("stack depth exceeded")
 
-        return 0    # implicit return 0
+        return None    # implicit return NULL
 
     # ---------------------------------------------------------- variable read
 

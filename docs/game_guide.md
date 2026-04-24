@@ -1,8 +1,46 @@
 # SATURA
-### Game Design Specification
+
 *A competitive programming strategy game*
 
-**Draft — Work In Progress**
+
+### Game Guide & Design Specification
+
+## Table of Contents
+
+- [1. Key Tenets](#1-key-tenets)
+  - [1.1 Code Is Irreplaceable](#11-code-is-irreplaceable)
+  - [1.2 Game Strategy and Code Strategy Are Coupled But Untransferable](#12-game-strategy-and-code-strategy-are-coupled-but-untransferable)
+  - [1.3 Not Deterministic, Not Solvable, Not Random](#13-not-deterministic-not-solvable-not-random)
+  - [1.4 Sub-Goals Must Change Turn By Turn](#14-sub-goals-must-change-turn-by-turn)
+  - [1.5 Code Reuse Is a Strategic Resource](#15-code-reuse-is-a-strategic-resource)
+  - [1.6 Local Execution, Global Value](#16-local-execution-global-value)
+  - [1.7 Simple Rules, Near-Infinite Depth](#17-simple-rules-near-infinite-depth)
+- [2. Game Rules](#2-game-rules)
+  - [2.1 The Board](#21-the-board)
+  - [2.2 Agents](#22-agents)
+  - [2.3 Paint and Friction](#23-paint-and-friction)
+  - [2.4 Operations (Ops)](#24-operations-ops)
+  - [2.5 Turn Reset vs. Halt](#25-turn-reset-vs-halt)
+  - [2.6 Win, Loss, and Stalemate](#26-win-loss-and-stalemate)
+- [3. Scripting — Design Guide](#3-scripting--design-guide)
+  - [3.1 Words and the Word Bank](#31-words-and-the-word-bank)
+  - [3.2 Time Control](#32-time-control)
+  - [3.3 Turn Structure and Execution Order](#33-turn-structure-and-execution-order)
+  - [3.4 Strategic Tradeoffs in Scripting](#34-strategic-tradeoffs-in-scripting)
+- [4. Language Reference](#4-language-reference)
+  - [4.1 Syntax](#41-syntax)
+  - [4.2 Types](#42-types)
+  - [4.3 Variables and Scope](#43-variables-and-scope)
+  - [4.4 Built-in Variables](#44-built-in-variables)
+  - [4.5 Direction and Location Constants](#45-direction-and-location-constants)
+  - [4.6 Control Flow](#46-control-flow)
+  - [4.7 Functions](#47-functions)
+  - [4.8 Operators](#48-operators)
+  - [4.9 List Operations](#49-list-operations)
+  - [4.10 Board Operations](#410-board-operations)
+- [5. Future Changes](#5-future-changes)
+  - [5.1 Undecided — Requires Playtesting](#51-undecided--requires-playtesting)
+  - [5.2 Implementation Notes](#52-implementation-notes)
 
 ---
 
@@ -18,10 +56,10 @@ Code becomes irreplaceable when the goal of a script cannot be fully specified a
 
 ## 1.2 Game Strategy and Code Strategy Are Coupled But Untransferable
 
-No single system — human, LLM, or algorithm — should be able to dominate both the game-side and code-side decisions simultaneously. Specifically:
+No nonspecialized general system — LLM, or algorithm — should be able to dominate both the game-side and code-side decisions simultaneously. Specifically:
 
-- A program that can predict board states well enough to identify optimal sub-goals has no mechanism for translating those sub-goals into efficient scripts.
-- An LLM that can write efficient, well-structured code has no model of the board state three turns out, and cannot determine whether a given abstraction is worth defining.
+- A program that can predict board states well enough to identify optimal sub-goals should have no mechanism for translating those sub-goals into efficient scripts.
+- An LLM that can write efficient, well-structured code should have no model of the board state three turns out, and cannot determine whether a given abstraction is worth defining.
 - These two competencies cannot be pipelined. A board state description is not a code-writing prompt. A code snippet is not a game tree node. The interface between them exists only in the player's mind.
 
 This means the game's depth is irreducibly human. Experience, pattern recognition, and the ability to hold strategic intent and code economics in mind simultaneously are the core skills — not programming knowledge, and not game theory alone.
@@ -97,8 +135,8 @@ Friction determines how many ops it costs to move into a cell. It is computed as
 ```
 get_friction(cell):
     if cell.p1 + cell.p2 == 0:  return 1                          // blank cell
-    if cell.p1 + cell.p2 == 10: return 2 * (p1 + p2)             // black cell → 20
-    return 2 * opponent_paint(cell)                                // default case
+    if cell.p1 + cell.p2 == 10: return 2 * (p1 + p2)              // black cell → 20
+    return 2 * opponent_paint(cell)                               // default case
 ```
 
 For Player 1, opponent_paint = p2. For Player 2, opponent_paint = p1. Key properties of this formula:
@@ -135,7 +173,7 @@ Each script execution has an op budget. Board-interacting operations consume ops
 | `opp_paint(loc)` | 1 op |
 | All other operations | 0 ops (internal computation is free) |
 
-> Op limit is TBD and subject to playtesting. It may vary by game mode. See Section 5.1 (Undecided).
+> Op limit is currently 25 ops per script execution, but subject to playtesting. It may vary by game mode. See Section 5.1 (Undecided).
 
 ## 2.5 Turn Reset vs. Halt
 
@@ -147,9 +185,12 @@ Script executions can end in three ways:
 | Halt | Script stops early via `halt` keyword or runtime error. All actions taken up to that point stand. |
 | Reset | Entire execution is undone. Board returns to its state before the execution began. Words are still spent. |
 
+`break` is loop-local control flow, not an execution outcome. It exits only the innermost loop and then execution continues normally after that loop.
+
 Conditions that cause a **reset:**
 - Op budget exceeded
 - Agent collides with opponent agent (moving agent resets)
+- Agent moves outside the board boundary
 - Painting a black cell
 - Painting more than a cell can accept
 
@@ -165,7 +206,7 @@ Syntax errors are caught at compile time before the turn begins — they are not
 
 A player wins when they dominate 60% or more of total cells on the board at the end of an execution phase. A cell is dominated when one player's paint strictly exceeds the other's.
 
-> **Alternative win condition (decide during playtesting):** First player to dominate 80% of non-black cells. This adjusts dynamically with black cell accumulation but may incentivize generating black cells intentionally to shrink the denominator. The 60% total threshold is the primary design.
+> **Alternative win condition (TBD during playtesting):** First player to dominate 80% of non-black cells. This adjusts dynamically with black cell accumulation but may incentivize generating black cells intentionally to shrink the denominator. The 60% total threshold is the primary design.
 
 Black cells are never counted toward either player's total. They reduce the maximum achievable score for both players.
 
@@ -173,13 +214,13 @@ Black cells are never counted toward either player's total. They reduce the maxi
 
 A stalemate occurs when sufficient black cells have accumulated that neither player can mathematically reach the win threshold. The game ends as a draw.
 
-> Oscillating agents (moving back and forth between two cells indefinitely) are not explicitly banned by rule. However, this behavior is self-defeating since the player accumulates no score and burns their execution. It is considered a degenerate strategy, not a rules violation.
+> Oscillating agents (moving back and forth between two cells indefinitely) are not explicitly banned by rule. However, this behavior is self-defeating since the player accumulates no score and burns their time, ops, and words. It is considered a degenerate strategy, not a rules violation at this time.
 
 ### Time Loss
 
-A player who runs out of game time loses. Time management is discussed in Section 3.2.
+The first player to run out of game time loses. Time management is discussed in Section 3.2.
 
-> Maximum turn count or game time cap is TBD. See Section 5.1 (Undecided).
+> Maximum turn count or game time cap is TBD, but tentatively set at 60 minutes for a standard game (30 mins per player). Will vary based on game mode. See Section 5.1 (Undecided).
 
 ---
 
@@ -198,7 +239,7 @@ Every script has a word count. Words are the primary resource governing script c
 - There is no cap on the word bank. Words accumulate indefinitely, but game time is finite (chess-style clock), so hoarding words is naturally self-limiting.
 - A player may not deploy a script if their bank does not contain enough words for it.
 
-> Word accumulation rate is TBD and may vary by game mode. See Section 5.1 (Undecided).
+> Word accumulation rate is TBD (tentatively 1 word/s) and may vary by game mode. See Section 5.1 (Undecided).
 
 ## 3.2 Time Control
 
@@ -240,7 +281,7 @@ P1 writes...
 Key rules governing this cycle:
 
 - Exec1 and exec2 always run the same script. A script cannot be modified between its two executions.
-- If exec1 resets or halts, exec2 still runs. It runs from the start of the script, against whatever board state exists at that point (which, after a reset, is the pre-exec1 state).
+- If exec1 resets or halts, exec2 still runs. It runs from the start of the script, against whatever board state exists at that point.
 - If exec2 resets, only exec2 is undone. The board returns to its state immediately before exec2 began.
 - Function definitions persist for the entire match, across all rewrites and both execution phases.
 
@@ -254,7 +295,7 @@ Players must manage their op budget manually. Three approaches exist:
 
 - **Deterministic scripting:** Calculate the op cost of the script precisely before deploying. Works only if friction values are predictable — i.e., the board behaves as expected. Cheap in words, brittle against disruption.
 - **Conservative buffer:** Design the script to stop well short of the op limit. Wastes potential ops but never resets. Safe but suboptimal.
-- **Self-tracking:** Write an op counter into the script using `get_friction()` before each move and a running variable. Costs significantly in both words and ops, but gives precise real-time budget control.
+- **Self-tracking:** Use the `$ops_remaining` variable and conditionals or loops. Costs more in both words and potentially ops, but gives precise real-time budget control.
 
 ### Opponent Detection
 
@@ -275,7 +316,7 @@ Scripts have no pathfinding primitives. Route planning is either:
 
 The player must decide how much of their script to dedicate to exec2 robustness. Options:
 
-- **Full robustness:** Write extensive conditional logic so exec2 behaves correctly across many possible disrupted board states. Costs many words.
+- **Full robustness:** Write extensive conditional logic so exec2 behaves correctly across many possible disrupted board states. Costs many words and ops.
 - **Intentional halt:** Design exec2 to halt quickly and do little — accept that it won't be productive, but avoid doing something actively harmful on a disrupted board.
 - **Optimistic:** Write exec2 as if the board will be in a favorable state. High upside, high reset risk.
 
@@ -304,7 +345,7 @@ This section is the definitive specification for the Satura scripting language.
 - Variable names, function names, literal values, parentheses, commas, and braces do not count as words.
 - Comparison operators and logical operators count as words.
 
-```
+```c
 // Both of these are identical in word count and meaning:
 if $x > 3 { move(UP) }
 
@@ -327,7 +368,7 @@ A word is any keyword, operator, or board function that appears in the script. S
 
 | Category | Word cost |
 |---|---|
-| Keywords | `if`, `elif`, `else`, `for`, `while`, `halt`, `return`, `def` — each counts as 1 word |
+| Keywords | `if`, `elif`, `else`, `for`, `while`, `break`, `halt`, `return`, `def` — each counts as 1 word |
 | Operators | `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `+`, `-`, `*`, `/`, `%`, `and`, `or`, `not`, `min`, `max` — each counts as 1 word |
 | Language mechanics | `call`, `$`, `range`, `index`, `length`, `push`, `pop` — each counts as 1 word. `$` is required before every variable name (built-in or user-defined) and counts as 1 word per occurrence. `in` (for-loop keyword) and `list` (empty list constructor) are free. |
 | Board operations | `get_friction`, `has_agent`, `my_paint`, `opp_paint`, `paint`, `move` — each counts as 1 word |
@@ -358,7 +399,7 @@ A word is any keyword, operator, or board function that appears in the script. S
 - Variables declared inside a function body are locally scoped to that function.
 - Functions receive parameters by value. Modifying a parameter does not affect the caller's variable.
 - Lists passed to functions are copied locally — mutations inside the function do not affect the original.
-- Functions can return values with `return`. A function that reaches its end without returning returns 0.
+- Functions can return values with `return`. A function that reaches its end without returning returns NULL.
 - Function definitions persist for the entire match across all script rewrites and both execution phases.
 
 ## 4.4 Built-in Variables
@@ -378,7 +419,7 @@ These variables are always available at no word or op cost:
 
 The following constants are globally available and do not count as words:
 
-```
+```c
 UP, DOWN, LEFT, RIGHT     // direction constants
 HERE                      // location constant (current cell)
 
@@ -391,7 +432,7 @@ move($dir)
 
 ### if / elif / else
 
-```
+```c
 if condition {
     // body
 } elif condition {
@@ -405,7 +446,7 @@ if condition {
 
 Iterates over a list or range:
 
-```
+```c
 for $dir in $directions {
     move($dir)
 }
@@ -419,19 +460,41 @@ for $i in range(0, 10, 2) {   // start, stop, step
 }
 ```
 
+When iterating over a range and the loop index is not needed, the `$var in` part may be omitted:
+
+```c
+for range(5) {
+    paint(1)   // runs 5 times, no loop variable defined
+}
+```
+
 ### while
 
-```
+```c
 while $ops_remaining > 10 {
     move(UP)
 }
 ```
 
+### break
+
+Exits the innermost enclosing `for` or `while` loop. Counts as 1 word.
+
+```c
+for $i in range(10) {
+    if $i == 3 { break }
+    paint(1)
+}
+// execution continues here after break
+```
+
+Using `break` outside a loop is a compile error.
+
 ### halt
 
 Immediately stops execution. All actions taken up to this point stand. Counts as 1 word.
 
-```
+```c
 if get_friction(UP) > 8 {
     halt
 }
@@ -442,7 +505,7 @@ move(UP)
 
 ### Defining a Function
 
-```
+```c
 def function_name(param1, param2) {
     // body — access parameters as $param1, $param2
     return $value
@@ -455,7 +518,7 @@ def function_name(param1, param2) {
 
 ### Calling a Function
 
-```
+```c
 call function_name($arg1, $arg2)
 
 // Capture return value:
@@ -500,7 +563,7 @@ $result = call function_name($arg1, $arg2)
 
 Comparison operators return 0 or 1. These can be stored and used in boolean contexts:
 
-```
+```c
 $result = $x > 3          // $result is 0 or 1
 if $result { move(UP) }   // valid
 if $x > 3 { move(UP) }   // also valid, inline
@@ -550,18 +613,18 @@ All board operations cost ops in addition to counting as words. See Section 2.4 
 
 ### move(dir)
 
-```
+```c
 move(UP)       // move agent one cell upward using a constant
 move($mydir)   // variable also accepted
 ```
 
 - Costs `get_friction(target_cell)` ops.
 - Attempting to move into a cell occupied by the opponent's agent resets the turn.
-- Attempting to move outside the board is a runtime halt.
+- Attempting to move outside the board resets the turn.
 
 ### paint(num)
 
-```
+```c
 paint(3)    // add 3 to your paint on the current cell
 ```
 
@@ -572,7 +635,7 @@ paint(3)    // add 3 to your paint on the current cell
 
 ### get_friction(loc)
 
-```
+```c
 get_friction(HERE)   // friction of current cell
 get_friction(UP)     // friction of cell above
 ```
@@ -585,7 +648,7 @@ get_friction(UP)     // friction of cell above
 
 ### has_agent(dir)
 
-```
+```c
 has_agent(UP)   // returns 1 if any agent is in that cell, 0 otherwise
 ```
 
@@ -596,7 +659,7 @@ has_agent(UP)   // returns 1 if any agent is in that cell, 0 otherwise
 
 ### my_paint(loc)
 
-```
+```c
 my_paint(HERE)   // your paint on the current cell (0-5)
 my_paint(UP)     // your paint on the cell above
 ```
@@ -607,7 +670,7 @@ my_paint(UP)     // your paint on the cell above
 
 ### opp_paint(loc)
 
-```
+```c
 opp_paint(HERE)  // opponent paint on the current cell (0-5)
 ```
 
@@ -620,26 +683,28 @@ opp_paint(HERE)  // opponent paint on the current cell (0-5)
 
 # 5. Future Changes
 
-This section covers items that are deliberately deferred — either because they require playtesting to tune, or because they belong to the implementation phase rather than the design phase.
+This section covers items that are deliberately deferred because they require playtesting to tune.
 
 ## 5.1 Undecided — Requires Playtesting
 
-The following values and mechanics are intentionally left open. They require playtesting to tune correctly and should not be fixed prematurely.
+The following values and mechanics are intentionally left open. Somey require playtesting to tune correctly and should not be fixed prematurely. Others are shelved for future versions/game modes.
 
-| Item | Notes |
-|---|---|
-| Board dimensions | Variable by game mode. Must be square and symmetric. Starting positions scale as approx. N/4 from each corner toward center. |
-| Op limit per turn | TBD. Likely variable by game mode. Core balance number — determines how far an agent can travel and how much it can paint per execution. |
-| Paint value cap | Currently specified as 0–5 per player. Exact cap may require adjustment based on how quickly cells go black in practice. |
-| Word accumulation rate | Tentatively 1 word per second of real time. May vary by game mode (bullet, rapid, classical). |
-| Word/op values by game mode | Bullet, rapid, and classical modes likely need different op limits and/or accumulation rates. Relationship between time control and resource availability is TBD. |
-| Win threshold | Set at 60% of total cells. Alternative: 80% of non-black cells. 60% total is primary design; 80% non-black adjusts dynamically but may incentivize generating black cells. |
-| Maximum game length | No explicit turn cap defined. Game clock is the primary time limit. Whether a maximum turn count is needed as a backstop is TBD. |
-| Tiebreaker at time expiry | If both players' clocks expire simultaneously (unlikely but possible in correspondence mode), resolution is TBD. Options: paint volume, cell count, draw. |
-| Stalemate — oscillating agents | Two agents moving back and forth indefinitely is not banned by rule. Whether this constitutes a formal stalemate condition, or is simply a self-defeating strategy, is TBD. |
-| Multiple agents (shelved) | Originally considered: multiple agents per player sharing one op pool. Shelved to keep the core design clean. Candidate for a variant mode once the single-agent game is stable. Key questions if revisited: death mechanics, op pool splitting, and collision rules between own agents. |
+| Item | Tentative Value| Notes |
+|---|---|---|
+| Board dimensions | 16x16 | Variable by game mode. Must be square and symmetric. Starting positions scale as approx. N/4 from each corner toward center. |
+| Op limit per turn | 25 |Likely variable by game mode. Core balance number — determines how far an agent can travel and how much it can paint per execution. |
+| Paint value cap | 5 per player | Exact cap may require adjustment based on how quickly cells go black in practice. |
+| Word accumulation rate | 1word/s | May vary by game mode (bullet, rapid, classical). |
+| Word/op values by game mode | ... | Bullet, rapid, and classical modes likely need different op limits and/or accumulation rates. Relationship between time control and resource availability is TBD. |
+| Win threshold | 60% of total cells. | Alternative: 80% of non-black cells. 60% total is primary design; 80% non-black adjusts dynamically but may incentivize generating black cells. |
+| Maximum turns | None | No explicit turn cap defined. Game clock is the primary time limit. Whether a maximum turn count is needed as a backstop is TBD. |
+| Tiebreaker at time expiry | Shelved | If both players' clocks expire simultaneously (unlikely but possible in correspondence mode), resolution is TBD. Options: paint volume, cell count, draw. |
+| Stalemate — oscillating agents | Shelved | Two agents moving back and forth indefinitely is not banned by rule. Whether this constitutes a formal stalemate condition, or is simply a self-defeating strategy, is TBD. |
+| Multiple agents | Shelved | Originally considered: multiple agents per player sharing one op pool. Shelved to keep the core design clean. Candidate for a variant mode once the single-agent game is stable. Key questions if revisited: death mechanics, op pool splitting, and collision rules between own agents. |
 
 ## 5.2 Implementation Notes
+
+> Note: This section is now partially irrelevant as some features have already been implemented and many are currently in development, and cannot be guaranteed to match this part of the spec. However, it serves as a guide for incomplete parts of the game and as general information about the UX.
 
 The following are not game design decisions but implementation details to carry into the build phase.
 
@@ -657,10 +722,11 @@ The scripting panel includes the following controls alongside the text editor:
 - **Defined functions viewer:** A collapsible panel showing all functions currently in the player's library, with their word costs. Useful for referencing existing vocabulary when writing a new script.
 - **Word count and wait time:** Live display of the current script's word cost, the player's current word bank balance, and the time remaining until the bank reaches the script's cost if not yet sufficient.
 - **Restore last script:** A button to reload the previous turn's script into the editor. A script history covering at minimum the last several turns should be browsable and restorable, to allow reuse and iteration without retyping.
-- **Compiler output:** Syntax and type errors are shown continuously as the player types, before deployment. The compiler runs against the current editor content in real time.
+- **Compiler output:** Syntax and type errors are shown upon script submission
 - **Runtime error log:** After an execution that halted or reset due to a runtime or game state error, the error type and the line that caused it are displayed. This helps the player diagnose and fix scripts between turns.
+- **Constant availability:** Players can draft and editing scripts anytime, even when they are not on the clock and it is not their write phase. However, word accumulation only happens during the timed write phase.
 
-> These scripting controls are included intentionally to level the playing field. All of them — drafting scripts during an opponent's turn, tracking word counts, restoring past scripts — could be achieved with external software and a clipboard. Providing them in-app removes any advantage from external tooling and ensures both players operate under identical conditions.
+> These scripting controls are included intentionally to level the playing field. All of them, while not strictly in the spirit of the game, could be achieved with external software and a clipboard. Providing them in-app removes any advantage from external tooling and ensures both players operate under identical conditions.
 
 ### Language Implementation
 

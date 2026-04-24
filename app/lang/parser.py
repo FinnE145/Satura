@@ -1,6 +1,6 @@
 from .tokens import Token, TokenType
 from .nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -47,6 +47,17 @@ _EXPR_START = frozenset({
     TokenType.HAS_AGENT, TokenType.MY_PAINT, TokenType.OPP_PAINT,
     TokenType.CALL,
 })
+
+
+def _token_desc(tok: Token) -> str:
+    """Return a human-readable description of a token for error messages."""
+    if tok.type == TokenType.EOF:
+        return "end of script"
+    if tok.type == TokenType.IDENT:
+        return repr(tok.value)
+    if tok.type in (TokenType.INT_LIT, TokenType.FLOAT_LIT):
+        return f"number {tok.value}"
+    return repr(tok.value)
 
 
 class Parser:
@@ -96,7 +107,7 @@ class Parser:
         if self._check(type):
             return self._advance()
         tok = self._peek()
-        raise ParseError(f"{msg} (got {tok.type.name} {tok.value!r})", tok.line, tok.col)
+        raise ParseError(f"{msg} (got {_token_desc(tok)})", tok.line, tok.col)
 
     # --------------------------------------------------------- statement parsing
 
@@ -119,6 +130,10 @@ class Parser:
             tok = self._expect(TokenType.HALT, "expected 'halt'")
             self._match(TokenType.SEMICOLON)
             return Halt(line=tok.line, col=tok.col)
+        if self._check(TokenType.BREAK):
+            tok = self._expect(TokenType.BREAK, "expected 'break'")
+            self._match(TokenType.SEMICOLON)
+            return Break(line=tok.line, col=tok.col)
         if self._check(TokenType.RETURN):
             return self._parse_return()
 
@@ -173,6 +188,11 @@ class Parser:
 
     def _parse_for(self) -> For:
         tok = self._expect(TokenType.FOR, "expected 'for'")
+        # Anonymous range loop: for range(...) { ... }
+        if self._check(TokenType.RANGE):
+            iterable = self._parse_range_or_expr()
+            body = self._parse_block()
+            return For(None, iterable, body, line=tok.line, col=tok.col)
         self._expect(TokenType.DOLLAR, "expected '$' before loop variable")
         var = self._expect(TokenType.IDENT, "expected loop variable name").value
         self._expect(TokenType.IN, "expected 'in'")
@@ -431,7 +451,7 @@ class Parser:
             )
 
         raise ParseError(
-            f"unexpected token {tok.type.name} {tok.value!r}", tok.line, tok.col
+            f"unexpected {_token_desc(tok)}", tok.line, tok.col
         )
 
 

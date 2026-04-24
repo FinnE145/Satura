@@ -19,8 +19,17 @@ Before doing any work, you MUST read the appropriate spec:
 If unsure, default to:
 → `.agents/spec_with_language.md`
 
+If more detail is needed on general game info, refer to the specific section of `docs/game_guide.md` using the table of contents on lines 8-44. If more detail is needed on specific language implementation, refer to the right section of `docs/language_spec.md`. Load only necessary chunks into context, drop anything that is not necessary for the query or task.
+
+## Frontend
+When working on any HTML, CSS, or UI:
+- Always read and follow `docs/style_guide.md` before making changes.
+- Before writing any new CSS, check `docs/css_classes.md` to see if an existing class already applies.
+- Any new CSS class that could plausibly be reused elsewhere on the site must be written generically (not scoped to a single page or component).
+- Update `docs/css_classes.md` whenever a class is added, changed, or removed.
+
 ## Expectations
-- Follow all rules and constraints from the spec precisely.
+- Follow all rules and constraints from the specs precisely.
 - Do not assume behavior not explicitly defined.
 - Keep implementations consistent with existing patterns in the repo.
 
@@ -28,6 +37,12 @@ If unsure, default to:
 - Ask questions (using the built-in question tool if available) instead of guessing.
 - Clarify ambiguities, edge cases, or missing details before implementing.
 - It is better to pause and confirm than to proceed with incorrect assumptions.
+- Ask me questions first; only read docs/game_guide.md or docs/language_spec.md if broader clarification is needed (they are large and token-expensive).
+
+## Problem-Solving Limits
+- If you have attempted or reasoned through a problem more than twice without landing on a clean solution, stop. Explain what the constraint is and ask for direction.
+- Do not use hacky workarounds (excessive specificity, arbitrary overrides, layered fixes) to force something to work. If a clean solution isn't emerging, explain why and ask.
+- The signal to stop is when you are layering fixes on top of fixes, or thinking in circles. Surface the problem instead of digging deeper.
 - Ask me questions first; only read docs/spec.md or docs/language.md if broader clarification is needed (they are large and token-expensive).
 
 ## graphify

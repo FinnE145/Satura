@@ -1,0 +1,165 @@
+{% extends "settings_base.html" %}
+
+{% block title %}Satura | Game Settings{% endblock %}
+
+{% block settings_content %}
+<article class="card settings-card" id="defaults">
+    <header class="card-header">
+        <h1 class="card-title">Game Defaults</h1>
+    </header>
+    <div class="settings-card-body">
+        <form method="post" class="contact-form settings-form">
+            <input type="hidden" name="action" value="save_defaults">
+
+            <div class="field">
+                <label class="form-label" for="time_control">Default time control</label>
+                <select id="time_control" name="time_control">
+                    {% for control in time_controls %}
+                    <option value="{{ control }}" {% if settings.default_time_control==control %}selected{% endif %}>
+                        {% if control == 'custom' %}Custom{% else %}{{ control }} min{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <p class="form-heading"><span class="text-italic">Custom</span> Time Control Defaults</p>
+            <div class="create-form-grid">
+                <div class="field">
+                    <label class="form-label" for="custom_clock_minutes">Clock (min)</label>
+                    <input type="number" id="custom_clock_minutes" name="custom_clock_minutes"
+                        min="0.5" max="360" step="0.5" value="{{ default_custom.clock_minutes }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_board_size">Board size</label>
+                    <select id="custom_board_size" name="custom_board_size">
+                        {% for stop in board_size_stops %}
+                        <option value="{{ stop }}" {% if default_custom.board_size == stop %}selected{% endif %}>
+                            {{ stop }} × {{ stop }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_op_limit">Op limit</label>
+                    <input type="number" id="custom_op_limit" name="custom_op_limit"
+                        min="1" max="200" step="1" value="{{ default_custom.op_limit }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_word_rate">Word rate</label>
+                    <input type="number" id="custom_word_rate" name="custom_word_rate"
+                        min="0.1" max="10" step="0.1" value="{{ default_custom.word_rate }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="custom_starting_words">Starting words</label>
+                    <input type="number" id="custom_starting_words" name="custom_starting_words"
+                        min="0" max="500" step="1" value="{{ default_custom.starting_words }}">
+                </div>
+            </div>
+
+            <p class="form-heading">Default Accommodations</p>
+            <div class="split-grid">
+                <div class="field">
+                    <label class="form-label" for="accom_p1_clock_minutes">My clock (min)</label>
+                    <input type="number" id="accom_p1_clock_minutes" name="accom_p1_clock_minutes"
+                        min="0.5" max="360" step="0.5" value="{{ default_accom.p1_clock_minutes }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="accom_p2_clock_minutes">Opponent's clock (min)</label>
+                    <input type="number" id="accom_p2_clock_minutes" name="accom_p2_clock_minutes"
+                        min="0.5" max="360" step="0.5" value="{{ default_accom.p2_clock_minutes }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="accom_p1_starting_words">My starting words</label>
+                    <input type="number" id="accom_p1_starting_words" name="accom_p1_starting_words"
+                        min="0" max="500" step="1" value="{{ default_accom.p1_starting_words }}">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="accom_p2_starting_words">Opponent's starting words</label>
+                    <input type="number" id="accom_p2_starting_words" name="accom_p2_starting_words"
+                        min="0" max="500" step="1" value="{{ default_accom.p2_starting_words }}">
+                </div>
+            </div>
+            <div class="field">
+                <label class="form-label" for="accom_starting_player">Who starts</label>
+                <select id="accom_starting_player" name="accom_starting_player">
+                    <option value="random" {% if default_accom.starting_player == 'random' %}selected{% endif %}>Random</option>
+                    <option value="1" {% if default_accom.starting_player == '1' %}selected{% endif %}>Me</option>
+                    <option value="2" {% if default_accom.starting_player == '2' %}selected{% endif %}>Opponent</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn--accent">Save game defaults</button>
+        </form>
+    </div>
+</article>
+
+<article class="card settings-card" id="appearance">
+    <header class="card-header">
+        <h2 class="card-title">Appearance</h2>
+    </header>
+    <div class="settings-card-body settings-card-body--palette">
+        <form method="post" class="settings-palette-form">
+            <input type="hidden" name="action" value="save_palette">
+            <div class="settings-palette-grid" role="radiogroup" aria-label="Palette selection">
+                <label
+                    class="settings-palette-card {% if settings.palette == 'solstice' %}settings-palette-card--active{% endif %}">
+                    <input type="radio" name="palette" value="solstice" {% if settings.palette=='solstice' %}checked{%
+                        endif %}>
+                    <span>Solstice</span>
+                    <img src="{{ url_for('static', filename='satura_solstice_grid.svg') }}"
+                        alt="Solstice palette grid preview">
+                </label>
+                <label
+                    class="settings-palette-card {% if settings.palette == 'fieldstone' %}settings-palette-card--active{% endif %}">
+                    <input type="radio" name="palette" value="fieldstone" {% if settings.palette=='fieldstone'
+                        %}checked{% endif %}>
+                    <span>Fieldstone</span>
+                    <img src="{{ url_for('static', filename='satura_fieldstone_grid.svg') }}"
+                        alt="Fieldstone palette grid preview">
+                </label>
+                <label
+                    class="settings-palette-card {% if settings.palette == 'levant' %}settings-palette-card--active{% endif %}">
+                    <input type="radio" name="palette" value="levant" {% if settings.palette=='levant' %}checked{% endif
+                        %}>
+                    <span>Levant</span>
+                    <img src="{{ url_for('static', filename='satura_levant_grid.svg') }}"
+                        alt="Levant palette grid preview">
+                </label>
+                <label
+                    class="settings-palette-card {% if settings.palette == 'folio' %}settings-palette-card--active{% endif %}">
+                    <input type="radio" name="palette" value="folio" {% if settings.palette=='folio' %}checked{% endif
+                        %}>
+                    <span>Folio</span>
+                    <img src="{{ url_for('static', filename='satura_folio_grid.svg') }}"
+                        alt="Folio palette grid preview">
+                </label>
+            </div>
+            <button type="submit" class="btn btn--accent">Save appearance</button>
+        </form>
+    </div>
+</article>
+{% endblock %}
+
+{% block settings_scripts %}
+<script>
+    (function () {
+        'use strict';
+
+        const paletteCards = document.querySelectorAll('.settings-palette-card');
+        const paletteInputs = document.querySelectorAll('.settings-palette-card input[type="radio"]');
+
+        function syncPaletteCards() {
+            paletteCards.forEach((card) => {
+                const radio = card.querySelector('input[type="radio"]');
+                card.classList.toggle('settings-palette-card--active', Boolean(radio && radio.checked));
+            });
+        }
+
+        paletteInputs.forEach((input) => {
+            input.addEventListener('change', syncPaletteCards);
+        });
+
+        syncPaletteCards();
+    })();
+</script>
+{% endblock %}

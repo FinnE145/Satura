@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(python -m pytest tests/*)",
-      "python -m pytest tests/*"
+      "Bash(.venv/Scripts/python -m pytest tests/ -x --tb=short)",
+      "Bash(python3 -m pytest tests/test_engine.py tests/test_session.py -q)",
+      "Bash(python3 -m pytest tests/ -v)",
+      "Bash(.venv/bin/pytest tests/ -v)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

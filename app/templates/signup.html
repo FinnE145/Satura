@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satura — Create Account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+</head>
+<body>
+    <div class="login-wrap">
+        <div class="login-card">
+            <img class="wordmark" src="{{ url_for('static', filename='satura_wordmark_white.svg') }}" alt="Satura">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="error-msg">{{ messages[0] }}</div>
+                {% endif %}
+            {% endwith %}
+            <form method="post">
+                <div class="field">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" id="username" name="username" autocomplete="username" autofocus>
+                </div>
+                <div class="field">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" name="email" autocomplete="email">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label class="form-label" for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn--accent">Create Account</button>
+            </form>
+            <p class="text-small-sans text-subtle text-center login-footer">Already have an account? <a href="/login">Sign in</a></p>
+        </div>
+    </div>
+</body>
+</html>

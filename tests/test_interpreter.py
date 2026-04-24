@@ -444,6 +444,33 @@ class TestForLoop:
         with pytest.raises(_HS):
             execute(prog, _Ctx(), {})
 
+    def test_anonymous_range_runs_correct_times(self):
+        ctx = _mock_ctx()
+        _run("$n = 0\nfor range(4) { $n = $n + 1 }\npaint($n)", ctx)
+        ctx.board_paint.assert_called_once_with(4)
+
+    def test_anonymous_range_start_stop(self):
+        ctx = _mock_ctx()
+        _run("$n = 0\nfor range(2, 5) { $n = $n + 1 }\npaint($n)", ctx)
+        ctx.board_paint.assert_called_once_with(3)
+
+    def test_anonymous_range_step(self):
+        ctx = _mock_ctx()
+        _run("$n = 0\nfor range(0, 6, 2) { $n = $n + 1 }\npaint($n)", ctx)
+        ctx.board_paint.assert_called_once_with(3)
+
+    def test_anonymous_range_zero_iterations(self):
+        ctx = _mock_ctx()
+        _run("for range(0) { paint(1) }", ctx)
+        ctx.board_paint.assert_not_called()
+
+    def test_anonymous_range_does_not_set_loop_var(self):
+        # No loop variable should be injected into the environment
+        ctx = _Ctx()
+        with pytest.raises(HaltSignal):
+            # $i was never defined; reading it after an anonymous loop should halt
+            _run("if 0 { $i = 0 }\nfor range(3) { }\npaint($i)", ctx)
+
     def test_for_list_snapshot_mid_mutation(self):
         # Mutating the list mid-loop should not affect the current iteration
         ctx = _mock_ctx()
@@ -467,6 +494,45 @@ class TestWhile:
 
     def test_while_condition_non_bool_raises_halt(self):
         _raises_halt("while 2 { paint(1) }")
+
+
+class TestBreak:
+    def test_break_exits_for_loop(self):
+        ctx = _mock_ctx()
+        _run("for $i in range(5) { if $i == 2 { break } paint($i) }", ctx)
+        assert ctx.board_paint.call_count == 2
+        ctx.board_paint.assert_any_call(0)
+        ctx.board_paint.assert_any_call(1)
+
+    def test_break_exits_while_loop(self):
+        ctx = _mock_ctx()
+        _run("$i = 0\nwhile $i < 5 { if $i == 3 { break } paint($i)\n$i = $i + 1 }", ctx)
+        assert ctx.board_paint.call_count == 3
+        ctx.board_paint.assert_any_call(0)
+        ctx.board_paint.assert_any_call(1)
+        ctx.board_paint.assert_any_call(2)
+
+    def test_break_only_exits_innermost_loop(self):
+        ctx = _mock_ctx()
+        _run(
+            "for $i in range(2) { "
+            "for $j in range(3) { if $j == 1 { break } paint(1) } "
+            "paint(2) "
+            "}",
+            ctx,
+        )
+        assert ctx.board_paint.call_count == 4
+        assert ctx.board_paint.mock_calls == [
+            mcall.board_paint(1),
+            mcall.board_paint(2),
+            mcall.board_paint(1),
+            mcall.board_paint(2),
+        ]
+
+    def test_break_preserves_actions_before_break(self):
+        ctx = _mock_ctx()
+        _run("paint(5)\nfor $i in range(1) { break }", ctx)
+        ctx.board_paint.assert_called_once_with(5)
 
 
 # ================================================================== halt
@@ -498,10 +564,11 @@ class TestFunctions:
         _run("def f() { return 42 }\npaint(call f())", ctx)
         ctx.board_paint.assert_called_once_with(42)
 
-    def test_implicit_return_zero(self):
+    def test_implicit_return_null(self):
+        # A function that runs off the end returns NULL; comparing with NULL is valid.
         ctx = _mock_ctx()
-        _run("def f() {}\npaint(call f())", ctx)
-        ctx.board_paint.assert_called_once_with(0)
+        _run("def f() {}\n$r = call f()\nif $r == NULL { paint(1) }", ctx)
+        ctx.board_paint.assert_called_once_with(1)
 
     def test_bare_return(self):
         ctx = _mock_ctx()

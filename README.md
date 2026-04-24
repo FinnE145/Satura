@@ -21,7 +21,7 @@ The game involves two coupled problems:
 
 Understanding the board doesn't tell you how to write the code. Writing efficient code doesn't tell you whether it's the right strategy. Both have to be solved every turn.
 
-The scripting language is intentionally minimal — movement, painting, conditionals, loops, and function definitions. Movement through contested territory costs ops. Functions cost words to define and one word to call. Writing defensively for your second execution costs both. Every script involves tradeoffs.
+The scripting language is intentionally minimal — movement, painting, conditionals, loops, `break`/`halt`, and function definitions. Movement through contested territory costs ops. Functions cost words to define and one word to call. Writing defensively for your second execution costs both. Every script involves tradeoffs.
 
 Full game rules and language documentation are in [`/docs`](./docs).
 
@@ -107,7 +107,7 @@ The scripting panel includes:
 ## Docs
 
 - [Game Rules](./docs/rules.md)
-- [Language Reference](./docs/language.md)
+- [Language Reference](./docs/language_spec.md)
 - [Game Design Specification](./docs/spec.md)
 
 ---

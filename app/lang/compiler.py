@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Flag, auto
 from .nodes import (
-    Program, Assign, ExprStmt, If, For, While, Halt, Return, FuncDef,
+    Program, Assign, ExprStmt, If, For, While, Halt, Break, Return, FuncDef,
     BinOp, UnaryOp, VarRef, IntLit, FloatLit, Constant, Call,
     Min, Max, RangeExpr, Push, Pop, Index, Length, ListConstructor,
     Move, Paint, GetFriction, HasAgent, MyPaint, OppPaint,
@@ -74,6 +74,30 @@ class CompileWarning:
         return f"Line {self.line}, col {self.col}: warning: {self.message}"
 
 
+def _might_fall_through(body: list) -> bool:
+    """
+    Return True if execution might reach the end of body without hitting a
+    return or halt statement.  Used to decide whether NULL must be included
+    in a function's inferred return type.
+    """
+    if not body:
+        return True
+    last = body[-1]
+    if isinstance(last, (Return, Halt)):
+        return False
+    if isinstance(last, If):
+        # Falls through unless there is an else and every branch is guaranteed
+        # to return/halt.
+        if last.else_body is None:
+            return True
+        for _, branch in last.branches:
+            if _might_fall_through(branch):
+                return True
+        return _might_fall_through(last.else_body)
+    # For, While, Assign, ExprStmt, FuncDef — always might fall through.
+    return True
+
+
 # --------------------------------------------------------------------------- compiler
 
 class Compiler:
@@ -97,6 +121,7 @@ class Compiler:
         # Set during check() — reset per scope
         self._var_types:  dict[str, Type] = {}
         self._in_function: bool           = False
+        self._loop_depth: int             = 0
 
     # ------------------------------------------------------------------ public
 
@@ -133,6 +158,7 @@ class Compiler:
         # Pass 4 — full semantic walk.
         self._var_types   = global_types
         self._in_function = False
+        self._loop_depth  = 0
         for s in program.stmts:
             self._check_stmt(s)
 
@@ -294,9 +320,11 @@ class Compiler:
                 assigns.setdefault(s.name, []).append(s.value)
             elif isinstance(s, For):
                 if isinstance(s.iterable, RangeExpr):
-                    assigns.setdefault(s.var, []).append(IntLit(0))  # range yields INT
+                    if s.var is not None:
+                        assigns.setdefault(s.var, []).append(IntLit(0))  # range yields INT
                 else:
-                    for_vars.setdefault(s.var, []).append(s.iterable)
+                    if s.var is not None:
+                        for_vars.setdefault(s.var, []).append(s.iterable)
                 self._collect_assigns(s.body, assigns, for_vars)
             elif isinstance(s, If):
                 for _, body in s.branches:
@@ -344,7 +372,7 @@ class Compiler:
 
     def _func_return_type(self, body: list, var_types: dict[str, Type]) -> Type:
         """Union of all types that can be returned from body."""
-        result = Type(0)
+        result = Type.NULL if _might_fall_through(body) else Type(0)
         for s in body:
             if isinstance(s, Return) and s.value is not None:
                 result |= self._type_of(s.value, var_types)
@@ -399,13 +427,25 @@ class Compiler:
                     self._type_of(s.iterable, self._var_types), Type.LIST,
                     "for loop iterable", s.iterable.line, s.iterable.col,
                 )
-            for inner in s.body:
-                self._check_stmt(inner)
+            self._loop_depth += 1
+            try:
+                for inner in s.body:
+                    self._check_stmt(inner)
+            finally:
+                self._loop_depth -= 1
 
         elif isinstance(s, While):
             self._check_expr(s.cond)
-            for inner in s.body:
-                self._check_stmt(inner)
+            self._loop_depth += 1
+            try:
+                for inner in s.body:
+                    self._check_stmt(inner)
+            finally:
+                self._loop_depth -= 1
+
+        elif isinstance(s, Break):
+            if self._loop_depth == 0:
+                self._error("'break' used outside a loop", s.line, s.col)
 
         elif isinstance(s, Return):
             if not self._in_function:
@@ -423,16 +463,19 @@ class Compiler:
             # Enter isolated function scope — save and restore surrounding state
             outer_types   = self._var_types
             outer_in_func = self._in_function
+            outer_loop_depth = self._loop_depth
 
             param_types       = {p: ANY for p in s.params}
             self._var_types   = self._compute_var_types(s.body, param_types)
             self._in_function = True
+            self._loop_depth  = 0
 
             for inner in s.body:
                 self._check_stmt(inner)
 
             self._var_types   = outer_types
             self._in_function = outer_in_func
+            self._loop_depth  = outer_loop_depth
 
         # Halt — nothing to check
 

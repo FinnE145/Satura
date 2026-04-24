@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- row 0: p1=1 -->
+  <rect x="0"  y="0"  width="40" height="40" fill="rgb(205,197,179)"/>
+  <rect x="40" y="0"  width="40" height="40" fill="rgb(143,136,142)"/>
+  <rect x="80" y="0"  width="40" height="40" fill="rgb(81,75,104)"/>
+
+  <!-- row 1: p1=2.5 (interpolated) -->
+  <rect x="0"  y="40" width="40" height="40" fill="rgb(192,171,103)"/>
+  <rect x="40" y="40" width="40" height="40" fill="rgb(130,112,71)"/>
+  <rect x="80" y="40" width="40" height="40" fill="rgb(77,67,57)"/>
+
+  <!-- row 2: p1=4 -->
+  <rect x="0"  y="80" width="40" height="40" fill="rgb(179,145,26)"/>
+  <rect x="40" y="80" width="40" height="40" fill="rgb(106,87,34)"/>
+  <rect x="80" y="80" width="40" height="40" fill="rgb(62,53,31)"/>
+</svg>

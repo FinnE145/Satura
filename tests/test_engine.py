@@ -74,14 +74,14 @@ class TestBoardMove:
         ctx.board_move("RIGHT")
         assert ctx.ops_remaining == 49  # blank cell costs 1
 
-    def test_move_out_of_bounds_raises_halt(self):
+    def test_move_out_of_bounds_raises_reset(self):
         ctx, _, own, _ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
+        with pytest.raises(ResetSignal):
             ctx.board_move("UP")
 
     def test_move_out_of_bounds_no_position_change(self):
         ctx, _, own, _ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
+        with pytest.raises(ResetSignal):
             ctx.board_move("UP")
         assert (own.row, own.col) == (0, 0)
 
@@ -158,10 +158,9 @@ class TestBoardGetFriction:
         ctx.board_get_friction("HERE")
         assert ctx.ops_remaining == 9
 
-    def test_out_of_bounds_raises_halt(self):
+    def test_out_of_bounds_returns_null(self):
         ctx, _, own, _ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
-            ctx.board_get_friction("UP")
+        assert ctx.board_get_friction("UP") is None
 
     def test_painted_cell(self):
         ctx, board, own, _ = _make_ctx(own_pos=(2, 2))
@@ -215,15 +214,13 @@ class TestBoardPaintQueries:
         board.grid[2][3].p1 = 5
         assert ctx.board_opp_paint("RIGHT") == 5
 
-    def test_my_paint_out_of_bounds_raises_halt(self):
+    def test_my_paint_out_of_bounds_returns_null(self):
         ctx, *_ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
-            ctx.board_my_paint("UP")
+        assert ctx.board_my_paint("UP") is None
 
-    def test_opp_paint_out_of_bounds_raises_halt(self):
+    def test_opp_paint_out_of_bounds_returns_null(self):
         ctx, *_ = _make_ctx(own_pos=(0, 0))
-        with pytest.raises(HaltSignal):
-            ctx.board_opp_paint("UP")
+        assert ctx.board_opp_paint("UP") is None
 
     def test_my_paint_deducts_op(self):
         ctx, *_ = _make_ctx(op_limit=10)
@@ -246,7 +243,7 @@ class TestEngineInit:
     def test_agent_positions(self):
         e = Engine(size=8, op_limit=100, clock_seconds=60.0)
         assert e.agents[1].row == 2 and e.agents[1].col == 2   # 8//4 = 2
-        assert e.agents[2].row == 6 and e.agents[2].col == 6   # 3*8//4 = 6
+        assert e.agents[2].row == 5 and e.agents[2].col == 5   # 8 - 1 - 8//4 = 5
 
     def test_op_limit(self):
         e = Engine(size=8, op_limit=200, clock_seconds=60.0)
@@ -359,6 +356,13 @@ class TestEngineWordBank:
         assert e.spend_words(1, 5) is True
         assert abs(e.word_bank(1) - 0.0) < 0.01
 
+    def test_spend_words_does_not_resume_when_paused(self):
+        e = Engine(size=4, op_limit=50, clock_seconds=30.0)
+        e._word_bank[1] = 5.0
+        assert e._word_tick[1] is None
+        assert e.spend_words(1, 3) is True
+        assert e._word_tick[1] is None
+
     def test_resume_idempotent(self):
         e = Engine(size=4, op_limit=50, clock_seconds=30.0)
         e.resume_word_accumulation(1)
@@ -395,6 +399,15 @@ class TestEngineCompile:
         result = self.e.compile("")
         assert result.ok is True
 
+    def test_break_in_loop_compiles(self):
+        result = self.e.compile("for $i in range(3) { break }")
+        assert result.ok is True
+
+    def test_break_outside_loop_is_compile_error(self):
+        result = self.e.compile("break")
+        assert result.ok is False
+        assert any("'break' used outside a loop" in str(e) for e in result.errors)
+
 
 # ================================================================== Engine.run_execution
 
@@ -409,17 +422,17 @@ class TestRunExecution:
         return result.program
 
     def test_normal_outcome(self):
-        outcome, _ = self.e.run_execution(1, self._compiled())
+        outcome, _, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "normal"
 
     def test_halt_outcome_via_engine_signal(self):
         with patch("app.lang.interpreter.execute", side_effect=HaltSignal("test halt")):
-            outcome, _ = self.e.run_execution(1, self._compiled())
+            outcome, _, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "halt"
 
     def test_reset_outcome_via_engine_signal(self):
         with patch("app.lang.interpreter.execute", side_effect=ResetSignal("test reset")):
-            outcome, _ = self.e.run_execution(1, self._compiled())
+            outcome, _, _ = self.e.run_execution(1, self._compiled())
         assert outcome == "reset"
 
     def test_reset_rolls_back_board(self):
@@ -431,7 +444,7 @@ class TestRunExecution:
             raise ResetSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=mutate_then_reset):
-            outcome, _ = e.run_execution(1, self._compiled())
+            outcome, _, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "reset"
         assert e.board.cell(1, 1).p1 == 3  # restored
@@ -446,7 +459,7 @@ class TestRunExecution:
             raise ResetSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=move_then_reset):
-            outcome, _ = e.run_execution(1, self._compiled())
+            outcome, _, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "reset"
         assert e.agents[1].snapshot() == original_pos
@@ -459,10 +472,18 @@ class TestRunExecution:
             raise HaltSignal("test")
 
         with patch("app.lang.interpreter.execute", side_effect=mutate_then_halt):
-            outcome, _ = e.run_execution(1, self._compiled())
+            outcome, _, _ = e.run_execution(1, self._compiled())
 
         assert outcome == "halt"
         assert e.board.cell(1, 1).p1 == 4  # NOT rolled back
+
+    def test_break_exits_loop_and_completes_normally(self):
+        compile_result = self.e.compile("for $i in range(5) { if $i == 2 { break } paint(1) }")
+        assert compile_result.ok
+        outcome, log, _ = self.e.run_execution(1, compile_result.program)
+        assert outcome == "normal"
+        paint_ops = [entry for entry in log if entry.get("op") == "paint"]
+        assert len(paint_ops) == 2
 
 
 # ================================================================== Engine.check_winner

@@ -6,6 +6,7 @@ from ..lang.tokens import WORD_COSTS
 from ..lang.lexer import tokenize, LexError
 from ..lang.parser import parse, ParseError
 from ..lang.compiler import check, CompileError, CompileWarning
+from ..lang.signals import HaltSignal, ResetSignal
 
 _DELTAS: dict[str, tuple[int, int]] = {
     "HERE":  ( 0,  0),
@@ -14,16 +15,6 @@ _DELTAS: dict[str, tuple[int, int]] = {
     "LEFT":  ( 0, -1),
     "RIGHT": ( 0,  1),
 }
-
-
-# --------------------------------------------------------------------------- signals
-
-class HaltSignal(Exception):
-    """Raised by halt keyword or a runtime halt condition. Actions taken stand."""
-
-
-class ResetSignal(Exception):
-    """Raised when the entire execution must be undone."""
 
 
 # ----------------------------------------------------------------------- compile result
@@ -87,7 +78,7 @@ class ExecutionContext:
         try:
             cost = self._own.move(direction, self._board, self._opp)
         except MoveOutOfBounds as e:
-            raise HaltSignal(str(e)) from e
+            raise ResetSignal(str(e)) from e
         except MoveCollision as e:
             raise ResetSignal(str(e)) from e
         # Deduct after move; if over budget, ResetSignal triggers full rollback
@@ -163,7 +154,7 @@ class Engine:
         self.board = Board(size)
         self.agents: dict[int, Agent] = {
             1: Agent(1, size // 4,     size // 4),
-            2: Agent(2, 3 * size // 4, 3 * size // 4),
+            2: Agent(2, size - 1 - size // 4, size - 1 - size // 4),
         }
         self.op_limit = op_limit
         self.persisted_funcs: dict = {}
@@ -223,13 +214,15 @@ class Engine:
         Deduct `word_count` words. Returns False if the bank is insufficient,
         in which case the script must not be deployed.
         """
+        was_accumulating = self._word_tick[player] is not None
         current = self.word_bank(player)
         if current < word_count:
             return False
         # Flush accumulated words, then deduct
         self.pause_word_accumulation(player)
         self._word_bank[player] -= word_count
-        self.resume_word_accumulation(player)
+        if was_accumulating:
+            self.resume_word_accumulation(player)
         return True
 
     # ---------------------------------------------------------------- compilation
@@ -280,15 +273,18 @@ class Engine:
         outcome = "normal"
         try:
             execute(program, ctx, self.persisted_funcs)
-        except HaltSignal:
+        except HaltSignal as e:
             outcome = "halt"
-        except ResetSignal:
+            ctx._log.append({"op": "halt", "reason": str(e)})
+        except ResetSignal as e:
             outcome = "reset"
             self.board.restore(board_snap)
             own.restore(own_snap)
             opp.restore(opp_snap)
+            ctx._log.append({"op": "reset", "reason": str(e)})
 
-        return outcome, ctx._log
+        ops_consumed = ctx.op_limit - ctx.ops_remaining
+        return outcome, ctx._log, ops_consumed
 
     # --------------------------------------------------------- win / stalemate
 

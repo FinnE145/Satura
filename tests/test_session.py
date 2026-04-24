@@ -3,7 +3,8 @@ import pytest
 from unittest.mock import patch
 
 from app.game.engine import Engine
-from app.game.session import GameSession, create_session, get_session, _sessions, ANIMATION_DURATION
+from app.game.session import GameSession, create_session, get_session, _sessions
+from config import Config
 
 
 # ================================================================== helpers
@@ -24,8 +25,10 @@ def _in_write(player=1, engine=None):
     s = _session(engine)
     s.current_player = player
     s.phase = "write"
+    s._opening_pre_write_pending = False
     s.engine._word_bank[player] = 1000.0
     s.engine.resume_clock(player)
+    s.engine.resume_word_accumulation(player)
     return s
 
 
@@ -52,10 +55,10 @@ class TestRegistry:
         assert get_session("does-not-exist") is None
 
     def test_create_session_runs_p1_exec2(self):
-        # After creation, P1's exec2 (no script) already ran — should be in anim_pre_write
+        # After creation, P1's exec2 (no script) already ran — should be in opening_pre_write
         s = create_session("reg-3", 4, 100, 60.0)
         assert s.current_player == 1
-        assert s.phase == "anim_pre_write"
+        assert s.phase == "opening_pre_write"
 
     def test_create_session_exec_log_empty_on_no_script(self):
         s = create_session("reg-4", 4, 100, 60.0)
@@ -104,6 +107,15 @@ class TestCompileScript:
         s.phase = "anim_pre_write"
         result = s.compile_script(1, "")
         assert result["ok"] is False
+
+    def test_compile_timeout_finishes_game(self):
+        s = _in_write(player=1)
+        s.engine._clock_remaining[1] = 0.0
+        result = s.compile_script(1, "")
+        assert result["ok"] is False
+        assert "time expired" in result["errors"]
+        assert s.game_over is True
+        assert s.winner == 2
 
     def test_valid_source_ok(self):
         s = _in_write()
@@ -172,6 +184,11 @@ class TestDeployScript:
         s.deploy_script(1, "@@@")
         assert s.engine._clock_tick[1] is not None
 
+    def test_compile_error_resumes_word_accumulation(self):
+        s = _in_write(player=1)
+        s.deploy_script(1, "@@@")
+        assert s.engine._word_tick[1] is not None
+
     def test_insufficient_words_returns_error(self):
         s = _in_write(player=1)
         s.engine._word_bank[1] = 0.0
@@ -186,6 +203,12 @@ class TestDeployScript:
         s.deploy_script(1, "$x = 1")
         # Clock must not be left paused
         assert s.engine._clock_tick[1] is not None or s.engine._clock_remaining[1] >= 0.0
+
+    def test_insufficient_words_resumes_word_accumulation(self):
+        s = _in_write(player=1)
+        s.engine._word_bank[1] = 0.0
+        s.deploy_script(1, "$x = 1")
+        assert s.engine._word_tick[1] is not None
 
     def test_success_stores_program(self):
         s = _in_write(player=1)
@@ -216,6 +239,18 @@ class TestDeployScript:
         # Word tick should be None (paused) after deploy
         assert s.engine._word_tick[1] is None
 
+    def test_deploy_break_script_succeeds(self):
+        s = _in_write(player=1)
+        result = _deploy(s, "for $i in range(3) { break }")
+        assert result["ok"] is True
+
+    def test_deploy_break_script_logs_normal_exec1(self):
+        s = _in_write(player=1)
+        _deploy(s, "for $i in range(3) { break }")
+        assert s.phase == "anim_post_exec1"
+        assert not any(entry.get("op") == "halt" for entry in s._exec_log)
+        assert not any(entry.get("op") == "reset" for entry in s._exec_log)
+
 
 # ================================================================== get_state
 
@@ -242,6 +277,33 @@ class TestGetState:
         for key in ("p1", "p2", "black", "total"):
             assert key in state["territory"]
 
+    def test_state_includes_animation_step_duration(self):
+        s = _in_write()
+        state = s.get_state()
+        assert state["animation_step_duration"] == Config.ANIMATION_STEP_DURATION
+
+    def test_state_phase_timer_countdown_in_animation(self):
+        s = _session()
+        s.phase = "anim_pre_write"
+        s._anim_deadline = time.monotonic() + 5.0
+        state = s.get_state()
+        assert state["phase_timer"]["mode"] == "countdown"
+        assert state["phase_timer"]["seconds"] >= 0.0
+
+    def test_state_phase_timer_countdown_in_opening_pre_write(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._anim_deadline = time.monotonic() + 5.0
+        state = s.get_state()
+        assert state["phase_timer"]["mode"] == "countdown"
+        assert state["phase_timer"]["seconds"] >= 0.0
+
+    def test_state_phase_timer_countup_in_write(self):
+        s = _in_write()
+        state = s.get_state()
+        assert state["phase_timer"]["mode"] == "countup"
+        assert state["phase_timer"]["seconds"] >= 0.0
+
     def test_game_id_correct(self):
         s = _in_write()
         assert s.get_state()["game_id"] == "test-game"
@@ -260,12 +322,39 @@ class TestGetState:
         s.get_state()
         assert s.phase == "write"
 
+    def test_advance_opening_pre_write_to_write(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._anim_deadline = time.monotonic() - 1.0
+        s.get_state()
+        assert s.phase == "write"
+
     def test_advance_anim_pre_write_starts_clock(self):
         s = _session()
         s.phase = "anim_pre_write"
         s._anim_deadline = time.monotonic() - 1.0
         s.get_state()
+        assert s.phase == "write"
         assert s.engine._clock_tick[s.current_player] is not None
+
+    def test_advance_opening_pre_write_starts_clock(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._anim_deadline = time.monotonic() - 1.0
+        s.get_state()
+        assert s.engine._clock_tick[s.current_player] is not None
+
+    def test_advance_to_write_with_zero_time_finishes_immediately(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._opening_pre_write_pending = False
+        s.current_player = 1
+        s.engine._clock_remaining[1] = 0.0
+        s._anim_deadline = time.monotonic() - 1.0
+        s.get_state()
+        assert s.game_over is True
+        assert s.winner == 2
+        assert s.phase == "finished"
 
     def test_advance_anim_post_exec1_switches_player(self):
         s = _session()
@@ -278,11 +367,30 @@ class TestGetState:
         # After anim_post_exec1 expires, P2's exec2 runs (no script → halt)
         # Session should be in anim_pre_write for P2
         s = _session()
+        s._opening_pre_write_pending = False
         s.phase = "anim_post_exec1"
         s._anim_deadline = time.monotonic() - 1.0
         s.get_state()
         assert s.phase == "anim_pre_write"
         assert s.current_player == 2
+
+    def test_skip_opening_pre_write_from_anim_pre_write_enters_write(self):
+        s = _session()
+        s.phase = "anim_pre_write"
+        s.current_player = 1
+        s.skip_opening_pre_write()
+        s.get_state()
+        assert s.phase == "write"
+        assert s._opening_pre_write_pending is False
+
+    def test_skip_opening_pre_write_from_opening_pre_write_enters_write(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s.current_player = 1
+        s.skip_opening_pre_write()
+        s.get_state()
+        assert s.phase == "write"
+        assert s._opening_pre_write_pending is False
 
 
 # ================================================================== check_clock_expired
@@ -306,6 +414,18 @@ class TestCheckClockExpired:
         s.engine._clock_remaining[1] = 0.0
         s.check_clock_expired()
         assert s.phase == "finished"
+
+    def test_expired_sets_timeout_reason(self):
+        s = _in_write(player=1)
+        s.engine._clock_remaining[1] = 0.0
+        s.check_clock_expired()
+        assert s.end_reason == "timeout"
+
+    def test_expired_pauses_running_clock(self):
+        s = _in_write(player=1)
+        s.engine._clock_remaining[1] = 0.0
+        s.check_clock_expired()
+        assert s.engine._clock_tick[1] is None
 
     def test_not_checked_outside_write_phase(self):
         s = _session()
@@ -404,6 +524,7 @@ class TestWinDetection:
         _deploy(s, source="")  # exec1 runs empty script; win already on board
         assert s.game_over is True
         assert s.winner == 1
+        assert s.end_reason == "territory"
         assert s.phase == "finished"
 
     def test_win_after_exec2(self):
@@ -444,6 +565,7 @@ class TestWinDetection:
         _deploy(s, source="")
         assert s.game_over is True
         assert s.winner == "draw"
+        assert s.end_reason == "stalemate"
 
 
 # ================================================================== exec_log
@@ -504,10 +626,21 @@ class TestExecLog:
 # ================================================================== word bank accumulation
 
 class TestWordBankAccumulation:
-    def test_accumulation_starts_after_exec2(self):
-        # After _run_exec2, word accumulation should be active
+    def test_accumulation_does_not_start_during_anim_pre_write(self):
+        # After _run_exec2, session is in animation and accumulation must be paused.
         s = _session()
         s._run_exec2()  # no script → halt
+        assert s.phase == "opening_pre_write"
+        assert s.engine._word_tick[1] is None
+
+    def test_accumulation_starts_on_write_phase_entry(self):
+        s = _session()
+        s.phase = "opening_pre_write"
+        s._opening_pre_write_pending = False
+        s.current_player = 1
+        s._anim_deadline = time.monotonic() - 1.0
+        s.get_state()
+        assert s.phase == "write"
         assert s.engine._word_tick[1] is not None
 
     def test_accumulation_paused_after_deploy(self):
@@ -526,3 +659,35 @@ class TestWordBankAccumulation:
             e.resume_word_accumulation(1)
             bank = e.word_bank(1)
         assert abs(bank - 50.0) < 0.1
+
+
+# ================================================================== animation timing
+
+class TestAnimationTiming:
+    def test_animation_wait_seconds_excludes_sensing_ops(self):
+        s = _session()
+        log = [
+            {"op": "get_friction"},
+            {"op": "move"},
+            {"op": "has_agent"},
+            {"op": "paint"},
+            {"op": "halt"},
+        ]
+        wait = s._animation_wait_seconds(log)
+        assert abs(wait - (3 * Config.ANIMATION_STEP_DURATION + 2.0)) < 1e-9
+
+    def test_run_exec1_sets_deadline_from_non_sensing_steps(self):
+        s = _in_write(player=1)
+        s._program[1] = object()
+        fake_log = [
+            {"op": "get_friction"},
+            {"op": "move"},
+            {"op": "paint"},
+        ]
+
+        with patch("time.monotonic", return_value=100.0):
+            with patch.object(s.engine, "run_execution", return_value=("normal", fake_log, 3)):
+                s._run_exec1()
+
+        expected = 100.0 + (2 * Config.ANIMATION_STEP_DURATION + 2.0)
+        assert abs(s._anim_deadline - expected) < 1e-9

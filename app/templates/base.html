@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Satura{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename=active_palette.mark_file) }}" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Libre+Baskerville:wght@700&family=Lora:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+    {% block head %}{% endblock %}
+</head>
+
+<body data-active-palette="{{ active_palette.name }}" data-palette-warm="{{ active_palette.warm }}"
+    data-palette-cool="{{ active_palette.cool }}" data-ui-warm="{{ active_palette.ui_warm }}"
+    data-ui-warm-bright="{{ active_palette.ui_warm_bright }}" data-ui-cool="{{ active_palette.ui_cool }}"
+    data-ui-cool-bright="{{ active_palette.ui_cool_bright }}">
+
+    <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
+    {% block nav %}<nav class="site-nav">
+        <div class="nav-inner container">
+            <a href="/" class="brand">
+                <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura Logo"
+                    class="brand-mark" width="28" height="28">
+                <span class="brand-wordmark">Satura</span>
+            </a>
+            <div class="nav-links">
+                <a href="/game/new" class="nav-link">New game</a>
+                <a href="/my-games" class="nav-link">My games</a>
+                <a href="/how-to-play" class="nav-link">How to play</a>
+            </div>
+            {% if active_game_id %}
+            <a href="/game/{{ active_game_id }}" class="nav-in-game" data-game-id="{{ active_game_id }}">
+                <span class="nav-in-game-title">In game</span>
+                <span class="nav-in-game-phase" data-nav="phase"></span>
+            </a>
+            {% endif %}
+            <div class="nav-actions">
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.settings_profile') }}" class="nav-profile-btn"
+                    aria-label="Open profile settings" title="Profile settings">
+                    <span class="material-symbols-outlined">account_circle</span>
+                </a>
+                {% else %}
+                <a href="/login" class="btn btn--secondary btn--sm">Sign in</a>
+                <a href="/signup" class="btn btn--accent btn--sm">Sign up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>{% endblock nav %}
+
+    {% block content %}{% endblock %}
+
+    <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+    {% block footer %}<footer class="site-footer">
+        <div class="footer-inner container">
+            <div class="left">
+                <a href="/about">About Satura</a>
+                <a href="/contact">Contact</a>
+            </div>
+            <div class="right">
+                <a href="/legal/terms">Terms of Use</a>
+                <a href="/legal/privacy">Privacy Policy</a>
+                <a href="/legal/cookies">Cookie Policy</a>
+            </div>
+        </div>
+    </footer>{% endblock footer %}
+
+    <script>
+        (function () {
+            'use strict';
+
+            const root = document.documentElement;
+            const body = document.body;
+            const warm = body?.dataset?.paletteWarm;
+            const cool = body?.dataset?.paletteCool;
+            const uiWarm = body?.dataset?.uiWarm || warm;
+            const uiWarmBright = body?.dataset?.uiWarmBright || uiWarm;
+            const uiCool = body?.dataset?.uiCool || cool;
+            const uiCoolBright = body?.dataset?.uiCoolBright || uiCool;
+
+            if (!warm || !cool) {
+                return;
+            }
+
+            function hexToRgba(hex, alpha) {
+                const clean = String(hex).replace('#', '');
+                if (clean.length !== 6) {
+                    return 'rgba(0, 0, 0, ' + alpha + ')';
+                }
+                const r = parseInt(clean.slice(0, 2), 16);
+                const g = parseInt(clean.slice(2, 4), 16);
+                const b = parseInt(clean.slice(4, 6), 16);
+                return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+            }
+
+            root.style.setProperty('--accent', uiWarm);
+            root.style.setProperty('--accent-tint', hexToRgba(uiWarm, 0.10));
+            root.style.setProperty('--accent-dim', hexToRgba(uiWarm, 0.65));
+            root.style.setProperty('--accent-cool', uiCool);
+            root.style.setProperty('--accent-cool-tint', hexToRgba(uiCool, 0.10));
+            root.style.setProperty('--accent-cool-dim', hexToRgba(uiCool, 0.65));
+
+            root.style.setProperty('--accent-bright', uiWarmBright);
+            root.style.setProperty('--accent-bright-tint', hexToRgba(uiWarmBright, 0.10));
+            root.style.setProperty('--accent-bright-dim', hexToRgba(uiWarmBright, 0.65));
+            root.style.setProperty('--accent-cool-bright', uiCoolBright);
+            root.style.setProperty('--accent-cool-bright-tint', hexToRgba(uiCoolBright, 0.10));
+            root.style.setProperty('--accent-cool-bright-dim', hexToRgba(uiCoolBright, 0.65));
+        })();
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+        (function () {
+            const indicator = document.querySelector('.nav-in-game');
+            if (!indicator) return;
+            const gameId = indicator.dataset.gameId;
+            const phaseEl = indicator.querySelector('[data-nav="phase"]');
+            if (!gameId || !phaseEl) return;
+
+            let snapshot = null;
+            let renderTimer = null;
+
+            function formatClock(seconds) {
+                const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+                const mins = Math.floor(safe / 60);
+                const secs = safe % 60;
+                return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            }
+
+            function phaseLabel(phase) {
+                if (phase === 'anim_post_exec1' || phase === 'exec1') return 'Exec 1';
+                if (phase === 'anim_pre_write' || phase === 'exec2') return 'Exec 2';
+                if (phase === 'opening_pre_write') return 'Pre-Write';
+                if (phase === 'write') return 'Write';
+                return phase || '';
+            }
+
+            function render() {
+                if (!snapshot) return;
+                const elapsed = Math.max(0, (performance.now() - snapshot.sampledAt) / 1000);
+                let text = snapshot.label;
+                if (snapshot.mode === 'countdown') {
+                    text += ' ' + formatClock(Math.max(0, snapshot.seconds - elapsed));
+                } else if (snapshot.mode === 'countup') {
+                    text += ' +' + formatClock(snapshot.seconds + elapsed);
+                }
+                phaseEl.textContent = text;
+            }
+
+            async function poll() {
+                try {
+                    const res = await fetch('/game/' + gameId + '/state');
+                    if (!res.ok) return;
+                    const state = await res.json();
+                    const timer = state.phase_timer;
+                    const label = phaseLabel(state.phase);
+                    const player = String(state.current_player ?? '');
+                    const isWrite = state.phase === 'write';
+                    indicator.dataset.player = player;
+                    indicator.dataset.write = isWrite ? 'true' : 'false';
+                    if (timer && timer.mode && Number.isFinite(Number(timer.seconds))) {
+                        snapshot = { label, mode: timer.mode, seconds: Number(timer.seconds), sampledAt: performance.now() };
+                    } else {
+                        snapshot = { label, mode: null, seconds: 0, sampledAt: performance.now() };
+                    }
+                    render();
+                } catch (_) { }
+            }
+
+            poll();
+            setInterval(poll, 2000);
+            renderTimer = setInterval(render, 250);
+        })();
+    </script>
+</body>
+
+</html>
