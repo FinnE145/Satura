@@ -3221,6 +3221,11 @@ body:has(.login-wrap) {
     padding: 0 0.15em;
 }
 
+/* When the timeline sits inside a card, match the card background */
+.settings-card-body .game-timeline-date {
+    background: var(--bg-card);
+}
+
 /* Board thumbnail */
 .game-row-thumb {
     position: relative;
