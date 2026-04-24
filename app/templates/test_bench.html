@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Satura | Test Bench{% endblock %}
+
+{% block content %}
+<main class="site-main">
+    <div class="container create-page-stack">
+        <article class="card">
+            <header class="card-header">
+                <h1 class="card-title">Test Bench</h1>
+            </header>
+            <div class="settings-card-body settings-stack">
+                <p class="text-small-sans text-subtle">
+                    Play a solo test game against a bot that always plays
+                    <code>halt</code>. Test games are not saved.
+                </p>
+                <div>
+                    <p class="hero-create-label">Preset</p>
+                    <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Game preset">
+                        {% for key in preset_order %}
+                        <button type="button" class="icon-btn btn-warm-hover" data-preset="{{ key }}" role="radio"
+                            aria-checked="false">
+                            <span class="material-symbols-outlined">{{ preset_icons[key] }}</span>
+                            <span class="icon-btn-label">{{ key }} min</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <form method="POST" action="/test">
+                    <input type="hidden" name="preset" id="selected-preset" value="5">
+                    <div class="card-footer" style="padding: 0;">
+                        <button type="submit" class="btn btn--accent">Start Test Game</button>
+                    </div>
+                </form>
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <p class="error-msg">{{ messages[0] }}</p>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </article>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const presetRow = document.getElementById('preset-row');
+    const selectedInput = document.getElementById('selected-preset');
+
+    function selectPreset(key) {
+        selectedInput.value = key;
+        presetRow.querySelectorAll('[data-preset]').forEach(btn => {
+            const active = btn.dataset.preset === key;
+            btn.setAttribute('aria-checked', active ? 'true' : 'false');
+            btn.classList.toggle('is-active', active);
+        });
+    }
+
+    presetRow.addEventListener('click', e => {
+        const btn = e.target.closest('[data-preset]');
+        if (btn) selectPreset(btn.dataset.preset);
+    });
+
+    selectPreset(selectedInput.value);
+})();
+</script>
+{% endblock %}

@@ -13,12 +13,19 @@
         <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
         <span id="game-viewer-count-num"></span>
     </span>
+    <span class="player-switch" id="player-switch" hidden aria-label="Switch player view">
+        <a class="player-switch__opt player-switch__opt--p1" id="player-switch-p1" href="#">P1</a>
+        <a class="player-switch__opt player-switch__opt--p2" id="player-switch-p2" href="#">P2</a>
+    </span>
 </header>
 {% endblock %}
 {% block footer %}{% endblock %}
 
 {% block content %}
-<main class="site-main" id="game-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}">
+<main class="site-main" id="game-root"
+    data-game-id="{{ game_id }}"
+    data-player-num="{{ player_num or '' }}"
+    {% block game_root_extra_data %}{% endblock %}>
 
     <div class="game-outer">
 
@@ -87,6 +94,7 @@
                             aria-label="Script editor"></textarea>
                     </div>
                     <div class="card-footer">
+                        <button class="btn btn--ghost btn-autorun-toggle" id="btn-autorun" type="button" hidden>Auto-run</button>
                         <button class="btn btn--ghost" id="btn-compile" type="button" disabled>Compile</button>
                         <button class="btn btn--accent" id="btn-deploy" type="button" disabled>Deploy</button>
                     </div>
@@ -229,8 +237,10 @@
                         <p class="game-over-modal__message text-small-sans" id="game-over-message"></p>
                     </div>
                     <div class="card-footer">
+                        {% block game_over_footer %}
                         <a class="btn btn--accent" href="/my-games/{{ game_id }}">Review Game</a>
                         <a class="btn btn--secondary" href="/game/new">Create New</a>
+                        {% endblock %}
                     </div>
                 </div>
             </div>

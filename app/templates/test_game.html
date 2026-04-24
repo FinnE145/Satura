@@ -1,0 +1,12 @@
+{% extends "game.html" %}
+
+{% block title %}Satura | Test Game{% endblock %}
+
+{% block game_root_extra_data %}
+data-endpoint-prefix="/test"
+data-test-mode="true"
+{% endblock %}
+
+{% block game_over_footer %}
+<a class="btn btn--accent" href="/test">New Test Game</a>
+{% endblock %}

@@ -34,15 +34,41 @@ const gameControlsDrawMsg = document.getElementById('game-controls-draw-msg');
 const gameControlsDrawBtns = document.getElementById('game-controls-draw-btns');
 const btnDrawAccept = document.getElementById('btn-draw-accept');
 const btnDrawReject = document.getElementById('btn-draw-reject');
+const btnAutorun = document.getElementById('btn-autorun');
+const playerSwitchEl = document.getElementById('player-switch');
+const playerSwitchP1 = document.getElementById('player-switch-p1');
+const playerSwitchP2 = document.getElementById('player-switch-p2');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const gameRoot = document.getElementById('game-root');
 const gameId = gameRoot?.dataset?.gameId || null;
-const apiBase = gameId ? `/game/${encodeURIComponent(gameId)}` : null;
+const endpointPrefix = gameRoot?.dataset?.endpointPrefix || '/game';
+const apiBase = gameId ? `${endpointPrefix}/${encodeURIComponent(gameId)}` : null;
+const isTestMode = gameRoot?.dataset?.testMode === 'true';
 const myPlayer = parseInt(gameRoot?.dataset?.playerNum) || null;
 const minePlayer = myPlayer || 1;
 const oppPlayer = minePlayer === 1 ? 2 : 1;
+
+if (isTestMode && btnDraw) btnDraw.hidden = true;
+
+// ── Test-mode: player switch ──────────────────────────────────────────────────
+
+let autorunEnabled = false;
+
+if (isTestMode && gameId) {
+    if (playerSwitchEl && playerSwitchP1 && playerSwitchP2) {
+        playerSwitchP1.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=1`;
+        playerSwitchP2.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=2`;
+        if (minePlayer === 1) {
+            playerSwitchP1.classList.add('player-switch__opt--active');
+        } else {
+            playerSwitchP2.classList.add('player-switch__opt--active');
+        }
+        playerSwitchEl.hidden = false;
+    }
+    if (btnAutorun) btnAutorun.hidden = false;
+}
 
 document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
     el.textContent = `P${minePlayer}`;
@@ -1548,8 +1574,9 @@ function isSmallScreen() {
 async function loadHistoryData() {
     if (!gameId || !myPlayer) return;
     try {
+        const scriptsUrl = isTestMode ? `${apiBase}/scripts?player=${minePlayer}` : `${apiBase}/scripts`;
         const [scripts, funcs] = await Promise.all([
-            get(`${apiBase}/scripts`),
+            get(scriptsUrl),
             get(`${apiBase}/functions`),
         ]);
         renderHistoryInto(scriptHistoryCard, scripts, funcs);
@@ -1712,8 +1739,38 @@ async function refreshViewerCount() {
     }
 }
 
-refreshViewerCount();
-let viewerCountTimer = setInterval(refreshViewerCount, 10000);
+let viewerCountTimer = null;
+if (!isTestMode) {
+    refreshViewerCount();
+    viewerCountTimer = setInterval(refreshViewerCount, 10000);
+}
+
+// ── Auto-run toggle (test mode) ───────────────────────────────────────────────
+
+function setAutorunUI(enabled) {
+    autorunEnabled = enabled;
+    if (!btnAutorun) return;
+    btnAutorun.classList.toggle('btn--ghost', !enabled);
+    btnAutorun.classList.toggle('btn--accent', enabled);
+}
+
+async function fetchAutorun() {
+    if (!apiBase) return;
+    try {
+        const data = await get(`${apiBase}/autorun`);
+        setAutorunUI(data.autorun?.[minePlayer] ?? false);
+    } catch (_) { }
+}
+
+if (isTestMode && btnAutorun) {
+    fetchAutorun();
+    btnAutorun.addEventListener('click', async () => {
+        try {
+            const data = await post(`${apiBase}/autorun`, { player: minePlayer, enabled: !autorunEnabled });
+            setAutorunUI(data.autorun?.[minePlayer] ?? !autorunEnabled);
+        } catch (_) { }
+    });
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

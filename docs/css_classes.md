@@ -186,6 +186,12 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 |---|---|
 | `.game-header` | sticky-height header bar shown on the game screen in place of `.site-nav` — brand left, viewer count right |
 | `.game-viewer-count` | muted eye icon + number showing active spectator count; hidden when count is 0 |
+| `.player-switch` | segmented P1/P2 toggle shown in the game header in test mode (replaces viewer count) |
+| `.player-switch__opt` | one half of the player switch (P1 or P2 link); muted by default |
+| `.player-switch__opt--p1` | warm-accent active state for the P1 option |
+| `.player-switch__opt--p2` | cool-accent active state for the P2 option |
+| `.player-switch__opt--active` | marks the currently-viewed player; combine with `--p1` or `--p2` |
+| `.btn-autorun-toggle` | pushes the auto-run button left in the card-footer using `margin-right: auto` |
 
 ### Game page
 | Class | Description |

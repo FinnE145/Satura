@@ -17,7 +17,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
 from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction
-from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby
+from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, create_test_session, get_test_session, remove_test_session
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -1883,3 +1883,213 @@ def game_functions(game_id):
         })
 
     return jsonify(result)
+
+
+# ── Test bench ────────────────────────────────────────────────────────────────
+
+@bp.route('/test')
+@login_required
+def test_bench():
+    preset_icons = {
+        '60': 'hourglass_top',
+        '30': 'timer',
+        '15': 'speed',
+        '5': 'rocket',
+    }
+    return render_template(
+        'test_bench.html',
+        presets=Config.TIME_CONTROL_PRESETS,
+        preset_order=('60', '30', '15', '5'),
+        preset_icons=preset_icons,
+    )
+
+
+@bp.route('/test', methods=['POST'])
+@login_required
+def test_bench_start():
+    try:
+        parsed = _parse_session_config(request.form)
+    except ValueError as exc:
+        flash(str(exc))
+        return redirect(url_for('main.test_bench'))
+
+    game_id = str(uuid.uuid4())
+    create_test_session(
+        game_id=game_id,
+        size=parsed['size'],
+        op_limit=parsed['op_limit'],
+        clock_seconds=parsed['clock_seconds'],
+        word_rate=parsed['word_rate'],
+        starting_words=parsed['p1_starting_words'],
+        user_id=current_user.id,
+    )
+    return redirect(url_for('main.test_game_page', game_id=game_id))
+
+
+@bp.route('/test/<game_id>')
+@login_required
+def test_game_page(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return render_template('stub.html', page_title='Test game not found'), 404
+    if session._user_id != current_user.id:
+        return render_template('stub.html', page_title='Forbidden'), 403
+    player_num = request.args.get('player', '1')
+    if player_num not in ('1', '2'):
+        player_num = '1'
+    return render_template('test_game.html', game_id=game_id, player_num=int(player_num))
+
+
+@bp.route('/test/<game_id>/state', methods=['GET'])
+@login_required
+def test_game_state(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    session.check_clock_expired()
+    state = session.get_state(for_player=None)
+    state['total_phases'] = session._phase_counter
+    return jsonify(state)
+
+
+@bp.route('/test/<game_id>/state/<int:phase_number>', methods=['GET'])
+@login_required
+def test_game_phase_state(game_id, phase_number):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+    if phase_number < 0 or phase_number >= len(session._mem_phases):
+        return jsonify({'error': 'phase not found'}), 404
+
+    phase = session._mem_phases[phase_number]
+    board_raw = json.loads(phase['board_state_json'])
+    board = [[{'p1': cell[0], 'p2': cell[1]} for cell in row] for row in board_raw]
+    agents_raw = json.loads(phase['agents_json'])
+    exec_log = json.loads(phase['exec_log_json']) if phase['exec_log_json'] else []
+
+    return jsonify({
+        'board': board,
+        'agents': agents_raw,
+        'exec_log': exec_log,
+        'exec_ops_consumed': phase['ops_consumed'],
+        'op_limit': session.engine.op_limit,
+        'phase_number': phase['phase_number'],
+        'total_phases': session._phase_counter,
+        'exec_type': phase['exec_type'],
+        'player_slot': phase['player_slot'],
+    })
+
+
+@bp.route('/test/<game_id>/compile', methods=['POST'])
+@login_required
+def test_compile_script(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+    result = session.compile_script(player, data.get('source', ''), user_id=current_user.id)
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/deploy', methods=['POST'])
+@login_required
+def test_deploy_script(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+    result = session.deploy_script(player, data.get('source', ''), user_id=current_user.id)
+    status = 200 if result.get('ok') else 422
+    return jsonify(result), status
+
+
+@bp.route('/test/<game_id>/resign', methods=['POST'])
+@login_required
+def test_resign(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+    result = session.resign(player, user_id=current_user.id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/begin_write', methods=['POST'])
+@login_required
+def test_begin_write(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+    session.skip_opening_pre_write()
+    return jsonify({'ok': True})
+
+
+@bp.route('/test/<game_id>/scripts', methods=['GET'])
+@login_required
+def test_scripts(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    player_str = request.args.get('player', '1')
+    player_slot = int(player_str) if player_str in ('1', '2') else 1
+    scripts = [
+        {'turn': s['turn_number'], 'source': s['source_text']}
+        for s in session._mem_scripts
+        if s['player_slot'] == player_slot
+    ]
+    return jsonify(scripts)
+
+
+@bp.route('/test/<game_id>/functions', methods=['GET'])
+@login_required
+def test_functions(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    return jsonify(list(session._mem_funcs.values()))
+
+
+@bp.route('/test/<game_id>/autorun', methods=['GET', 'POST'])
+@login_required
+def test_autorun(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+        enabled = bool(data.get('enabled', False))
+        session.set_autorun(player, enabled)
+        return jsonify({'ok': True, 'autorun': session.get_autorun()})
+
+    return jsonify({'autorun': session.get_autorun()})

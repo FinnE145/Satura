@@ -1489,6 +1489,43 @@ a[aria-disabled='true'] {
     font-variation-settings: 'wght' 300;
 }
 
+.player-switch {
+    margin-left: auto;
+    display: inline-flex;
+    border: 1px solid var(--border-mid);
+    border-radius: 6px;
+    overflow: hidden;
+    font-family: var(--font-ui);
+    font-size: 0.8125em;
+}
+
+.player-switch__opt {
+    padding: 0.3em 0.8em;
+    cursor: pointer;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.player-switch__opt:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+}
+
+.player-switch__opt--p1.player-switch__opt--active {
+    color: var(--accent);
+    background: var(--accent-tint);
+}
+
+.player-switch__opt--p2.player-switch__opt--active {
+    color: var(--accent-cool);
+    background: var(--accent-cool-tint);
+}
+
+.btn-autorun-toggle {
+    margin-right: auto;
+}
+
 /* Game page outer layout */
 
 .game-outer {
