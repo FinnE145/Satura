@@ -596,6 +596,8 @@ class TestGameSession(GameSession):
         self._mem_funcs: dict[str, dict] = {}  # name → {name, args, source} (latest wins)
         self._autorun: dict[int, bool] = {1: False, 2: False}
         self._saved_script: dict[int, str] = {1: '', 2: ''}
+        self._autorun_delay: dict[int, float] = {1: 0.0, 2: 0.0}
+        self._autorun_pending_deadline: float | None = None
 
     def _persist_phase(
         self,
@@ -672,6 +674,10 @@ class TestGameSession(GameSession):
         if player in (1, 2):
             self._autorun[player] = enabled
 
+    def set_autorun_delay(self, player: int, delay: float) -> None:
+        if player in (1, 2):
+            self._autorun_delay[player] = max(0.0, delay)
+
     def get_autorun(self) -> dict:
         return {1: self._autorun[1], 2: self._autorun[2]}
 
@@ -681,12 +687,32 @@ class TestGameSession(GameSession):
             self._saved_script[player] = source
         return result
 
+    def get_state(self, for_player=None) -> dict:
+        self._check_autorun_deadline()
+        return super().get_state(for_player)
+
+    def _check_autorun_deadline(self) -> None:
+        if self.game_over or self.phase != 'write':
+            self._autorun_pending_deadline = None
+            return
+        if self._autorun_pending_deadline is None:
+            return
+        if time.monotonic() >= self._autorun_pending_deadline:
+            self._autorun_pending_deadline = None
+            player = self.current_player
+            if self._autorun.get(player) and self._saved_script.get(player):
+                self._auto_deploy(player)
+
     def _enter_write_phase(self) -> None:
         super()._enter_write_phase()
         if not self.game_over:
             player = self.current_player
             if self._autorun.get(player) and self._saved_script.get(player):
-                self._auto_deploy(player)
+                delay = self._autorun_delay.get(player, 0.0)
+                if delay <= 0:
+                    self._auto_deploy(player)
+                else:
+                    self._autorun_pending_deadline = time.monotonic() + delay
 
     def _auto_deploy(self, player: int) -> None:
         script = self._saved_script[player]
@@ -890,14 +916,26 @@ def create_test_session(
     word_rate: float,
     starting_words: float,
     user_id: int,
+    p1_clock_seconds: float | None = None,
+    p2_clock_seconds: float | None = None,
+    p2_starting_words: float | None = None,
+    starting_player: int = 1,
+    p1_autorun_delay: float = 0.0,
+    p2_autorun_delay: float = 0.0,
 ) -> "TestGameSession":
     """Create an in-memory-only test game. P1 = user, P2 = halt bot."""
     engine = Engine(size, op_limit, clock_seconds, word_rate)
     engine._word_bank[1] = starting_words
-    engine._word_bank[2] = starting_words
+    engine._word_bank[2] = p2_starting_words if p2_starting_words is not None else starting_words
+    if p1_clock_seconds is not None:
+        engine._clock_remaining[1] = p1_clock_seconds
+    if p2_clock_seconds is not None:
+        engine._clock_remaining[2] = p2_clock_seconds
     session = TestGameSession(game_id, engine, user_id=user_id)
     session.set_players(user_id, user_id)
-    session.current_player = 1
+    session._autorun_delay[1] = max(0.0, p1_autorun_delay)
+    session._autorun_delay[2] = max(0.0, p2_autorun_delay)
+    session.current_player = starting_player if starting_player in (1, 2) else 1
     _test_sessions[game_id] = session
     session._persist_initial_phase()
     session._run_exec2()

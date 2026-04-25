@@ -1890,28 +1890,105 @@ def game_functions(game_id):
 @bp.route('/test')
 @login_required
 def test_bench():
+    return redirect(url_for('main.test_bench_new'))
+
+
+@bp.route('/test/new')
+@login_required
+def test_bench_new():
+    preset_order = ('60', '30', '15', '5')
     preset_icons = {
         '60': 'hourglass_top',
         '30': 'timer',
         '15': 'speed',
         '5': 'rocket',
+        'custom': 'alarm_smart_wake',
     }
+    preset_param = request.args.get('preset')
+    if preset_param not in ('60', '30', '15', '5', 'custom'):
+        preset_param = None
+    if preset_param is None:
+        user_settings = _get_or_create_settings(current_user)
+        preset_param = user_settings.default_time_control or '5'
+
+    user_settings = _get_or_create_settings(current_user)
+    user_custom_defaults = None
+    user_accom_defaults = None
+    if user_settings.custom_clock_seconds is not None:
+        user_custom_defaults = {
+            'clock_seconds': user_settings.custom_clock_seconds,
+            'board_size': user_settings.custom_board_size_val,
+            'op_limit': user_settings.custom_op_limit,
+            'word_rate': user_settings.custom_word_rate,
+            'starting_words': user_settings.custom_starting_words,
+        }
+    if user_settings.accom_p1_clock_seconds is not None:
+        user_accom_defaults = {
+            'p1_clock_seconds': user_settings.accom_p1_clock_seconds,
+            'p2_clock_seconds': user_settings.accom_p2_clock_seconds,
+            'p1_starting_words': user_settings.accom_p1_starting_words,
+            'p2_starting_words': user_settings.accom_p2_starting_words,
+            'starting_player': user_settings.accom_starting_player or 'random',
+        }
+
     return render_template(
         'test_bench.html',
         presets=Config.TIME_CONTROL_PRESETS,
-        preset_order=('60', '30', '15', '5'),
+        preset_order=preset_order,
         preset_icons=preset_icons,
+        board_size_stops=Config.BOARD_SIZE_STOPS,
+        default_preset=preset_param,
+        user_custom_defaults=user_custom_defaults,
+        user_accom_defaults=user_accom_defaults,
     )
 
 
-@bp.route('/test', methods=['POST'])
+@bp.route('/test/new', methods=['POST'])
 @login_required
-def test_bench_start():
+def test_bench_new_start():
+    form = request.form
+    preset = form.get('preset', '5')
+    payload = {
+        'preset': preset,
+        'accommodations_enabled': form.get('accommodations_enabled', ''),
+    }
+    if preset == 'custom':
+        try:
+            payload['clock_seconds'] = float(form.get('clock_minutes', 5)) * 60
+        except (TypeError, ValueError):
+            payload['clock_seconds'] = 300.0
+        payload['board_size'] = form.get('board_size', '6')
+        payload['op_limit'] = form.get('op_limit', '25')
+        payload['word_rate'] = form.get('word_rate', '1.0')
+        payload['starting_words'] = form.get('starting_words', '30')
+
+    if _coerce_bool(form.get('accommodations_enabled', '')):
+        try:
+            payload['p1_clock_seconds'] = float(form.get('p1_clock_minutes', 5)) * 60
+        except (TypeError, ValueError):
+            pass
+        try:
+            payload['p2_clock_seconds'] = float(form.get('p2_clock_minutes', 5)) * 60
+        except (TypeError, ValueError):
+            pass
+        payload['p1_starting_words'] = form.get('p1_starting_words', '')
+        payload['p2_starting_words'] = form.get('p2_starting_words', '')
+        payload['starting_player'] = form.get('starting_player', 'random')
+
     try:
-        parsed = _parse_session_config(request.form)
+        parsed = _parse_session_config(payload)
     except ValueError as exc:
         flash(str(exc))
-        return redirect(url_for('main.test_bench'))
+        return redirect(url_for('main.test_bench_new'))
+
+    try:
+        p1_autorun_delay = max(0.0, float(form.get('p1_autorun_delay', '0')))
+    except (TypeError, ValueError):
+        p1_autorun_delay = 0.0
+    try:
+        p2_autorun_delay = max(0.0, float(form.get('p2_autorun_delay', '0')))
+    except (TypeError, ValueError):
+        p2_autorun_delay = 0.0
 
     game_id = str(uuid.uuid4())
     create_test_session(
@@ -1921,7 +1998,13 @@ def test_bench_start():
         clock_seconds=parsed['clock_seconds'],
         word_rate=parsed['word_rate'],
         starting_words=parsed['p1_starting_words'],
+        p2_starting_words=parsed['p2_starting_words'],
+        p1_clock_seconds=parsed['p1_clock_seconds'],
+        p2_clock_seconds=parsed['p2_clock_seconds'],
+        starting_player=parsed['starting_player'],
         user_id=current_user.id,
+        p1_autorun_delay=p1_autorun_delay,
+        p2_autorun_delay=p2_autorun_delay,
     )
     return redirect(url_for('main.test_game_page', game_id=game_id))
 

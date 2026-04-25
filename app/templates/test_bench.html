@@ -11,9 +11,9 @@
             </header>
             <div class="settings-card-body settings-stack">
                 <p class="text-small-sans text-subtle">
-                    Play a solo test game against a bot that always plays
-                    <code>halt</code>. Test games are not saved.
+                    Play a solo test game. Both players are under your control. Test games are not saved.
                 </p>
+
                 <div>
                     <p class="hero-create-label">Preset</p>
                     <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Game preset">
@@ -24,19 +24,125 @@
                             <span class="icon-btn-label">{{ key }} min</span>
                         </button>
                         {% endfor %}
+                        <button type="button" class="icon-btn btn-warm-hover" data-preset="custom" role="radio"
+                            aria-checked="false">
+                            <span class="material-symbols-outlined">{{ preset_icons['custom'] }}</span>
+                            <span class="icon-btn-label">Custom</span>
+                        </button>
                     </div>
                 </div>
-                <form method="POST" action="/test">
+
+                <form id="test-form" method="POST" action="/test/new" class="settings-form settings-stack" novalidate>
                     <input type="hidden" name="preset" id="selected-preset" value="5">
-                    <div class="card-footer" style="padding: 0;">
+
+                    <div class="create-form-grid">
+                        <div class="field">
+                            <label class="form-label" for="clock_minutes">Clock (min)</label>
+                            <input type="number" id="clock_minutes" name="clock_minutes" min="0.5" max="360" step="0.5">
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="board_size">Board size</label>
+                            <select id="board_size" name="board_size">
+                                {% for stop in board_size_stops %}
+                                <option value="{{ stop }}">{{ stop }} x {{ stop }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="op_limit">Op limit</label>
+                            <input type="number" id="op_limit" name="op_limit" min="1" max="200" step="1">
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="word_rate">Word rate</label>
+                            <input type="number" id="word_rate" name="word_rate" min="0.1" max="10" step="0.1">
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="starting_words">Starting words</label>
+                            <input type="number" id="starting_words" name="starting_words" min="0" max="500" step="1">
+                        </div>
+                    </div>
+
+                    <div class="toggle-row">
+                        <label class="toggle-label" for="accommodations_enabled">
+                            <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled" value="true">
+                            <span>Accommodations</span>
+                        </label>
+                        <span class="text-small-sans text-subtle">Customize per-player time and starting words.</span>
+                    </div>
+
+                    <section id="accommodations-section" class="settings-stack" hidden>
+                        <div class="split-grid">
+                            <div class="field">
+                                <label class="form-label" for="p1_clock_minutes">P1 clock (min)</label>
+                                <input type="number" id="p1_clock_minutes" name="p1_clock_minutes" min="0.5" max="360"
+                                    step="0.5">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p2_clock_minutes">P2 clock (min)</label>
+                                <input type="number" id="p2_clock_minutes" name="p2_clock_minutes" min="0.5" max="360"
+                                    step="0.5">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p1_starting_words">P1 starting words</label>
+                                <input type="number" id="p1_starting_words" name="p1_starting_words" min="0" max="500"
+                                    step="1">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p2_starting_words">P2 starting words</label>
+                                <input type="number" id="p2_starting_words" name="p2_starting_words" min="0" max="500"
+                                    step="1">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label" for="starting_player">Who starts</label>
+                            <select id="starting_player" name="starting_player">
+                                <option value="random">Random</option>
+                                <option value="1">P1</option>
+                                <option value="2">P2</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <p id="defaults-loaded-notice" class="text-small-sans text-subtle" hidden>
+                        Custom defaults loaded. <a href="/settings/game#defaults" class="accent-link">Edit defaults</a>
+                    </p>
+
+                    <div class="settings-stack">
+                        <p class="hero-create-label hero-create-label--learn">Auto-run delay</p>
+                        <p class="text-small-sans text-subtle">When auto-run is on for a player, they wait this many seconds in the write phase before deploying.</p>
+                        <div class="split-grid">
+                            <div class="field">
+                                <label class="form-label" for="p1_autorun_delay">P1 delay (sec)</label>
+                                <input type="number" id="p1_autorun_delay" name="p1_autorun_delay" min="0" max="60"
+                                    step="0.5" value="30">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p2_autorun_delay">P2 delay (sec)</label>
+                                <input type="number" id="p2_autorun_delay" name="p2_autorun_delay" min="0" max="60"
+                                    step="0.5" value="30">
+                            </div>
+                        </div>
+                    </div>
+
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <p class="error-msg">{{ messages[0] }}</p>
+                    {% endif %}
+                    {% endwith %}
+
+                    <div class="card-footer create-form-footer">
                         <button type="submit" class="btn btn--accent">Start Test Game</button>
                     </div>
                 </form>
-                {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                <p class="error-msg">{{ messages[0] }}</p>
-                {% endif %}
-                {% endwith %}
             </div>
         </article>
     </div>
@@ -44,26 +150,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function () {
-    const presetRow = document.getElementById('preset-row');
-    const selectedInput = document.getElementById('selected-preset');
-
-    function selectPreset(key) {
-        selectedInput.value = key;
-        presetRow.querySelectorAll('[data-preset]').forEach(btn => {
-            const active = btn.dataset.preset === key;
-            btn.setAttribute('aria-checked', active ? 'true' : 'false');
-            btn.classList.toggle('is-active', active);
-        });
-    }
-
-    presetRow.addEventListener('click', e => {
-        const btn = e.target.closest('[data-preset]');
-        if (btn) selectPreset(btn.dataset.preset);
-    });
-
-    selectPreset(selectedInput.value);
-})();
-</script>
+<script id="presets-json" type="application/json">{{ presets | tojson }}</script>
+<script id="default-preset-json" type="application/json">{{ default_preset | tojson }}</script>
+<script id="user-custom-defaults-json" type="application/json">{{ user_custom_defaults | tojson }}</script>
+<script id="user-accom-defaults-json" type="application/json">{{ user_accom_defaults | tojson }}</script>
+<script src="{{ url_for('static', filename='js/test_new.js') }}"></script>
 {% endblock %}
