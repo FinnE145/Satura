@@ -139,6 +139,24 @@ class DefinedFunction(db.Model):
     script = db.relationship('Script', foreign_keys=[script_id])
 
 
+class Friendship(db.Model):
+    __tablename__ = 'friendships'
+    __table_args__ = (
+        db.UniqueConstraint('requester_id', 'addressee_id', name='uq_friendship_pair'),
+        db.Index('ix_friendships_addressee', 'addressee_id'),
+    )
+
+    id           = db.Column(db.Integer, primary_key=True)
+    requester_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False)
+    addressee_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False)
+    status       = db.Column(db.String(8), nullable=False)  # 'pending' | 'accepted' | 'declined' | 'blocked'
+    created_at   = db.Column(db.DateTime, nullable=False,
+                             default=lambda: datetime.now(timezone.utc))
+
+    requester = db.relationship('Account', foreign_keys=[requester_id])
+    addressee = db.relationship('Account', foreign_keys=[addressee_id])
+
+
 class AccountSettings(db.Model):
     __tablename__ = 'account_settings'
 
