@@ -46,3 +46,4 @@ When I have completed all testing and say that a session is done, "looks good", 
 - If the session began with/included working on tasks from the Google Tasks list, each 'Quick Fix'-level task would roughly be one commit.
 - If the changes made correlate to a Google Task (or the satura-tasks skill was used), you can take this instruction to "finish up and commit" to also mark the corresponding task as complete. This only applies to tasks that were explicitly being completed in that session.
 - If it appears there are other tasks that were inadvertently completed by the session, suggest them but do not edit them automatically.
+- Update graphify as mentioned above
