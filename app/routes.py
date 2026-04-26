@@ -1369,6 +1369,20 @@ def settings_friends():
                 db.session.delete(fs)
                 db.session.commit()
 
+        elif action == 'accept_request':
+            fid = request.form.get('friendship_id', 0, type=int)
+            fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
+            if fs:
+                fs.status = 'accepted'
+                db.session.commit()
+
+        elif action == 'decline_request':
+            fid = request.form.get('friendship_id', 0, type=int)
+            fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
+            if fs:
+                fs.status = 'declined'
+                db.session.commit()
+
         elif action == 'block':
             fid = request.form.get('friendship_id', 0, type=int)
             fs = Friendship.query.filter(
@@ -1393,6 +1407,9 @@ def settings_friends():
         for fs in accepted
     ]
 
+    incoming_rows = Friendship.query.filter_by(addressee_id=me, status='pending').all()
+    incoming = [{'user': fs.requester, 'friendship_id': fs.id} for fs in incoming_rows]
+
     pending_rows = Friendship.query.filter_by(requester_id=me, status='pending').all()
     pending_sent = [{'user': fs.addressee, 'friendship_id': fs.id} for fs in pending_rows]
 
@@ -1403,6 +1420,7 @@ def settings_friends():
         'settings_friends.html',
         settings_nav='friends',
         friends=friends,
+        incoming=incoming,
         pending_sent=pending_sent,
         declined=declined,
     )

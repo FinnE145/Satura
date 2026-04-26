@@ -3,6 +3,33 @@
 {% block title %}Satura | Friends{% endblock %}
 
 {% block settings_content %}
+{% if incoming %}
+<article class="card settings-card">
+    <header class="card-header">
+        <h2 class="card-title">Friend Requests <span class="text-muted text-small-sans">({{ incoming | length }})</span></h2>
+    </header>
+    <div class="settings-card-body">
+        <ul class="friends-list">{%- for r in incoming -%}
+            <li class="friend-item">
+                <span>{{ r.user.username }}</span>
+                <div>
+                    <form method="post">
+                        <input type="hidden" name="action" value="accept_request">
+                        <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
+                        <button type="submit" class="btn btn--accent btn--sm">Accept</button>
+                    </form>
+                    <form method="post">
+                        <input type="hidden" name="action" value="decline_request">
+                        <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
+                        <button type="submit" class="btn btn--ghost btn--sm">Decline</button>
+                    </form>
+                </div>
+            </li>
+        {%- endfor %}</ul>
+    </div>
+</article>
+{% endif %}
+
 <article class="card settings-card">
     <header class="card-header">
         <h1 class="card-title">Add Friend</h1>
@@ -34,7 +61,7 @@
     </header>
     <div class="settings-card-body">
         {% if friends %}
-        <ul class="friends-list">{%- for f in friends %}
+        <ul class="friends-list">{%- for f in friends -%}
             <li class="friend-item">
                 <span>{{ f.user.username }}</span>
                 <div>
@@ -78,7 +105,7 @@
         {% if pending_sent %}
         <div>
             <p class="label">Pending</p>
-            <ul class="friends-list">{%- for r in pending_sent %}
+            <ul class="friends-list">{%- for r in pending_sent -%}
                 <li class="friend-item">
                     <span>{{ r.user.username }}</span>
                     <div>
@@ -98,7 +125,7 @@
         {% if declined %}
         <div>
             <p class="label">Declined</p>
-            <ul class="friends-list">{%- for r in declined %}
+            <ul class="friends-list">{%- for r in declined -%}
                 <li class="friend-item">
                     <span class="text-subtle">{{ r.user.username }}</span>
                     <div>
@@ -193,7 +220,12 @@
             e.stopPropagation();
             const wasOpen = !list.hidden;
             document.querySelectorAll('.action-menu__list').forEach(l => { l.hidden = true; });
-            list.hidden = wasOpen;
+            if (!wasOpen) {
+                const r = btn.getBoundingClientRect();
+                list.style.top   = (r.bottom + 4) + 'px';
+                list.style.right = (window.innerWidth - r.right) + 'px';
+                list.hidden = false;
+            }
         });
     });
 
