@@ -33,6 +33,7 @@ Update this file whenever a class is added, changed, or removed.
 ### Hover utilities
 | Class | Description |
 |---|---|
+| `.no-underline` | `text-decoration: none` utility — strips underline from links |
 | `.warm-hover` | text transitions to warm accent on hover |
 | `.cool-hover` | text transitions to cool accent on hover |
 | `.accent-link` | warm accent colour by default, brighter on hover — inline text links |
@@ -131,9 +132,11 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.nav-links` | flex row of page links |
 | `.nav-link` | individual nav text link (muted, highlights on hover) |
 | `.nav-actions` | right-hand slot (sign-in button or profile) |
-| `.nav-in-game` | absolutely centred link shown when the user is in an active game |
+| `.nav-center-slot` | `flex: 1` container between brand and nav-links — centers its single child in the blank space |
+| `.nav-in-game` | link shown inside `.nav-center-slot` when the user is in an active game |
 | `.nav-in-game-title` | "In game" label inside `.nav-in-game` |
 | `.nav-in-game-phase` | phase + timer text below the title inside `.nav-in-game` |
+| `.nav-game-invite` | link shown inside `.nav-center-slot` when the user has a pending game invite (cool accent, mutually exclusive with `.nav-in-game`) |
 | `.nav-profile` | relative wrapper for the profile dropdown |
 | `.nav-profile-btn` | icon button that opens/closes the dropdown |
 | `.nav-dropdown` | absolute dropdown panel below the profile button |

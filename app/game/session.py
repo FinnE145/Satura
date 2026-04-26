@@ -62,6 +62,7 @@ class PendingLobby:
     player2_username: str | None = None
     player1_ready: bool = False
     player2_ready: bool = False
+    invited_user_id: int | None = None
 
     def lobby_status(self) -> dict:
         return {
@@ -733,6 +734,7 @@ class TestGameSession(GameSession):
 _sessions: dict[str, "GameSession"] = {}
 _pending_lobbies: dict[str, PendingLobby] = {}
 _alias_index: dict[str, str] = {}  # join_alias (uppercase) -> game_id
+_invite_index: dict[int, str] = {}  # invited_user_id -> game_id
 
 
 def _restore_session_from_db(game_id: str) -> "GameSession | None":
@@ -845,17 +847,20 @@ def _restore_session_from_db(game_id: str) -> "GameSession | None":
         return None
 
 
-def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '') -> PendingLobby:
+def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '', invited_user_id: int | None = None) -> PendingLobby:
     lobby = PendingLobby(
         game_id=game_id,
         settings=settings,
         player1_id=player1_id,
         player1_username=username,
         join_alias=join_alias,
+        invited_user_id=invited_user_id,
     )
     _pending_lobbies[game_id] = lobby
     if join_alias:
         _alias_index[join_alias.upper()] = game_id
+    if invited_user_id is not None:
+        _invite_index[invited_user_id] = game_id
     return lobby
 
 
@@ -874,10 +879,19 @@ def get_lobby(game_id: str) -> PendingLobby | None:
     return _pending_lobbies.get(game_id)
 
 
+def get_invite_for_user(user_id: int) -> PendingLobby | None:
+    game_id = _invite_index.get(user_id)
+    if game_id is None:
+        return None
+    return _pending_lobbies.get(game_id)
+
+
 def remove_lobby(game_id: str) -> None:
     lobby = _pending_lobbies.pop(game_id, None)
     if lobby and lobby.join_alias:
         _alias_index.pop(lobby.join_alias.upper(), None)
+    if lobby and lobby.invited_user_id is not None:
+        _invite_index.pop(lobby.invited_user_id, None)
 
 
 def create_session(

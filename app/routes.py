@@ -17,7 +17,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
 from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction, Friendship
-from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, create_test_session, get_test_session, remove_test_session
+from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, get_invite_for_user, create_test_session, get_test_session, remove_test_session
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -485,6 +485,7 @@ def new_game_legacy():
 
 
 @bp.route('/game/new')
+@login_required
 def game_new():
     preset_order = ('60', '30', '15', '5')
     preset_icons = {
@@ -525,6 +526,24 @@ def game_new():
                 'starting_player': user_settings.accom_starting_player or 'random',
             }
 
+    me = current_user.id
+    accepted = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).all()
+    friends = [
+        fs.addressee if fs.requester_id == me else fs.requester
+        for fs in accepted
+    ]
+
+    invite_friend = None
+    invite_username = request.args.get('invite', '').strip()
+    if invite_username:
+        invite_friend = next(
+            (f for f in friends if f.username == invite_username),
+            None,
+        )
+
     return render_template(
         'game_new.html',
         presets=Config.TIME_CONTROL_PRESETS,
@@ -535,6 +554,8 @@ def game_new():
         username=current_user.username if current_user.is_authenticated else '',
         user_custom_defaults=user_custom_defaults,
         user_accom_defaults=user_accom_defaults,
+        friends=friends,
+        invite_friend=invite_friend,
     )
 
 
@@ -1114,7 +1135,12 @@ def how_to_play():
 @login_required
 def settings_profile():
     stats = _make_recent_games(current_user)
-    return render_template('settings_profile.html', settings_nav='profile', stats=stats)
+    me = current_user.id
+    friend_count = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).count()
+    return render_template('settings_profile.html', settings_nav='profile', stats=stats, friend_count=friend_count)
 
 
 @bp.route('/settings/account', methods=['GET', 'POST'])
@@ -1535,10 +1561,44 @@ def game_create_lobby():
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
 
+    invited_user_id = data.get('invited_user_id')
+    if invited_user_id is not None:
+        invited_user_id = int(invited_user_id)
+        me = current_user.id
+        friendship = Friendship.query.filter(
+            Friendship.status == 'accepted',
+            or_(
+                (Friendship.requester_id == me) & (Friendship.addressee_id == invited_user_id),
+                (Friendship.requester_id == invited_user_id) & (Friendship.addressee_id == me),
+            ),
+        ).first()
+        if friendship is None:
+            return jsonify({'error': 'not friends with that user'}), 400
+
     game_id = str(uuid.uuid4())
     alias = _gen_join_alias()
-    create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias)
+    create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias, invited_user_id=invited_user_id)
     return jsonify({'game_id': game_id, 'join_alias': alias}), 201
+
+
+@bp.route('/api/my-invite', methods=['GET'])
+@login_required
+def my_invite():
+    lobby = get_invite_for_user(current_user.id)
+    if lobby is None:
+        return jsonify({'invite': None})
+    join_url = (
+        f'/join/{lobby.join_alias}'
+        if lobby.join_alias
+        else f'/game/{lobby.game_id}/join'
+    )
+    return jsonify({
+        'invite': {
+            'game_id': lobby.game_id,
+            'host_username': lobby.player1_username,
+            'join_url': join_url,
+        }
+    })
 
 
 @bp.route('/join', methods=['GET'])
@@ -1574,6 +1634,8 @@ def game_join_page(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
+    if lobby.invited_user_id is not None and current_user.id != lobby.invited_user_id:
+        return render_template('stub.html', page_title='Game not found'), 404
     return render_template(
         'game_join.html',
         game_id=game_id,
@@ -1590,6 +1652,8 @@ def game_join(game_id):
         return jsonify({'error': 'game not found'}), 404
     if current_user.id == lobby.player1_id:
         return jsonify({'error': 'cannot join your own game'}), 400
+    if lobby.invited_user_id is not None and current_user.id != lobby.invited_user_id:
+        return jsonify({'error': 'this invite is for a specific player'}), 403
     if lobby.player2_id is not None and lobby.player2_id != current_user.id:
         return jsonify({'error': 'game is full'}), 409
     lobby.player2_id = current_user.id

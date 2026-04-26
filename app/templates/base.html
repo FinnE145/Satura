@@ -30,6 +30,16 @@
                     class="brand-mark" width="28" height="28">
                 <span class="brand-wordmark">Satura</span>
             </a>
+            <div class="nav-center-slot">
+                {% if active_game_id %}
+                <a href="/game/{{ active_game_id }}" class="nav-in-game" data-game-id="{{ active_game_id }}">
+                    <span class="nav-in-game-title">In game</span>
+                    <span class="nav-in-game-phase" data-nav="phase"></span>
+                </a>
+                {% elif current_user.is_authenticated %}
+                <a class="nav-game-invite" id="nav-game-invite" hidden></a>
+                {% endif %}
+            </div>
             <div class="nav-links">
                 <a href="/game/new" class="nav-link">New game</a>
                 <a href="/join" class="nav-link">Join game</a>
@@ -37,12 +47,6 @@
                 <a href="/test/new" class="nav-link">Test bench</a>
                 <a href="/how-to-play" class="nav-link">How to play</a>
             </div>
-            {% if active_game_id %}
-            <a href="/game/{{ active_game_id }}" class="nav-in-game" data-game-id="{{ active_game_id }}">
-                <span class="nav-in-game-title">In game</span>
-                <span class="nav-in-game-phase" data-nav="phase"></span>
-            </a>
-            {% endif %}
             <div class="nav-actions">
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.settings_profile') }}" class="nav-profile-btn"
@@ -119,6 +123,26 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        (function () {
+            const inviteEl = document.getElementById('nav-game-invite');
+            if (inviteEl) {
+                fetch('/api/my-invite')
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (data) {
+                        if (!data || !data.invite) return;
+                        const inv = data.invite;
+                        inviteEl.href = inv.join_url;
+                        inviteEl.innerHTML =
+                            '<span class="nav-in-game-title">Game invite</span>' +
+                            '<span class="nav-in-game-phase">from ' + inv.host_username + '</span>';
+                        inviteEl.hidden = false;
+                    })
+                    .catch(function () {});
+            }
+        })();
+    </script>
 
     <script>
         (function () {

@@ -50,11 +50,15 @@
     const linkDisplayUrl = document.getElementById('link-display-url');
     const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));
     const copyLinkBtn = document.getElementById('copy-link-btn');
+    const presetInviteBtn = document.getElementById('preset-invite-btn');
+    const inviteFriendBtn = document.getElementById('invite-friend-btn');
+    const inviteFriendList = document.getElementById('invite-friend-list');
     const lobbyPanel = document.getElementById('lobby-panel');
     const joinDot = document.getElementById('join-dot');
     const joinLabel = document.getElementById('join-label');
     const lobbyActions = document.getElementById('lobby-actions');
     const newLinkBtn = document.getElementById('new-link-btn');
+    const revokeInviteBtn = document.getElementById('revoke-invite-btn');
     const p1ReadyBtn = document.getElementById('p1-ready-btn');
 
     const fields = {
@@ -86,6 +90,7 @@
     let currentGameId = null;
     let pollInterval = null;
     let p1IsReady = false;
+    let inviteMode = false;
 
     function setError(message) {
         if (!errorBox) return;
@@ -283,18 +288,35 @@
         }
     }
 
-    async function handleCopyLink() {
-        setError('');
-        copyLinkBtn.disabled = true;
+    function resetLobbyUI() {
+        stopPolling();
+        p1IsReady = false;
+        inviteMode = false;
+        currentGameId = null;
+        if (p1ReadyBtn) {
+            p1ReadyBtn.textContent = 'Ready';
+            p1ReadyBtn.disabled = false;
+        }
+        if (joinDot) joinDot.className = 'status-dot status-dot--pending';
+        if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
+        if (lobbyActions) lobbyActions.hidden = true;
+        if (newLinkBtn) newLinkBtn.hidden = false;
+        if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+        if (lobbyPanel) lobbyPanel.hidden = true;
+        if (linkDisplay) linkDisplay.hidden = true;
+        updateStartingPlayerOptions(null);
+    }
 
-        // Close old lobby if re-generating
+    async function _createLobby(payload, triggeredByBtn) {
+        setError('');
+        if (triggeredByBtn) triggeredByBtn.disabled = true;
+
         if (currentGameId) {
             try {
                 await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
             } catch (_) {}
         }
 
-        // Reset lobby UI state
         stopPolling();
         p1IsReady = false;
         if (p1ReadyBtn) {
@@ -306,8 +328,6 @@
         if (lobbyActions) lobbyActions.hidden = true;
         updateStartingPlayerOptions(null);
 
-        const payload = buildPayload();
-
         try {
             const response = await fetch('/game/lobby', {
                 method: 'POST',
@@ -317,44 +337,81 @@
 
             if (response.status === 401) {
                 window.location.href = '/login?next=/game/new';
-                return;
+                return null;
             }
 
             const data = await response.json();
             if (!response.ok) {
                 setError(data.error || 'Failed to create game.');
-                return;
+                return null;
             }
 
-            const gameId = data.game_id;
-            if (!gameId) {
+            if (!data.game_id) {
                 setError('Server did not return a game id.');
-                return;
+                return null;
             }
 
-            currentGameId = gameId;
-            const alias = data.join_alias;
-            const joinUrl = alias
-                ? `${location.origin}/join/${encodeURIComponent(alias)}`
-                : `${location.origin}/game/${encodeURIComponent(gameId)}/join`;
-            let copied = false;
-            try {
-                await navigator.clipboard.writeText(joinUrl);
-                copied = true;
-            } catch (_) {}
-            if (linkDisplay) {
-                linkDisplay.firstChild.textContent = copied ? 'Copied link: ' : 'Copy this link: ';
-                if (linkDisplayUrl) linkDisplayUrl.textContent = joinUrl;
-                linkDisplay.hidden = false;
-            }
-
+            currentGameId = data.game_id;
             if (lobbyPanel) lobbyPanel.hidden = false;
-            startLobbyPoll(gameId);
+            startLobbyPoll(data.game_id);
+            return data;
         } catch (error) {
             setError(error?.message || 'Network error while creating game.');
+            return null;
         } finally {
-            copyLinkBtn.disabled = false;
+            if (triggeredByBtn) triggeredByBtn.disabled = false;
         }
+    }
+
+    async function handleCopyLink() {
+        inviteMode = false;
+        if (newLinkBtn) newLinkBtn.hidden = false;
+        if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+
+        const data = await _createLobby(buildPayload(), copyLinkBtn);
+        if (!data) return;
+
+        const alias = data.join_alias;
+        const joinUrl = alias
+            ? `${location.origin}/join/${encodeURIComponent(alias)}`
+            : `${location.origin}/game/${encodeURIComponent(data.game_id)}/join`;
+        let copied = false;
+        try {
+            await navigator.clipboard.writeText(joinUrl);
+            copied = true;
+        } catch (_) {}
+        if (linkDisplay) {
+            linkDisplay.firstChild.textContent = copied ? 'Copied link: ' : 'Copy this link: ';
+            if (linkDisplayUrl) linkDisplayUrl.textContent = joinUrl;
+            linkDisplay.hidden = false;
+        }
+    }
+
+    async function handleInviteFriend(friendId, friendUsername) {
+        inviteMode = true;
+        if (newLinkBtn) newLinkBtn.hidden = true;
+        if (revokeInviteBtn) revokeInviteBtn.hidden = false;
+        if (linkDisplay) linkDisplay.hidden = true;
+
+        const payload = Object.assign(buildPayload(), { invited_user_id: friendId });
+        const data = await _createLobby(payload, null);
+        if (!data) {
+            inviteMode = false;
+            if (newLinkBtn) newLinkBtn.hidden = false;
+            if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+            return;
+        }
+
+        if (joinLabel) joinLabel.textContent = `Waiting for ${friendUsername} to join…`;
+    }
+
+    async function handleRevokeInvite() {
+        if (currentGameId) {
+            try {
+                await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
+            } catch (_) {}
+        }
+        resetLobbyUI();
     }
 
     async function handleReady() {
@@ -436,6 +493,39 @@
     if (copyLinkBtn) copyLinkBtn.addEventListener('click', handleCopyLink);
     if (p1ReadyBtn) p1ReadyBtn.addEventListener('click', handleReady);
     if (newLinkBtn) newLinkBtn.addEventListener('click', handleNewLink);
+    if (revokeInviteBtn) revokeInviteBtn.addEventListener('click', handleRevokeInvite);
+    if (presetInviteBtn) {
+        presetInviteBtn.addEventListener('click', () => {
+            handleInviteFriend(
+                Number(presetInviteBtn.dataset.friendId),
+                presetInviteBtn.dataset.friendUsername || 'friend',
+            );
+        });
+    }
+
+    if (inviteFriendBtn && inviteFriendList) {
+        inviteFriendBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = !inviteFriendList.hidden;
+            inviteFriendList.hidden = open;
+            inviteFriendBtn.setAttribute('aria-expanded', String(!open));
+        });
+        inviteFriendList.addEventListener('click', (e) => {
+            const item = e.target.closest('[data-friend-id]');
+            if (!item) return;
+            const friendId = Number(item.dataset.friendId);
+            const friendUsername = item.dataset.friendUsername || 'friend';
+            inviteFriendList.hidden = true;
+            inviteFriendBtn.setAttribute('aria-expanded', 'false');
+            handleInviteFriend(friendId, friendUsername);
+        });
+        document.addEventListener('click', (e) => {
+            if (!inviteFriendList.hidden && !inviteFriendBtn.contains(e.target) && !inviteFriendList.contains(e.target)) {
+                inviteFriendList.hidden = true;
+                inviteFriendBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     selectPreset(defaultPreset);
     if (defaultPreset === 'custom') {

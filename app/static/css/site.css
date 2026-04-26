@@ -211,6 +211,8 @@ h6 {
 
 /* ─── Colour hover utilities ─────────────────────────────────────────────────── */
 
+.no-underline { text-decoration: none; }
+
 /* Text-only hover */
 .warm-hover {
     transition: color 0.15s;
@@ -324,15 +326,17 @@ h6 {
 }
 
 .nav-inner {
-    position: relative;
     height: 3.5em;
     display: flex;
     align-items: center;
     gap: 2em;
 }
 
-.nav-inner .brand {
-    margin-right: auto;
+.nav-center-slot {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .nav-links {
@@ -360,9 +364,6 @@ h6 {
 }
 
 .nav-in-game {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -370,7 +371,6 @@ h6 {
     color: var(--accent);
     line-height: 1.3;
     transition: color 0.15s;
-    pointer-events: auto;
 }
 
 .nav-in-game[data-player="1"] { color: var(--accent); }
@@ -399,6 +399,18 @@ h6 {
     font-size: 0.7em;
     opacity: 0.8;
 }
+
+.nav-game-invite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--accent-cool);
+    line-height: 1.3;
+    transition: color 0.15s;
+}
+
+.nav-game-invite:hover { color: var(--accent-cool-bright); }
 
 .nav-profile {
     position: relative;

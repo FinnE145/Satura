@@ -65,7 +65,7 @@
             <li class="friend-item">
                 <span>{{ f.user.username }}</span>
                 <div>
-                    <a href="{{ url_for('main.game_new') }}" class="btn btn--ghost btn--sm">
+                    <a href="{{ url_for('main.game_new', invite=f.user.username) }}" class="btn btn--ghost btn--sm">
                         <span class="material-symbols-outlined" aria-hidden="true">swords</span>
                         Invite to game
                     </a>
