@@ -2769,6 +2769,165 @@ body:has(.login-wrap) {
     color: var(--text);
 }
 
+/* ── Action menu (reusable ... dropdown) ────────────────────────────────── */
+
+.action-menu {
+    position: relative;
+}
+
+.action-menu__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25em;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-subtle);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+
+.action-menu__btn:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+}
+
+.action-menu__list {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.3em);
+    z-index: 200;
+    min-width: 10em;
+    list-style: none;
+    margin: 0;
+    padding: 0.3em 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-elevated);
+}
+
+.action-menu__item {
+    display: block;
+    width: 100%;
+    padding: 0.5em 0.85em;
+    background: none;
+    border: none;
+    color: var(--text-subtle);
+    font-family: var(--font-ui);
+    font-size: 0.875em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.action-menu__item:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
+.action-menu__item:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.action-menu__item--danger {
+    color: var(--error);
+}
+
+.action-menu__item--danger:hover:not(:disabled) {
+    background: var(--error-tint);
+    color: var(--error);
+}
+
+/* ── Friends page ───────────────────────────────────────────────────────── */
+
+.friends-search-row {
+    display: flex;
+    gap: 0.6em;
+    align-items: stretch;
+}
+
+.friends-search-row form {
+    display: flex;
+}
+
+.friends-search-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.friends-search-results {
+    position: fixed;
+    z-index: 300;
+    background: var(--bg-card);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-elevated);
+    overflow: hidden;
+}
+
+.friends-search-result {
+    display: block;
+    width: 100%;
+    padding: 0.55em 0.85em;
+    background: none;
+    border: none;
+    color: var(--text-subtle);
+    font-family: var(--font-ui);
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.friends-search-result:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
+.friends-list {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    margin: 0.6em 0 0;
+    padding: 0;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75em;
+    padding: 0.65em 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.friend-item:last-child {
+    border-bottom: none;
+}
+
+.friend-item > span:first-child {
+    font-family: var(--font-heading);
+    font-size: 0.9375em;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friend-item > :last-child {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    flex-shrink: 0;
+}
+
 .create-page-stack {
     display: flex;
     flex-direction: column;
@@ -3569,6 +3728,7 @@ body:has(.login-wrap) {
     white-space: nowrap;
     background: var(--bg-header);
     border-right: 1px solid var(--border-mid);
+    -webkit-user-select: none;
     user-select: none;
 }
 

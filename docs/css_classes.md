@@ -103,6 +103,15 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 |---|---|
 | `.prose` | centred 720px text container — long-form text, legal pages, contact; sets Lora body text with heading/list/table styles |
 
+### Action menu (reusable `...` dropdown)
+| Class | Description |
+|---|---|
+| `.action-menu` | relative-positioned wrapper for a `...` trigger + dropdown panel |
+| `.action-menu__btn` | borderless icon trigger button (subtle, highlights on hover) |
+| `.action-menu__list` | absolute dropdown panel (`ul`) — positioned right-aligned below the button |
+| `.action-menu__item` | full-width button row inside the dropdown |
+| `.action-menu__item--danger` | red danger-state modifier for `.action-menu__item` |
+
 ---
 
 ## Specific — scoped to one page or feature
@@ -398,6 +407,16 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-palette-card` | selectable palette card/button with SVG preview |
 | `.settings-palette-card--active` | selected palette card state |
 | `.settings-link-list` | vertical list of legal/about links |
+
+### Friends page
+| Class | Description |
+|---|---|
+| `.friends-search-row` | flex row (stretch) wrapping the search field + add friend button; `form` child gets `display: flex` |
+| `.friends-search-field` | relative-positioned, flex-fill wrapper for the search input; keeps the autocomplete anchored to the input |
+| `.friends-search-results` | fixed-position autocomplete dropdown; top/left/width set via JS from the input's bounding rect |
+| `.friends-search-result` | single result button inside the dropdown |
+| `.friends-list` | `ul` — flex column list of friend/request rows, no list styling; `margin-top` provides gap after a preceding label |
+| `.friend-item` | single row in `.friends-list` — `span:first-child` fills left (Lora, truncated), `:last-child` is the actions flex group |
 
 ### Join Enter page
 

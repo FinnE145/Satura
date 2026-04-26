@@ -1,0 +1,205 @@
+{% extends "settings_base.html" %}
+
+{% block title %}Satura | Friends{% endblock %}
+
+{% block settings_content %}
+<article class="card settings-card">
+    <header class="card-header">
+        <h1 class="card-title">Add Friend</h1>
+    </header>
+    <div class="settings-card-body">
+        <div class="contact-form" id="friendSearchWrap">
+            <label class="form-label" for="friendSearchInput">Search by username</label>
+            <div class="friends-search-row">
+                <div class="friends-search-field">
+                    <input type="text" id="friendSearchInput" autocomplete="off"
+                           placeholder="Start typing a username…">
+                    <div id="friendSearchResults" class="friends-search-results" hidden></div>
+                </div>
+                <form method="post" id="addFriendForm">
+                    <input type="hidden" name="action" value="send_request">
+                    <input type="hidden" name="username" id="addFriendUsername">
+                    <button type="submit" class="btn btn--accent" id="addFriendBtn" disabled>
+                        Add friend
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</article>
+
+<article class="card settings-card">
+    <header class="card-header">
+        <h2 class="card-title">Friends{% if friends %} <span class="text-muted text-small-sans">({{ friends | length }})</span>{% endif %}</h2>
+    </header>
+    <div class="settings-card-body">
+        {% if friends %}
+        <ul class="friends-list">{%- for f in friends %}
+            <li class="friend-item">
+                <span>{{ f.user.username }}</span>
+                <div>
+                    <a href="{{ url_for('main.game_new') }}" class="btn btn--ghost btn--sm">
+                        <span class="material-symbols-outlined" aria-hidden="true">swords</span>
+                        Invite to game
+                    </a>
+                    <div class="action-menu">
+                        <button class="action-menu__btn" type="button" aria-label="More options">
+                            <span class="material-symbols-outlined">more_horiz</span>
+                        </button>
+                        <ul class="action-menu__list" hidden>
+                            <li><button type="button" class="action-menu__item" disabled>View profile</button></li>
+                            <li><form method="post">
+                                <input type="hidden" name="action" value="remove_friend">
+                                <input type="hidden" name="friendship_id" value="{{ f.friendship_id }}">
+                                <button type="submit" class="action-menu__item action-menu__item--danger">Remove friend</button>
+                            </form></li>
+                            <li><form method="post">
+                                <input type="hidden" name="action" value="block">
+                                <input type="hidden" name="friendship_id" value="{{ f.friendship_id }}">
+                                <button type="submit" class="action-menu__item action-menu__item--danger">Block</button>
+                            </form></li>
+                        </ul>
+                    </div>
+                </div>
+            </li>
+        {%- endfor %}</ul>
+        {% else %}
+        <p class="empty-label">No friends yet. Send a request above to get started.</p>
+        {% endif %}
+    </div>
+</article>
+
+{% if pending_sent or declined %}
+<article class="card settings-card">
+    <header class="card-header">
+        <h2 class="card-title">Requests</h2>
+    </header>
+    <div class="settings-card-body settings-stack">
+        {% if pending_sent %}
+        <div>
+            <p class="label">Pending</p>
+            <ul class="friends-list">{%- for r in pending_sent %}
+                <li class="friend-item">
+                    <span>{{ r.user.username }}</span>
+                    <div>
+                        <form method="post">
+                            <input type="hidden" name="action" value="cancel_request">
+                            <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
+                            <button type="submit" class="btn btn--ghost btn--sm" aria-label="Cancel request">
+                                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                                Cancel
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            {%- endfor %}</ul>
+        </div>
+        {% endif %}
+        {% if declined %}
+        <div>
+            <p class="label">Declined</p>
+            <ul class="friends-list">{%- for r in declined %}
+                <li class="friend-item">
+                    <span class="text-subtle">{{ r.user.username }}</span>
+                    <div>
+                        <form method="post">
+                            <input type="hidden" name="action" value="hide_declined">
+                            <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
+                            <button type="submit" class="btn btn--ghost btn--sm" aria-label="Hide">
+                                <span class="material-symbols-outlined" aria-hidden="true">visibility_off</span>
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            {%- endfor %}</ul>
+        </div>
+        {% endif %}
+    </div>
+</article>
+{% endif %}
+{% endblock %}
+
+{% block settings_scripts %}
+<script>
+(function () {
+    'use strict';
+
+    // ── Add-friend search ──────────────────────────────────────────────────
+    const searchInput = document.getElementById('friendSearchInput');
+    const resultsBox  = document.getElementById('friendSearchResults');
+    const hiddenName  = document.getElementById('addFriendUsername');
+    const addBtn      = document.getElementById('addFriendBtn');
+    const searchWrap  = document.getElementById('friendSearchWrap');
+    let debounce;
+
+    function positionResults() {
+        const r = searchInput.getBoundingClientRect();
+        resultsBox.style.top   = (r.bottom + 4) + 'px';
+        resultsBox.style.left  = r.left + 'px';
+        resultsBox.style.width = r.width + 'px';
+    }
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounce);
+        const q = searchInput.value.trim();
+        hiddenName.value = '';
+        addBtn.disabled = true;
+        if (q.length < 2) { closeResults(); return; }
+        debounce = setTimeout(() => fetchResults(q), 200);
+    });
+
+    function fetchResults(q) {
+        fetch('/settings/friends/search?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(function (data) {
+                resultsBox.innerHTML = '';
+                if (!data.length) { closeResults(); return; }
+                data.forEach(function (u) {
+                    const btn = document.createElement('button');
+                    btn.className = 'friends-search-result';
+                    btn.type = 'button';
+                    btn.textContent = u.username;
+                    btn.addEventListener('click', function () {
+                        searchInput.value = u.username;
+                        hiddenName.value  = u.username;
+                        addBtn.disabled   = false;
+                        closeResults();
+                        searchInput.focus();
+                    });
+                    resultsBox.appendChild(btn);
+                });
+                positionResults();
+                resultsBox.hidden = false;
+            });
+    }
+
+    function closeResults() {
+        resultsBox.hidden = true;
+        resultsBox.innerHTML = '';
+    }
+
+    window.addEventListener('scroll', function () { if (!resultsBox.hidden) positionResults(); }, true);
+    window.addEventListener('resize', function () { if (!resultsBox.hidden) positionResults(); });
+
+    document.addEventListener('click', function (e) {
+        if (!searchWrap.contains(e.target)) closeResults();
+    });
+
+    // ── More menus ─────────────────────────────────────────────────────────
+    document.querySelectorAll('.action-menu').forEach(function (menu) {
+        const btn  = menu.querySelector('.action-menu__btn');
+        const list = menu.querySelector('.action-menu__list');
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const wasOpen = !list.hidden;
+            document.querySelectorAll('.action-menu__list').forEach(l => { l.hidden = true; });
+            list.hidden = wasOpen;
+        });
+    });
+
+    document.addEventListener('click', function () {
+        document.querySelectorAll('.action-menu__list').forEach(l => { l.hidden = true; });
+    });
+})();
+</script>
+{% endblock %}

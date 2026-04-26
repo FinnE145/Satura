@@ -13,6 +13,11 @@
                         <span class="material-symbols-outlined" aria-hidden="true">person</span>
                         <span>Profile</span>
                     </a>
+                    <a href="{{ url_for('main.settings_friends') }}"
+                        class="settings-nav-item {% if settings_nav == 'friends' %}settings-nav-item--active{% endif %}">
+                        <span class="material-symbols-outlined" aria-hidden="true">group</span>
+                        <span>Friends</span>
+                    </a>
                     <a href="{{ url_for('main.settings_account') }}"
                         class="settings-nav-item {% if settings_nav == 'account' %}settings-nav-item--active{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>
