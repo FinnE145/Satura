@@ -9,17 +9,17 @@
             <div class="card settings-sidebar">
                 <nav class="settings-nav" aria-label="Settings sections">
                     <a href="{{ url_for('main.settings_profile') }}"
-                        class="settings-nav-item {% if settings_nav == 'profile' %}settings-nav-item--active{% endif %}">
+                        class="settings-nav-item {% if settings_nav == 'profile' %}settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">person</span>
                         <span>Profile</span>
                     </a>
                     <a href="{{ url_for('main.settings_friends') }}"
-                        class="settings-nav-item {% if settings_nav == 'friends' %}settings-nav-item--active{% endif %}">
+                        class="settings-nav-item {% if settings_nav == 'friends' %}settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">group</span>
                         <span>Friends</span>
                     </a>
                     <a href="{{ url_for('main.settings_account') }}"
-                        class="settings-nav-item {% if settings_nav == 'account' %}settings-nav-item--active{% endif %}">
+                        class="settings-nav-item {% if settings_nav == 'account' %}settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>
                         <span>Account</span>
                     </a>
@@ -27,7 +27,7 @@
                     <div class="settings-nav-sep" aria-hidden="true"></div>
 
                     <a href="{{ url_for('main.settings_game') }}#defaults" data-game-link="defaults"
-                        class="settings-nav-item {% if settings_nav == 'game' %}settings-game-nav-link{% endif %}{% if settings_nav == 'game' %} settings-nav-item--active{% endif %}">
+                        class="settings-nav-item {% if settings_nav == 'game' %}settings-game-nav-link{% endif %}{% if settings_nav == 'game' %} settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">sports_esports</span>
                         <span>Game Defaults</span>
                     </a>
@@ -40,12 +40,12 @@
                     <div class="settings-nav-sep" aria-hidden="true"></div>
 
                     <a href="{{ url_for('main.settings_feedback') }}"
-                        class="settings-nav-item {% if settings_nav == 'feedback' %}settings-nav-item--active{% endif %}">
+                        class="settings-nav-item {% if settings_nav == 'feedback' %}settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
                         <span>Feedback</span>
                     </a>
                     <a href="{{ url_for('main.settings_about_legal') }}"
-                        class="settings-nav-item {% if settings_nav == 'about-legal' %}settings-nav-item--active{% endif %}">
+                        class="settings-nav-item {% if settings_nav == 'about-legal' %}settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">gavel</span>
                         <span>About &amp; Legal</span>
                     </a>
@@ -88,9 +88,9 @@
             const hash = window.location.hash === '#appearance' ? 'appearance' : 'defaults';
             links.forEach((link) => {
                 if (link.dataset.gameLink === hash) {
-                    link.classList.add('settings-nav-item--active');
+                    link.classList.add('settings-nav-item--active', 'btn-warm-bright-border');
                 } else {
-                    link.classList.remove('settings-nav-item--active');
+                    link.classList.remove('settings-nav-item--active', 'btn-warm-bright-border');
                 }
             });
         }

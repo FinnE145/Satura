@@ -11,7 +11,7 @@ Update this file whenever a class is added, changed, or removed.
 | Class | Description |
 |---|---|
 | `.text-muted` | 50% opacity text — often hard to see, low contrast for minor details |
-| `.text-subtle` | 70% opacity text — secondary/supporting text |
+| `.text-dim` | 70% opacity text — secondary/supporting text |
 | `.text-italic` | italic text |
 | `.text-center` | `text-align: center` utility |
 | `.text-small-sans` | 0.78em DM Sans — timestamps, metadata, disclaimers |
@@ -22,6 +22,15 @@ Update this file whenever a class is added, changed, or removed.
 | `.label` | 0.72em DM Sans, uppercase, wide tracking — category/section tags |
 | `.label-warm` | warm accent colour modifier for `.label` |
 | `.label-cool` | cool accent colour modifier for `.label` |
+
+### Colour modifiers
+Palette-driven triplet: tint background, coloured text, dim border. Apply alongside a component class to set its active/accent colour.
+| Class | Description |
+|---|---|
+| `.warm` | Warm accent fill (tint bg, warm text, warm-dim border) |
+| `.warm-bright` | Warm-bright accent fill — use on card backgrounds (tint bg, warm-bright text, warm-bright-dim border) |
+| `.cool` | Cool accent fill (tint bg, cool text, cool-dim border) |
+| `.cool-bright` | Cool-bright accent fill — use on card backgrounds (tint bg, cool-bright text, cool-bright-dim border) |
 
 ### Backgrounds
 | Class | Description |
@@ -62,13 +71,15 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.btn` | base button — inline-flex, DM Sans, rounded corners |
 | `.btn--sm` | smaller size modifier (0.78em, tighter padding) |
 | `.btn--ghost` | neutral grey border — low-priority or destructive actions |
-| `.btn--secondary` | cool-coloured border — sign in, secondary CTAs |
-| `.btn--accent` | warm-coloured border — primary CTA |
+| `.btn-warm-border` | warm border + text at rest, tint bg on hover — primary CTA |
+| `.btn-cool-border` | cool border + text at rest, tint bg on hover — secondary CTA |
+| `.btn-warm-bright-border` | warm-bright border + text at rest, tint bg on hover — use on card backgrounds |
+| `.btn-cool-bright-border` | cool-bright border + text at rest, tint bg on hover — use on card backgrounds |
 | `.btn--warn` | warning-coloured border action (yellow) |
 | `.btn--danger` | error-coloured border action (red) |
 | `.icon-btn` | stacked icon + label button — mode selectors, tool pickers |
 | `.icon-btn-label` | tiny label below the icon inside `.icon-btn` |
-| `.icon-btn.is-active` | selected-state modifier for `.icon-btn` (accent border + tint background) |
+| `.icon-btn.is-active` | selected-state modifier for `.icon-btn` — pair with `.warm` for colour |
 
 ### Cards
 | Class | Description |
@@ -85,8 +96,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.badge--ok` | neutral grey badge |
 | `.badge--error` | red badge |
 | `.badge--warn` | yellow badge |
-| `.badge--win` | warm accent badge — game win result |
-| `.badge--loss` | cool accent badge — game loss result |
+| `.badge--win` | warm-bright accent badge — game win result |
+| `.badge--loss` | cool-bright accent badge — game loss result |
 | `.badge--draw` | warn-yellow badge — game draw result |
 | `.badge--stalemate` | neutral grey badge — stalemate result |
 
@@ -94,7 +105,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.error-msg` | red-tinted box with border — form validation errors |
-| `.info-msg` | warm-accent-tinted box with border — informational messages |
+| `.info-msg` | layout base for an accented message box — pair with a colour modifier (`.warm`, `.cool`, etc.) |
 | `.info-msg__url` | monospace URL span inside `.info-msg` — selects all text on click |
 | `.empty-label` | small italic placeholder when a list or panel is empty |
 | `.is-disabled` | generic disabled-state utility (reduced opacity); use with `a` for non-interactive disabled links |
@@ -200,9 +211,9 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-viewer-count` | muted eye icon + number showing active spectator count; hidden when count is 0 |
 | `.player-switch` | segmented P1/P2 toggle shown in the game header in test mode (replaces viewer count) |
 | `.player-switch__opt` | one half of the player switch (P1 or P2 link); muted by default |
-| `.player-switch__opt--p1` | warm-accent active state for the P1 option |
-| `.player-switch__opt--p2` | cool-accent active state for the P2 option |
-| `.player-switch__opt--active` | marks the currently-viewed player; combine with `--p1` or `--p2` |
+| `.player-switch__opt--p1` | semantic slot marker for P1 option (no visual effect; colour via `.warm`) |
+| `.player-switch__opt--p2` | semantic slot marker for P2 option (no visual effect; colour via `.cool`) |
+| `.player-switch__opt--active` | marks the currently-viewed player; pair with `.warm` or `.cool` for colour |
 | `.btn-autorun-toggle` | pushes the auto-run button left in the card-footer using `margin-right: auto` |
 
 ### Game page
@@ -225,9 +236,9 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.session-id` | monospace session UUID display |
 | `.phase-pill-wrap` | full-width flex row wrapper around `.phase-pill`; used at 801–1080px to force the pill onto its own line while keeping the pill content-sized |
 | `.phase-pill` | rounded pill showing the current game phase |
-| `.phase-pill--p1` | warm accent variant for P1-controlled phases |
-| `.phase-pill--p2` | cool accent variant for P2-controlled phases |
-| `.phase-pill--write` | stronger emphasis modifier for write phases (with P1/P2 colour) |
+| `.phase-pill--p1` | semantic slot marker for P1 phases; pair with `.warm` for colour |
+| `.phase-pill--p2` | semantic slot marker for P2 phases; pair with `.cool` for colour |
+| `.phase-pill--write` | write-phase modifier — shifts to bright colour family when combined with `--p1`/`--p2` |
 | `.script-history-card` | sticky sidebar card for script history; outside the container, shown only at ≥1700px |
 | `.script-history-toggle` | toggle button in editor card header; shown only at <1700px to open/close the history panel |
 | `.editor-card-body` | positioned flex wrapper for the editor textarea area; contains the small-screen history panel overlay |
@@ -257,9 +268,9 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-controls--solo` | modifier: game-controls row paired with a solo board — constrains to max 1000px and centers |
 | `.board-legend` | flex row legend showing player board-coverage stats; stacks to column at ≤1080px |
 | `.board-legend-pills` | flex row grouping the two ownership pill items within `.board-legend` |
-| `.board-legend-item` | pill legend item showing player owned-cell count and board percentage (use with `--p1` or `--p2`) |
-| `.board-legend-item--p1` | warm accent pill |
-| `.board-legend-item--p2` | cool accent pill |
+| `.board-legend-item` | pill legend item showing player owned-cell count and board percentage |
+| `.board-legend-item--p1` | semantic slot marker for P1 (no visual effect; colour via `.warm-bright`) |
+| `.board-legend-item--p2` | semantic slot marker for P2 (no visual effect; colour via `.cool-bright`) |
 | `.board-wrap` | padded inner container for the board grid |
 | `.board-grid` | CSS grid of game board cells |
 | `.board-cell` | individual board cell (background set via JS) |
@@ -308,10 +319,10 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-controls-draw-area` | flex row below the panel for draw offer status message and accept/reject buttons |
 | `.game-controls-draw-btns` | flex row of accept/reject buttons inside `.game-controls-draw-area` |
 | `.game-controls-btn--is-danger` | active-danger state modifier for `.game-controls-btn` — applies error colour without hover requirement |
-| `.game-controls-btn--is-warm` | active-warm state modifier for `.game-controls-btn` — applies warm accent colour without hover requirement |
-| `.gc-player-badge` | small coloured player label — requires `--p1` or `--p2` modifier |
-| `.gc-player-badge--p1` | warm accent badge for P1 |
-| `.gc-player-badge--p2` | cool accent badge for P2 |
+| `.game-controls-btn--is-warm` | active-warm state marker for `.game-controls-btn` — pair with `.warm` for colour |
+| `.gc-player-badge` | small coloured player label |
+| `.gc-player-badge--p1` | semantic slot marker for P1 badge (no visual effect; colour via `.warm-bright`) |
+| `.gc-player-badge--p2` | semantic slot marker for P2 badge (no visual effect; colour via `.cool-bright`) |
 | `.gc-clock` | clock time display in the controls panel |
 
 ### Login page
@@ -383,7 +394,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-logout-btn` | full-width borderless logout button with left-aligned icon + text inside logout sidebar card |
 | `.settings-nav` | vertical nav list container inside sidebar |
 | `.settings-nav-item` | single sidebar link row with icon + label and outlined default state |
-| `.settings-nav-item--active` | active sidebar row with warm accent outline (tint only on hover) |
+| `.settings-nav-item--active` | active sidebar row — pair with `.btn-warm-bright-border` for hover colour |
 | `.settings-nav-sep` | horizontal divider between sidebar groups |
 | `.settings-main` | right-column stack for screen cards and flash messages |
 | `.settings-flash` | compact neutral status message block |
@@ -407,8 +418,8 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-delete-form` | spacing modifier for destructive account form |
 | `.settings-palette-form` | stacked appearance form wrapper |
 | `.settings-palette-grid` | 2x2 responsive grid of palette options |
-| `.settings-palette-card` | selectable palette card/button with SVG preview |
-| `.settings-palette-card--active` | selected palette card state |
+| `.settings-palette-card` | selectable palette card/button with SVG preview — pair with `.btn-warm-hover` for hover colour |
+| `.settings-palette-card--active` | selected palette card state marker — pair with `.warm` for colour |
 | `.settings-link-list` | vertical list of legal/about links |
 
 ### Friends page

@@ -240,7 +240,7 @@ function renderPhasePills(meta) {
     const inactiveEl = player === mySlot  ? phaseOpp  : phaseMine;
 
     activeEl.textContent = typeLabel;
-    activeEl.className   = `phase-pill phase-pill--p${player}`;
+    activeEl.className   = `phase-pill phase-pill--p${player} ${player === 1 ? 'warm' : 'cool'}`;
     activeEl.hidden      = false;
     inactiveEl.textContent = '';
     inactiveEl.hidden    = true;
@@ -673,17 +673,17 @@ function renderStatsCoverageBar(board) {
 function setupBadges() {
     if (badgeMine) {
         badgeMine.textContent = 'P1';
-        badgeMine.className   = 'gc-player-badge gc-player-badge--p1';
+        badgeMine.className   = 'gc-player-badge gc-player-badge--p1 warm-bright';
     }
     if (badgeOpp) {
         badgeOpp.textContent = 'P2';
-        badgeOpp.className   = 'gc-player-badge gc-player-badge--p2';
+        badgeOpp.className   = 'gc-player-badge gc-player-badge--p2 cool-bright';
     }
     if (boardLegendMineEl) {
-        boardLegendMineEl.className = 'board-legend-item board-legend-item--p1';
+        boardLegendMineEl.className = 'board-legend-item board-legend-item--p1 warm-bright';
     }
     if (boardLegendOppEl) {
-        boardLegendOppEl.className = 'board-legend-item board-legend-item--p2';
+        boardLegendOppEl.className = 'board-legend-item board-legend-item--p2 cool-bright';
     }
 }
 

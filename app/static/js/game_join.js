@@ -98,7 +98,7 @@
         stopPolling();
         if (!joinBody) return;
         joinBody.innerHTML =
-            '<p class="text-subtle">This lobby no longer exists. Ask the host for a new link.</p>';
+            '<p class="text-dim">This lobby no longer exists. Ask the host for a new link.</p>';
     }
 
     async function pollLobby() {

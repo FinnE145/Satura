@@ -10,7 +10,7 @@
                 <h1 class="card-title">Test Bench</h1>
             </header>
             <div class="settings-card-body settings-stack">
-                <p class="text-small-sans text-subtle">
+                <p class="text-small-sans text-dim">
                     Play a solo test game. Both players are under your control. Test games are not saved.
                 </p>
 
@@ -71,7 +71,7 @@
                             <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled" value="true">
                             <span>Accommodations</span>
                         </label>
-                        <span class="text-small-sans text-subtle">Customize per-player time and starting words.</span>
+                        <span class="text-small-sans text-dim">Customize per-player time and starting words.</span>
                     </div>
 
                     <section id="accommodations-section" class="settings-stack" hidden>
@@ -111,13 +111,13 @@
                         </div>
                     </section>
 
-                    <p id="defaults-loaded-notice" class="text-small-sans text-subtle" hidden>
+                    <p id="defaults-loaded-notice" class="text-small-sans text-dim" hidden>
                         Custom defaults loaded. <a href="/settings/game#defaults" class="accent-link">Edit defaults</a>
                     </p>
 
                     <div class="settings-stack">
                         <p class="hero-create-label hero-create-label--learn">Auto-run delay</p>
-                        <p class="text-small-sans text-subtle">When auto-run is on for a player, they wait this many seconds in the write phase before deploying.</p>
+                        <p class="text-small-sans text-dim">When auto-run is on for a player, they wait this many seconds in the write phase before deploying.</p>
                         <div class="split-grid">
                             <div class="field">
                                 <label class="form-label" for="p1_autorun_delay">P1 delay (sec)</label>
@@ -140,7 +140,7 @@
                     {% endwith %}
 
                     <div class="card-footer create-form-footer">
-                        <button type="submit" class="btn btn--accent">Start Test Game</button>
+                        <button type="submit" class="btn btn-warm-border">Start Test Game</button>
                     </div>
                 </form>
             </div>

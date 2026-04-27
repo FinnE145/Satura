@@ -8,7 +8,7 @@
         <article class="card">
             <header class="card-header">
                 <h1 class="card-title">Join Game</h1>
-                <p class="subheading text-subtle">Hosted by {{ p1_username }}</p>
+                <p class="subheading text-dim">Hosted by {{ p1_username }}</p>
             </header>
             <div class="settings-card-body settings-stack" id="join-body">
                 <div class="create-form-grid" id="join-settings-grid">
@@ -61,14 +61,14 @@
 
                 <div class="toggle-row">
                     <span class="status-dot status-dot--pending" id="p1-ready-dot"></span>
-                    <span class="text-subtle" id="p1-ready-label">{{ p1_username }} not ready</span>
+                    <span class="text-dim" id="p1-ready-label">{{ p1_username }} not ready</span>
                 </div>
 
                 <div id="join-error" class="error-msg" hidden></div>
 
                 <div class="card-footer">
                     <button type="button" class="btn btn--ghost" id="leave-btn">Leave</button>
-                    <button type="button" class="btn btn--accent" id="p2-ready-btn" disabled>Ready</button>
+                    <button type="button" class="btn btn-warm-border" id="p2-ready-btn" disabled>Ready</button>
                 </div>
             </div>
         </article>

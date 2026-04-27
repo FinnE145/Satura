@@ -16,7 +16,7 @@
                     <form method="post">
                         <input type="hidden" name="action" value="accept_request">
                         <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
-                        <button type="submit" class="btn btn--accent btn--sm">Accept</button>
+                        <button type="submit" class="btn btn-warm-border btn--sm">Accept</button>
                     </form>
                     <form method="post">
                         <input type="hidden" name="action" value="decline_request">
@@ -46,7 +46,7 @@
                 <form method="post" id="addFriendForm">
                     <input type="hidden" name="action" value="send_request">
                     <input type="hidden" name="username" id="addFriendUsername">
-                    <button type="submit" class="btn btn--accent" id="addFriendBtn" disabled>
+                    <button type="submit" class="btn btn-warm-border" id="addFriendBtn" disabled>
                         Add friend
                     </button>
                 </form>
@@ -127,7 +127,7 @@
             <p class="label">Declined</p>
             <ul class="friends-list">{%- for r in declined -%}
                 <li class="friend-item">
-                    <span class="text-subtle">{{ r.user.username }}</span>
+                    <span class="text-dim">{{ r.user.username }}</span>
                     <div>
                         <form method="post">
                             <input type="hidden" name="action" value="hide_declined">

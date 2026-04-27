@@ -319,7 +319,7 @@ function renderPhasePills(meta) {
     const inactiveEl = player === mySlot  ? phaseOpp  : phaseMine;
 
     activeEl.textContent = typeLabel;
-    activeEl.className   = `phase-pill phase-pill--p${player}`;
+    activeEl.className   = `phase-pill phase-pill--p${player} ${player === 1 ? 'warm' : 'cool'}`;
     activeEl.hidden      = false;
     inactiveEl.textContent = '';
     inactiveEl.hidden    = true;
@@ -870,17 +870,17 @@ function renderStatsCoverageBar(board) {
 function setupBadges() {
     if (badgeMine) {
         badgeMine.textContent = `P${mySlot}`;
-        badgeMine.className   = `gc-player-badge gc-player-badge--p${mySlot}`;
+        badgeMine.className   = `gc-player-badge gc-player-badge--p${mySlot} ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (badgeOpp) {
         badgeOpp.textContent = `P${oppSlot}`;
-        badgeOpp.className   = `gc-player-badge gc-player-badge--p${oppSlot}`;
+        badgeOpp.className   = `gc-player-badge gc-player-badge--p${oppSlot} ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (boardLegendMineEl) {
-        boardLegendMineEl.className = `board-legend-item board-legend-item--p${mySlot}`;
+        boardLegendMineEl.className = `board-legend-item board-legend-item--p${mySlot} ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (boardLegendOppEl) {
-        boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppSlot}`;
+        boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppSlot} ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
 }
 

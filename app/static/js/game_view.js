@@ -27,14 +27,14 @@ const p2Username = gameRoot?.dataset?.p2Username || 'P2';
 // Set up player badges (always P1 = warm/left, P2 = cool/right)
 document.querySelectorAll('[data-tc="badge-p1"]').forEach(el => {
     el.textContent = 'P1';
-    el.classList.add('gc-player-badge--p1');
+    el.classList.add('gc-player-badge--p1', 'warm-bright');
 });
 document.querySelectorAll('[data-tc="badge-p2"]').forEach(el => {
     el.textContent = 'P2';
-    el.classList.add('gc-player-badge--p2');
+    el.classList.add('gc-player-badge--p2', 'cool-bright');
 });
-if (boardLegendP1El) boardLegendP1El.className = 'board-legend-item board-legend-item--p1';
-if (boardLegendP2El) boardLegendP2El.className = 'board-legend-item board-legend-item--p2';
+if (boardLegendP1El) boardLegendP1El.className = 'board-legend-item board-legend-item--p1 warm-bright';
+if (boardLegendP2El) boardLegendP2El.className = 'board-legend-item board-legend-item--p2 cool-bright';
 
 let statePollTimer = null;
 let clockRenderTimer = null;
@@ -140,7 +140,7 @@ async function refreshState() {
             const prevTotal = knownTotalPhases;
             knownTotalPhases = state.total_phases;
             if (viewingPhase !== null && knownTotalPhases > prevTotal) {
-                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm');
+                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm', 'warm');
                 updatePastNotice();
             }
         }
@@ -269,8 +269,8 @@ function formatPhaseLabel(state) {
 
 function phasePillClass(isWrite, player) {
     const classes = ['phase-pill'];
-    if (player === 1) classes.push('phase-pill--p1');
-    else if (player === 2) classes.push('phase-pill--p2');
+    if (player === 1) classes.push('phase-pill--p1', 'warm');
+    else if (player === 2) classes.push('phase-pill--p2', 'cool');
     if (isWrite) classes.push('phase-pill--write');
     return classes.join(' ');
 }
@@ -636,7 +636,7 @@ async function navigateToPhase(phaseNum) {
 function exitHistoryMode() {
     viewingPhase = null;
     gameControlsPastNotice.hidden = true;
-    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm');
+    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm', 'warm');
     if (lastLiveState) {
         viewState = lastLiveState;
         renderBoard(lastLiveState);

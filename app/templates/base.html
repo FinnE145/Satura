@@ -54,8 +54,8 @@
                     <span class="material-symbols-outlined">account_circle</span>
                 </a>
                 {% else %}
-                <a href="/login" class="btn btn--secondary btn--sm">Sign in</a>
-                <a href="/signup" class="btn btn--accent btn--sm">Sign up</a>
+                <a href="/login" class="btn btn-cool-border btn--sm">Sign in</a>
+                <a href="/signup" class="btn btn-warm-border btn--sm">Sign up</a>
                 {% endif %}
             </div>
         </div>
@@ -106,19 +106,23 @@
                 return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
             }
 
-            root.style.setProperty('--accent', uiWarm);
-            root.style.setProperty('--accent-tint', hexToRgba(uiWarm, 0.10));
-            root.style.setProperty('--accent-dim', hexToRgba(uiWarm, 0.65));
-            root.style.setProperty('--accent-cool', uiCool);
-            root.style.setProperty('--accent-cool-tint', hexToRgba(uiCool, 0.10));
-            root.style.setProperty('--accent-cool-dim', hexToRgba(uiCool, 0.65));
+            root.style.setProperty('--warm', uiWarm);
+            root.style.setProperty('--warm-tint', hexToRgba(uiWarm, 0.10));
+            root.style.setProperty('--warm-subtle', hexToRgba(uiWarm, 0.25));
+            root.style.setProperty('--warm-dim', hexToRgba(uiWarm, 0.65));
+            root.style.setProperty('--cool', uiCool);
+            root.style.setProperty('--cool-tint', hexToRgba(uiCool, 0.10));
+            root.style.setProperty('--cool-subtle', hexToRgba(uiCool, 0.25));
+            root.style.setProperty('--cool-dim', hexToRgba(uiCool, 0.65));
 
-            root.style.setProperty('--accent-bright', uiWarmBright);
-            root.style.setProperty('--accent-bright-tint', hexToRgba(uiWarmBright, 0.10));
-            root.style.setProperty('--accent-bright-dim', hexToRgba(uiWarmBright, 0.65));
-            root.style.setProperty('--accent-cool-bright', uiCoolBright);
-            root.style.setProperty('--accent-cool-bright-tint', hexToRgba(uiCoolBright, 0.10));
-            root.style.setProperty('--accent-cool-bright-dim', hexToRgba(uiCoolBright, 0.65));
+            root.style.setProperty('--warm-bright', uiWarmBright);
+            root.style.setProperty('--warm-bright-tint', hexToRgba(uiWarmBright, 0.10));
+            root.style.setProperty('--warm-bright-subtle', hexToRgba(uiWarmBright, 0.25));
+            root.style.setProperty('--warm-bright-dim', hexToRgba(uiWarmBright, 0.65));
+            root.style.setProperty('--cool-bright', uiCoolBright);
+            root.style.setProperty('--cool-bright-tint', hexToRgba(uiCoolBright, 0.10));
+            root.style.setProperty('--cool-bright-subtle', hexToRgba(uiCoolBright, 0.25));
+            root.style.setProperty('--cool-bright-dim', hexToRgba(uiCoolBright, 0.65));
         })();
     </script>
 

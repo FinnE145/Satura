@@ -65,7 +65,7 @@
                             <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled">
                             <span>Accommodations</span>
                         </label>
-                        <span class="text-small-sans text-subtle">Customize per-player time and starting words.</span>
+                        <span class="text-small-sans text-dim">Customize per-player time and starting words.</span>
                     </div>
 
                     <section id="accommodations-section" class="settings-stack" hidden>
@@ -105,20 +105,20 @@
                         </div>
                     </section>
 
-                    <p id="defaults-loaded-notice" class="text-small-sans text-subtle" hidden>
+                    <p id="defaults-loaded-notice" class="text-small-sans text-dim" hidden>
                         Custom defaults loaded. <a href="/settings/game#defaults" class="accent-link">Edit defaults</a>
                     </p>
 
                     <div class="card-footer create-form-footer">
-                        <button type="button" class="btn btn--accent" id="copy-link-btn">Copy invite link</button>
+                        <button type="button" class="btn btn-warm-border" id="copy-link-btn">Copy invite link</button>
                         {% if invite_friend %}
-                        <button type="button" class="btn btn--secondary" id="preset-invite-btn"
+                        <button type="button" class="btn btn-cool-border" id="preset-invite-btn"
                             data-friend-id="{{ invite_friend.id }}"
                             data-friend-username="{{ invite_friend.username }}">Invite {{ invite_friend.username }}</button>
                         {% endif %}
                         {% if current_user.is_authenticated %}
                         <div class="action-menu" id="invite-friend-menu">
-                            <button type="button" class="btn {% if not invite_friend %}btn--secondary{% else %}btn--ghost{% endif %}" id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
+                            <button type="button" class="btn {% if not invite_friend %}btn-cool-border{% else %}btn--ghost{% endif %}" id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
                             <ul class="action-menu__list" id="invite-friend-list" hidden role="menu">
                                 {% if friends %}
                                     {% for f in friends %}
@@ -132,7 +132,7 @@
                         {% endif %}
                     </div>
 
-                    <div id="link-display" class="info-msg" hidden>
+                    <div id="link-display" class="info-msg warm" hidden>
                         Copied link: <span id="link-display-url" class="info-msg__url"></span>
                     </div>
 
@@ -142,12 +142,12 @@
                 <div id="lobby-panel" hidden class="settings-stack">
                     <div class="toggle-row">
                         <span class="status-dot status-dot--pending" id="join-dot"></span>
-                        <span id="join-label" class="text-subtle">Waiting for player to join…</span>
+                        <span id="join-label" class="text-dim">Waiting for player to join…</span>
                     </div>
                     <div id="lobby-actions" class="card-footer" hidden>
                         <button type="button" class="btn btn--ghost" id="new-link-btn">New link</button>
                         <button type="button" class="btn btn--ghost" id="revoke-invite-btn" hidden>Revoke invite</button>
-                        <button type="button" class="btn btn--accent" id="p1-ready-btn">Ready</button>
+                        <button type="button" class="btn btn-warm-border" id="p1-ready-btn">Ready</button>
                     </div>
                 </div>
             </div>

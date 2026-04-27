@@ -133,6 +133,7 @@
         presetButtons.forEach((button) => {
             const active = button.dataset.preset === selectedPreset;
             button.classList.toggle('is-active', active);
+            button.classList.toggle('warm', active);
             button.setAttribute('aria-checked', active ? 'true' : 'false');
         });
     }

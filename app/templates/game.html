@@ -96,7 +96,7 @@
                     <div class="card-footer">
                         <button class="btn btn--ghost btn-autorun-toggle" id="btn-autorun" type="button" hidden>Auto-run</button>
                         <button class="btn btn--ghost" id="btn-compile" type="button" disabled>Compile</button>
-                        <button class="btn btn--accent" id="btn-deploy" type="button" disabled>Deploy</button>
+                        <button class="btn btn-warm-border" id="btn-deploy" type="button" disabled>Deploy</button>
                     </div>
                 </div>
 
@@ -192,7 +192,7 @@
                 <div class="game-controls-draw-area text-small-sans" id="game-controls-draw-area" hidden>
                     <span id="game-controls-draw-msg"></span>
                     <div class="game-controls-draw-btns" id="game-controls-draw-btns" hidden>
-                        <button type="button" class="btn btn--secondary btn--sm" id="btn-draw-accept">Accept</button>
+                        <button type="button" class="btn btn-cool-border btn--sm" id="btn-draw-accept">Accept</button>
                         <button type="button" class="btn btn--danger btn--sm" id="btn-draw-reject">Reject</button>
                     </div>
                 </div>
@@ -238,8 +238,8 @@
                     </div>
                     <div class="card-footer">
                         {% block game_over_footer %}
-                        <a class="btn btn--accent" href="/my-games/{{ game_id }}">Review Game</a>
-                        <a class="btn btn--secondary" href="/game/new">Create New</a>
+                        <a class="btn btn-warm-border" href="/my-games/{{ game_id }}">Review Game</a>
+                        <a class="btn btn-cool-border" href="/game/new">Create New</a>
                         {% endblock %}
                     </div>
                 </div>

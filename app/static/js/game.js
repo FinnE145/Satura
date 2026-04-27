@@ -61,9 +61,9 @@ if (isTestMode && gameId) {
         playerSwitchP1.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=1`;
         playerSwitchP2.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=2`;
         if (minePlayer === 1) {
-            playerSwitchP1.classList.add('player-switch__opt--active');
+            playerSwitchP1.classList.add('player-switch__opt--active', 'warm');
         } else {
-            playerSwitchP2.classList.add('player-switch__opt--active');
+            playerSwitchP2.classList.add('player-switch__opt--active', 'cool');
         }
         playerSwitchEl.hidden = false;
     }
@@ -72,17 +72,17 @@ if (isTestMode && gameId) {
 
 document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
     el.textContent = `P${minePlayer}`;
-    el.classList.add(`gc-player-badge--p${minePlayer}`);
+    el.classList.add(`gc-player-badge--p${minePlayer}`, minePlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 document.querySelectorAll('[data-tc="badge-opp"]').forEach(el => {
     el.textContent = `P${oppPlayer}`;
-    el.classList.add(`gc-player-badge--p${oppPlayer}`);
+    el.classList.add(`gc-player-badge--p${oppPlayer}`, oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 if (boardLegendMineEl) {
-    boardLegendMineEl.className = `board-legend-item board-legend-item--p${minePlayer}`;
+    boardLegendMineEl.className = `board-legend-item board-legend-item--p${minePlayer} ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 if (boardLegendOppEl) {
-    boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppPlayer}`;
+    boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppPlayer} ${oppPlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 
 let bankPollTimer = null;
@@ -218,7 +218,7 @@ async function refreshBank() {
             knownTotalPhases = state.total_phases;
             // New phase arrived while user is browsing history — highlight Current button and update notice
             if (viewingPhase !== null && knownTotalPhases > prevTotal) {
-                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm');
+                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm', 'warm');
                 updatePastNotice();
             }
         }
@@ -581,7 +581,7 @@ editor.addEventListener('input', () => {
     const src = editor.value;
     const hasContent = src.trim().length > 0;
     btnCompile.classList.toggle('btn--ghost', !hasContent);
-    btnCompile.classList.toggle('btn--secondary', hasContent);
+    btnCompile.classList.toggle('btn-cool-border', hasContent);
 
     currentWordCount = countWords(src);
     compileState = null;
@@ -1129,9 +1129,9 @@ function _applyPhaseToElements(text, className, player) {
 function phasePillClass(isWrite, player) {
     const classes = ['phase-pill'];
     if (player === 1) {
-        classes.push('phase-pill--p1');
+        classes.push('phase-pill--p1', 'warm');
     } else if (player === 2) {
-        classes.push('phase-pill--p2');
+        classes.push('phase-pill--p2', 'cool');
     }
     if (isWrite) {
         classes.push('phase-pill--write');
@@ -1491,7 +1491,7 @@ async function navigateToPhase(phaseNum) {
 function exitHistoryMode() {
     viewingPhase = null;
     gameControlsPastNotice.hidden = true;
-    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm');
+    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm', 'warm');
     if (lastLiveState) {
         viewState = lastLiveState;
         renderBoard(lastLiveState);
@@ -1751,7 +1751,7 @@ function setAutorunUI(enabled) {
     autorunEnabled = enabled;
     if (!btnAutorun) return;
     btnAutorun.classList.toggle('btn--ghost', !enabled);
-    btnAutorun.classList.toggle('btn--accent', enabled);
+    btnAutorun.classList.toggle('btn-warm-border', enabled);
 }
 
 async function fetchAutorun() {

@@ -30,7 +30,7 @@
                 <label class="form-label" for="username">New username</label>
                 <input type="text" id="username" name="username" value="{{ current_user.username }}" required>
             </div>
-            <button type="submit" class="btn btn--accent">Save username</button>
+            <button type="submit" class="btn btn-warm-border">Save username</button>
         </form>
     </div>
 </article>
@@ -46,7 +46,7 @@
                 <label class="form-label" for="email">New email</label>
                 <input type="email" id="email" name="email" value="{{ current_user.email or '' }}" required>
             </div>
-            <button type="submit" class="btn btn--accent">Save email</button>
+            <button type="submit" class="btn btn-warm-border">Save email</button>
         </form>
     </div>
 </article>
@@ -72,7 +72,7 @@
                 <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password"
                     required>
             </div>
-            <button type="submit" class="btn btn--accent">Save password</button>
+            <button type="submit" class="btn btn-warm-border">Save password</button>
         </form>
     </div>
 </article>
@@ -85,7 +85,7 @@
         <form method="post" class="contact-form settings-form settings-delete-form"
             onsubmit="return window.confirm('This will permanently anonymize your account and cannot be undone. Continue?');">
             <input type="hidden" name="action" value="delete_account">
-            <p class="text-subtle text-small-sans">This action is irreversible. Your account data (including
+            <p class="text-dim text-small-sans">This action is irreversible. Your account data (including
                 scripts/functions when they exist) will be deleted, but shared game history remains.</p>
             <div class="field">
                 <label class="form-label" for="confirm_username">Type your username to confirm deletion</label>
