@@ -28,7 +28,7 @@
                     </div>
                 </div>
 
-                <form id="create-form" class="contact-form settings-form" novalidate>
+                <form id="create-form" class="form-stack settings-form" novalidate>
                     <div class="create-form-grid">
                         <div class="field">
                             <label class="form-label" for="clock_seconds">Clock (min)</label>
@@ -106,19 +106,19 @@
                     </section>
 
                     <p id="defaults-loaded-notice" class="text-small-sans text-dim" hidden>
-                        Custom defaults loaded. <a href="/settings/game#defaults" class="accent-link">Edit defaults</a>
+                        Custom defaults loaded. <a href="/settings/game#defaults" class="warm-link">Edit defaults</a>
                     </p>
 
                     <div class="card-footer create-form-footer">
-                        <button type="button" class="btn btn-warm-border" id="copy-link-btn">Copy invite link</button>
+                        <button type="button" class="btn btn-warm-bright-border" id="copy-link-btn">Copy invite link</button>
                         {% if invite_friend %}
-                        <button type="button" class="btn btn-cool-border" id="preset-invite-btn"
+                        <button type="button" class="btn btn-cool-bright-border" id="preset-invite-btn"
                             data-friend-id="{{ invite_friend.id }}"
                             data-friend-username="{{ invite_friend.username }}">Invite {{ invite_friend.username }}</button>
                         {% endif %}
                         {% if current_user.is_authenticated %}
                         <div class="action-menu" id="invite-friend-menu">
-                            <button type="button" class="btn {% if not invite_friend %}btn-cool-border{% else %}btn--ghost{% endif %}" id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
+                            <button type="button" class="btn {% if not invite_friend %}btn-cool-bright-border{% else %}btn--ghost{% endif %}" id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
                             <ul class="action-menu__list" id="invite-friend-list" hidden role="menu">
                                 {% if friends %}
                                     {% for f in friends %}
@@ -147,7 +147,7 @@
                     <div id="lobby-actions" class="card-footer" hidden>
                         <button type="button" class="btn btn--ghost" id="new-link-btn">New link</button>
                         <button type="button" class="btn btn--ghost" id="revoke-invite-btn" hidden>Revoke invite</button>
-                        <button type="button" class="btn btn-warm-border" id="p1-ready-btn">Ready</button>
+                        <button type="button" class="btn btn-warm-bright-border" id="p1-ready-btn">Ready</button>
                     </div>
                 </div>
             </div>

@@ -56,7 +56,7 @@
       </div>
 
       {# Core stat list #}
-      <dl class="featured-stat-list detail-stat-list">
+      <dl class="stat-list stat-list--responsive">
         <div><dt>Outcome</dt><dd>{{ result_text or '—' }}</dd></div>
         <div><dt>Phases</dt><dd>{{ total_phases }}</dd></div>
         <div><dt>Duration</dt><dd>{{ total_time }}</dd></div>
@@ -78,7 +78,7 @@
       {% if has_custom %}
       <div class="featured-custom-section">
         <p class="label">Custom settings</p>
-        <dl class="featured-stat-list">
+        <dl class="stat-list">
           {%- for k, v in custom_settings.items() -%}
           <div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>
           {%- endfor -%}

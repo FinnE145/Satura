@@ -132,6 +132,34 @@ h6 {
     color: var(--text-dim);
 }
 
+.text-warm {
+    color: var(--warm);
+}
+
+.text-warm-bright {
+    color: var(--warm-bright);
+}
+
+.text-cool {
+    color: var(--cool);
+}
+
+.text-cool-bright {
+    color: var(--cool-bright);
+}
+
+.text-error {
+    color: var(--error);
+}
+
+.text-warn {
+    color: var(--warn);
+}
+
+.text-success {
+    color: var(--success);
+}
+
 /* Style */
 .text-italic {
     font-style: italic;
@@ -188,13 +216,6 @@ h6 {
     text-transform: uppercase;
 }
 
-.label-warm {
-    color: var(--warm);
-}
-
-.label-cool {
-    color: var(--cool-bright);
-}
 
 /* ─── Background utilities ───────────────────────────────────────────────────── */
 
@@ -231,13 +252,22 @@ h6 {
     color: var(--cool);
 }
 
-.accent-link {
+.warm-link {
     color: var(--warm);
     transition: color 0.15s;
 }
 
-.accent-link:hover {
+.warm-link:hover {
     color: var(--warm-bright);
+}
+
+.cool-link {
+    color: var(--cool);
+    transition: color 0.15s;
+}
+
+.cool-link:hover {
+    color: var(--cool-bright);
 }
 
 /* Button hover: border + tint fill change to accent colour on hover */
@@ -634,27 +664,6 @@ a[aria-disabled='true'] {
     border-color: var(--cool-bright);
 }
 
-/* Context overrides for card backgrounds */
-.card .btn-warm-border {
-    color: var(--warm-bright);
-    border-color: var(--warm-bright-dim);
-}
-
-.card .btn-warm-border:hover:not(:disabled) {
-    background: var(--warm-bright-tint);
-    border-color: var(--warm-bright);
-}
-
-.card .btn-cool-border {
-    color: var(--cool-bright);
-    border-color: var(--cool-bright-dim);
-}
-
-.card .btn-cool-border:hover:not(:disabled) {
-    background: var(--cool-bright-tint);
-    border-color: var(--cool-bright);
-}
-
 /* ─── Colour modifier classes ────────────────────────────────────────────────── */
 /* Palette-driven triplet: tint background, coloured text, dim border.
    Apply alongside a component class to set its active/accent colour. */
@@ -783,6 +792,12 @@ a[aria-disabled='true'] {
     border: 1px solid var(--warn-border);
 }
 
+.badge--success {
+    background: var(--success-tint);
+    color: var(--success);
+    border: 1px solid var(--success-border);
+}
+
 /* ─── Footer ─────────────────────────────────────────────────────────────────── */
 
 .site-footer {
@@ -838,14 +853,6 @@ a[aria-disabled='true'] {
     gap: 1rem;
     padding: 4rem 2rem;
     text-align: center;
-}
-
-.heading-display {
-    font-family: var(--font-heading);
-    font-size: 2rem;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--text);
 }
 
 .stub-back {
@@ -2271,15 +2278,6 @@ body:has(.login-wrap) {
     margin-top: 1rem;
 }
 
-.login-footer a {
-    color: var(--warm);
-    transition: color 0.15s;
-}
-
-.login-footer a:hover {
-    color: var(--warm-bright);
-}
-
 .error-msg {
     display: flex;
     align-items: baseline;
@@ -2314,22 +2312,22 @@ body:has(.login-wrap) {
 
 /* ─── Contact ────────────────────────────────────────────────────────────────── */
 
-.contact-form {
+.form-stack {
     margin-top: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.25em;
 }
 
-.contact-form .field {
+.form-stack .field {
     display: flex;
     flex-direction: column;
     gap: 0.45em;
 }
 
 
-.contact-form input,
-.contact-form textarea {
+.form-stack input,
+.form-stack textarea {
     display: block;
     width: 100%;
     padding: 0.5em 0.75em;
@@ -2344,18 +2342,18 @@ body:has(.login-wrap) {
     outline: none;
 }
 
-.contact-form input:focus,
-.contact-form textarea:focus {
+.form-stack input:focus,
+.form-stack textarea:focus {
     border-color: var(--warm-dim);
 }
 
-.contact-form textarea {
+.form-stack textarea {
     resize: vertical;
     min-height: 8em;
     font-family: var(--font-ui);
 }
 
-.contact-form .btn {
+.form-stack .btn {
     align-self: flex-start;
 }
 
@@ -2497,14 +2495,14 @@ body:has(.login-wrap) {
     font-size: 1.35rem;
 }
 
-.settings-stats-grid {
+.stat-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.65em;
     margin-top: 0.8em;
 }
 
-.settings-stat-cell {
+.stat-tile {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--bg);
@@ -2514,7 +2512,7 @@ body:has(.login-wrap) {
     gap: 0.25em;
 }
 
-.settings-stat-cell strong {
+.stat-tile strong {
     font-family: var(--font-heading);
     font-size: 1.05rem;
     font-weight: 600;
@@ -3221,7 +3219,7 @@ body:has(.login-wrap) {
 }
 
 /* Stat list */
-.featured-stat-list {
+.stat-list {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 0.2em 1em;
@@ -3230,14 +3228,14 @@ body:has(.login-wrap) {
     margin: 0;
 }
 
-.featured-stat-list dt {
+.stat-list dt {
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 0.85em;
 }
 
-.featured-stat-list dd {
+.stat-list dd {
     color: var(--text);
     margin: 0;
 }
@@ -3249,31 +3247,6 @@ body:has(.login-wrap) {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-}
-
-/* Result badge variants */
-.badge--win {
-    background: var(--warm-tint);
-    color: var(--warm-bright);
-    border-color: var(--warm-bright-dim);
-}
-
-.badge--loss {
-    background: var(--cool-tint);
-    color: var(--cool-bright);
-    border-color: var(--cool-bright-dim);
-}
-
-.badge--draw {
-    background: var(--warn-tint);
-    color: var(--warn);
-    border: 1px solid var(--warn-border);
-}
-
-.badge--stalemate {
-    background: var(--text-tint);
-    color: var(--text-muted);
-    border: 1px solid var(--border-card);
 }
 
 /* ── Timeline list ─────────────────────────────────────────────────────────── */
@@ -3609,7 +3582,7 @@ body:has(.login-wrap) {
     gap: 0.875rem;
 }
 
-.detail-stat-list {
+.stat-list--responsive {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
     gap: 0.375rem 1rem;

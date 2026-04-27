@@ -16,7 +16,7 @@
                     <form method="post">
                         <input type="hidden" name="action" value="accept_request">
                         <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
-                        <button type="submit" class="btn btn-warm-border btn--sm">Accept</button>
+                        <button type="submit" class="btn btn-warm-bright-border btn--sm">Accept</button>
                     </form>
                     <form method="post">
                         <input type="hidden" name="action" value="decline_request">
@@ -35,7 +35,7 @@
         <h1 class="card-title">Add Friend</h1>
     </header>
     <div class="settings-card-body">
-        <div class="contact-form" id="friendSearchWrap">
+        <div class="form-stack" id="friendSearchWrap">
             <label class="form-label" for="friendSearchInput">Search by username</label>
             <div class="friends-search-row">
                 <div class="friends-search-field">
@@ -46,7 +46,7 @@
                 <form method="post" id="addFriendForm">
                     <input type="hidden" name="action" value="send_request">
                     <input type="hidden" name="username" id="addFriendUsername">
-                    <button type="submit" class="btn btn-warm-border" id="addFriendBtn" disabled>
+                    <button type="submit" class="btn btn-warm-bright-border" id="addFriendBtn" disabled>
                         Add friend
                     </button>
                 </form>

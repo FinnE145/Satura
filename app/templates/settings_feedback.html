@@ -9,7 +9,7 @@
     </header>
     <div class="settings-card-body">
         <p class="text-dim">Tell us what is working, what is broken, or what you want to see next.</p>
-        <form class="contact-form settings-form" method="post" action="{{ url_for('main.contact') }}">
+        <form class="form-stack settings-form" method="post" action="{{ url_for('main.contact') }}">
             <input type="hidden" name="form_source" value="settings-feedback">
             <div class="field">
                 <label class="form-label" for="name">Name or Username</label>
@@ -25,7 +25,7 @@
                 <label class="form-label" for="message">Message</label>
                 <textarea id="message" name="message" placeholder="What should we improve?" required></textarea>
             </div>
-            <button type="submit" class="btn btn-warm-border">Send feedback</button>
+            <button type="submit" class="btn btn-warm-bright-border">Send feedback</button>
         </form>
     </div>
 </article>

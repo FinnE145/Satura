@@ -978,16 +978,16 @@ def game_history(game_id):
     if game.is_draw:
         if game.end_reason == 'stalemate':
             result_text = 'Stalemate'
-            result_badge = 'stalemate'
+            result_badge = 'ok'
         else:
             result_text = 'Draw'
-            result_badge = 'draw'
+            result_badge = 'warn'
     elif game.winner == 1:
         result_text = 'P1 Won'
-        result_badge = 'win'
+        result_badge = 'success'
     elif game.winner == 2:
         result_text = 'P2 Won'
-        result_badge = 'loss'
+        result_badge = 'error'
     else:
         result_text = None
         result_badge = None

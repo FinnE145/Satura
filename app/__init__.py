@@ -18,6 +18,7 @@ def create_app(config_class=Config):
     login_manager.login_view = 'main.login'
 
     app.jinja_env.filters['fromjson'] = json.loads
+    app.jinja_env.filters['result_badge'] = lambda v: {'win': 'success', 'loss': 'error', 'draw': 'warn', 'stalemate': 'ok'}.get(v, v)
 
     from app.routes import bp
     app.register_blueprint(bp)

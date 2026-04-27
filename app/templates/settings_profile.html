@@ -13,12 +13,12 @@
             <a href="{{ url_for('main.settings_friends') }}" class="text-dim warm-hover no-underline">Friends: {{ friend_count }}</a>
         </div>
 
-        <div class="settings-stats-grid">
-            <div class="settings-stat-cell">
+        <div class="stat-grid">
+            <div class="stat-tile">
                 <span class="label">Win/Loss/Draw</span>
                 <strong>{{ stats.wins }}-{{ stats.losses }}-{{ stats.draws }}</strong>
             </div>
-            <div class="settings-stat-cell">
+            <div class="stat-tile">
                 <span class="label">Games Played</span>
                 <strong>{{ stats.games_played }}</strong>
             </div>
@@ -68,9 +68,9 @@
                         <div class="game-row-meta">
                             <div class="game-row-result-line">
                                 {% if g.result %}
-                                <span class="badge badge--{{ g.result }}">{{ g.result | capitalize }}</span>
+                                <span class="badge badge--{{ g.result | result_badge }}">{{ g.result | capitalize }}</span>
                                 {% else %}
-                                <span class="badge badge--stalemate">In progress</span>
+                                <span class="badge badge--ok">In progress</span>
                                 {% endif %}
                                 <span class="game-row-opponent" data-slot="{{ g.opp_slot }}">
                                     vs.&nbsp;{{ g.opponent_username or '(unknown)' }}

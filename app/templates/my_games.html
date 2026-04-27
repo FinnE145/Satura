@@ -27,7 +27,7 @@
           <div class="featured-stats-area">
             <div class="featured-result-row">
               {% if f.result %}
-              <span class="badge badge--{{ f.result }}">{{ f.result | capitalize }}</span>
+              <span class="badge badge--{{ f.result | result_badge }}">{{ f.result | capitalize }}</span>
               {% endif %}
               <span class="featured-opponent" data-slot="{{ f.opp_slot }}">
                 vs.&nbsp;{{ f.opponent_username or '(unknown)' }}
@@ -56,7 +56,7 @@
             </div>
 
             {# Stat list #}
-            <dl class="featured-stat-list">
+            <dl class="stat-list">
               <dt>Turns</dt>
               <dd>{{ f.total_turns }}</dd>
               <dt>Duration</dt>
@@ -71,7 +71,7 @@
             {% if f.has_custom %}
             <div class="featured-custom-section">
               <p class="label">Custom settings</p>
-              <dl class="featured-stat-list">
+              <dl class="stat-list">
                 {%- for k, v in f.custom_settings.items() %}<div>
                   <dt>{{ k }}</dt>
                   <dd>{{ v }}</dd>
@@ -148,9 +148,9 @@
             <div class="game-row-meta">
               <div class="game-row-result-line">
                 {% if g.result %}
-                <span class="badge badge--{{ g.result }}">{{ g.result | capitalize }}</span>
+                <span class="badge badge--{{ g.result | result_badge }}">{{ g.result | capitalize }}</span>
                 {% else %}
-                <span class="badge badge--stalemate">In progress</span>
+                <span class="badge badge--ok">In progress</span>
                 {% endif %}
                 <span class="game-row-opponent" data-slot="{{ g.opp_slot }}">
                   vs.&nbsp;{{ g.opponent_username or '(unknown)' }}

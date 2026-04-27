@@ -158,9 +158,7 @@ Used for primary and secondary CTAs. The element has a coloured border and text 
 | `.btn-warm-bright-border` | warm-bright text + warm-bright-dim border | + warm-bright-tint bg |
 | `.btn-cool-bright-border` | cool-bright text + cool-bright-dim border | + cool-bright-tint bg |
 
-`.btn-warm-border` and `.btn-cool-border` automatically switch to the bright family when inside `.card` via a context override rule, so templates don't need to choose based on background.
-
-`.btn-warm-bright-border` and `.btn-cool-bright-border` are used directly when the bright family is always required regardless of container (e.g. settings sidebar nav active state).
+Use `.btn-warm-border` / `.btn-cool-border` outside cards (nav, standalone pages). Use `.btn-warm-bright-border` / `.btn-cool-bright-border` inside `.card` elements — bright variants ensure readable contrast on card backgrounds.
 
 ### Hover-only classes — no colour at rest, full triplet on hover
 

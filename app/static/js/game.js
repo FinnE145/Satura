@@ -581,7 +581,7 @@ editor.addEventListener('input', () => {
     const src = editor.value;
     const hasContent = src.trim().length > 0;
     btnCompile.classList.toggle('btn--ghost', !hasContent);
-    btnCompile.classList.toggle('btn-cool-border', hasContent);
+    btnCompile.classList.toggle('btn-cool-bright-border', hasContent);
 
     currentWordCount = countWords(src);
     compileState = null;
@@ -1751,7 +1751,7 @@ function setAutorunUI(enabled) {
     autorunEnabled = enabled;
     if (!btnAutorun) return;
     btnAutorun.classList.toggle('btn--ghost', !enabled);
-    btnAutorun.classList.toggle('btn-warm-border', enabled);
+    btnAutorun.classList.toggle('btn-warm-bright-border', enabled);
 }
 
 async function fetchAutorun() {

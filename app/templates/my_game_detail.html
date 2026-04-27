@@ -30,7 +30,7 @@
       {# Result + opponent #}
       <div class="featured-result-row">
         {% if result %}
-        <span class="badge badge--{{ result }}">{{ result | capitalize }}</span>
+        <span class="badge badge--{{ result | result_badge }}">{{ result | capitalize }}</span>
         {% endif %}
         <span class="featured-opponent" data-slot="{{ opp_slot }}">
           vs.&nbsp;{{ opponent_username }}
@@ -60,7 +60,7 @@
       </div>
 
       {# Core stat list #}
-      <dl class="featured-stat-list detail-stat-list">
+      <dl class="stat-list stat-list--responsive">
         <div><dt>Result</dt><dd>{{ result | capitalize if result else '—' }}</dd></div>
         <div><dt>My slot</dt><dd>P{{ my_slot }}</dd></div>
         <div><dt>Turns</dt><dd>{{ total_turns }}</dd></div>
@@ -84,7 +84,7 @@
       {% if has_custom %}
       <div class="featured-custom-section">
         <p class="label">Custom settings</p>
-        <dl class="featured-stat-list">
+        <dl class="stat-list">
           {%- for k, v in custom_settings.items() -%}
           <div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>
           {%- endfor -%}

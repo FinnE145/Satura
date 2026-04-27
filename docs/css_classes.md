@@ -12,6 +12,13 @@ Update this file whenever a class is added, changed, or removed.
 |---|---|
 | `.text-muted` | 50% opacity text — often hard to see, low contrast for minor details |
 | `.text-dim` | 70% opacity text — secondary/supporting text |
+| `.text-warm` | warm accent colour |
+| `.text-warm-bright` | warm-bright accent colour |
+| `.text-cool` | cool accent colour |
+| `.text-cool-bright` | cool-bright accent colour |
+| `.text-error` | error red colour |
+| `.text-warn` | warning yellow colour |
+| `.text-success` | success green colour |
 | `.text-italic` | italic text |
 | `.text-center` | `text-align: center` utility |
 | `.text-small-sans` | 0.78em DM Sans — timestamps, metadata, disclaimers |
@@ -19,9 +26,7 @@ Update this file whenever a class is added, changed, or removed.
 | `.heading-display` | 2rem Lora 600 — large page or section headings |
 | `.form-label` | 1em DM Sans 500, subtle colour — form field labels |
 | `.form-heading` | white text modifier for `.form-label` |
-| `.label` | 0.72em DM Sans, uppercase, wide tracking — category/section tags |
-| `.label-warm` | warm accent colour modifier for `.label` |
-| `.label-cool` | cool accent colour modifier for `.label` |
+| `.label` | 0.72em DM Sans, uppercase, wide tracking — category/section tags — compose with `.text-warm`, `.text-cool`, etc. for colour |
 
 ### Colour modifiers
 Palette-driven triplet: tint background, coloured text, dim border. Apply alongside a component class to set its active/accent colour.
@@ -45,23 +50,21 @@ Palette-driven triplet: tint background, coloured text, dim border. Apply alongs
 | `.no-underline` | `text-decoration: none` utility — strips underline from links |
 | `.warm-hover` | text transitions to warm accent on hover |
 | `.cool-hover` | text transitions to cool accent on hover |
-| `.accent-link` | warm accent colour by default, brighter on hover — inline text links |
-| `.btn-warm-hover` | border + tint fill transitions to warm accent on hover |
-| `.btn-cool-hover` | border + tint fill transitions to cool accent on hover |
-| `.btn-warn-hover` | border + tint fill transitions to warning yellow on hover |
-| `.btn-danger-hover` | border + tint fill transitions to error red on hover |
+| `.warm-link` | warm accent colour at rest, warm-bright on hover — inline text links |
+| `.cool-link` | cool accent colour at rest, cool-bright on hover — inline text links |
 
 ### Layout
 | Class | Description |
 |---|---|
 | `.container` | 1440px max-width centred wrapper with horizontal padding |
-| `.game-outer` | flex row wrapper for the game page; centers sidebar + container as a group |
-| `.game-container` | game-page content area — like `.container` but flex-child-friendly (no auto margin) |
-| `.create-page-stack` | vertical stack wrapper for create/new-game style pages |
-| `.create-form-grid` | responsive two-column form grid for core game-creation fields |
 | `.toggle-row` | bordered row for inline toggle controls and helper text |
 | `.toggle-label` | inline checkbox + label treatment inside `.toggle-row` |
 | `.split-grid` | responsive two-column sub-grid for paired player fields |
+
+### Forms
+| Class | Description |
+|---|---|
+| `.form-stack` | flex column form — stacks `.field` elements vertically with gap, styles inputs/textareas (border, focus state), `margin-top: 2rem` |
 
 ### Buttons
 Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
@@ -71,12 +74,16 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.btn` | base button — inline-flex, DM Sans, rounded corners |
 | `.btn--sm` | smaller size modifier (0.78em, tighter padding) |
 | `.btn--ghost` | neutral grey border — low-priority or destructive actions |
-| `.btn-warm-border` | warm border + text at rest, tint bg on hover — primary CTA |
-| `.btn-cool-border` | cool border + text at rest, tint bg on hover — secondary CTA |
-| `.btn-warm-bright-border` | warm-bright border + text at rest, tint bg on hover — use on card backgrounds |
-| `.btn-cool-bright-border` | cool-bright border + text at rest, tint bg on hover — use on card backgrounds |
+| `.btn-warm-border` | warm border + text at rest, tint bg on hover — use outside cards (nav, standalone pages) |
+| `.btn-cool-border` | cool border + text at rest, tint bg on hover — use outside cards (nav, standalone pages) |
+| `.btn-warm-bright-border` | warm-bright border + text at rest, tint bg on hover — use inside `.card` |
+| `.btn-cool-bright-border` | cool-bright border + text at rest, tint bg on hover — use inside `.card` |
 | `.btn--warn` | warning-coloured border action (yellow) |
 | `.btn--danger` | error-coloured border action (red) |
+| `.btn-warm-hover` | border + tint fill transitions to warm accent on hover — used on non-`<button>` elements or composite components |
+| `.btn-cool-hover` | border + tint fill transitions to cool accent on hover |
+| `.btn-warn-hover` | border + tint fill transitions to warning yellow on hover |
+| `.btn-danger-hover` | border + tint fill transitions to error red on hover |
 | `.icon-btn` | stacked icon + label button — mode selectors, tool pickers |
 | `.icon-btn-label` | tiny label below the icon inside `.icon-btn` |
 | `.icon-btn.is-active` | selected-state modifier for `.icon-btn` — pair with `.warm` for colour |
@@ -93,13 +100,10 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.badge` | base pill label — requires a variant modifier |
-| `.badge--ok` | neutral grey badge |
-| `.badge--error` | red badge |
-| `.badge--warn` | yellow badge |
-| `.badge--win` | warm-bright accent badge — game win result |
-| `.badge--loss` | cool-bright accent badge — game loss result |
-| `.badge--draw` | warn-yellow badge — game draw result |
-| `.badge--stalemate` | neutral grey badge — stalemate result |
+| `.badge--ok` | neutral grey badge — neutral/in-progress status |
+| `.badge--error` | red badge — error or failure state |
+| `.badge--warn` | yellow badge — warning or draw result |
+| `.badge--success` | green badge — success or win result |
 
 ### Feedback
 | Class | Description |
@@ -114,6 +118,27 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.prose` | centred 720px text container — long-form text, legal pages, contact; sets Lora body text with heading/list/table styles |
+
+### Stat list
+| Class | Description |
+|---|---|
+| `.stat-list` | two-column `<dl>` grid (dt label / dd value) — DM Sans 0.8em, muted uppercase dt |
+| `.stat-list--responsive` | modifier: switches grid to `auto-fill minmax(10rem)` for wrapping across multiple columns |
+
+### Stat grid
+| Class | Description |
+|---|---|
+| `.stat-grid` | 2-column responsive grid of stat tiles (e.g. W/L/D summary on profile page) |
+| `.stat-tile` | bordered stat tile inside `.stat-grid` — flex column, heading value on top, label beneath |
+
+### Breadcrumb
+| Class | Description |
+|---|---|
+| `.page-breadcrumb` | flex row breadcrumb nav — DM Sans 0.85em |
+| `.page-breadcrumb__back` | back arrow + label link with warm hover |
+| `.page-breadcrumb__sep` | separator glyph between crumbs |
+| `.page-breadcrumb__current` | current page label (monospace, muted) |
+| `.page-breadcrumb__action` | right-aligned action link (margin-left: auto, warm accent) |
 
 ### Action menu (reusable `...` dropdown)
 | Class | Description |
@@ -203,6 +228,14 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.cta-title` | large Lora heading inside a CTA card |
 | `.cta-desc` | small muted description inside a CTA card |
 | `.cta-arrow` | animated arrow icon that appears on CTA hover |
+
+### Game page layout
+| Class | Description |
+|---|---|
+| `.game-outer` | flex row wrapper for the game page; centers sidebar + container as a group |
+| `.game-container` | game-page content area — like `.container` but flex-child-friendly (no auto margin) |
+| `.create-page-stack` | vertical stack wrapper for create/new-game style pages |
+| `.create-form-grid` | responsive two-column form grid for core game-creation fields |
 
 ### Game screen header
 | Class | Description |
@@ -332,11 +365,6 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.login-card` | card containing the login form fields |
 | `.login-footer` | spacing for the "create account" link below the login form |
 
-### Contact page
-| Class | Description |
-|---|---|
-| `.contact-form` | flex column form with consistent field gaps |
-
 ### My Games page
 | Class | Description |
 |---|---|
@@ -354,7 +382,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.featured-clock` | single player clock with icon — use `--warm` or `--cool` modifier |
 | `.featured-clock--warm` | warm accent (P1) clock colour |
 | `.featured-clock--cool` | cool accent (P2) clock colour |
-| `.featured-stat-list` | two-column `<dl>` grid (dt label / dd value) for game stats |
+| `.stat-list` | see Generic — Stat list |
 | `.featured-custom-section` | bordered sub-section for non-default game settings |
 | `.coverage-bar` | horizontal flex bar split into 5 colour segments (warm/cool/contested/black/blank) |
 | `.coverage-segment--warm` | warm-accent segment in a coverage bar |
@@ -382,7 +410,6 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-row-opponent` | opponent username; `[data-slot="1"]` = warm, `[data-slot="2"]` = cool |
 | `.game-row-reason` | muted end-reason text beneath the result line |
 | `.game-row-arrow` | chevron that slides in on row hover |
-| `.my-games-featured-card` | equal-flex featured game card; second one hides below 768px |
 
 ### Settings hub
 | Class | Description |
@@ -404,8 +431,6 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-card-body--palette` | extra padding variant for appearance/palette section |
 | `.settings-stack` | vertical stack utility used in settings cards |
 | `.settings-profile-head` | top row in profile card (name + friends count) |
-| `.settings-stats-grid` | 2-column stat summary grid |
-| `.settings-stat-cell` | bordered stat tile in the profile summary |
 | `.settings-games-list` | vertical list for recent-game entries |
 | `.settings-game-row` | row layout for thumbnail, metadata, and action button |
 | `.settings-game-thumb` | blank thumbnail placeholder rectangle for past games |
@@ -446,19 +471,13 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 
 ### Past Game Detail Page
 
-| Class | Purpose |
+| Class | Description |
 |---|---|
-| `.detail-page` | Page-level flex column with gap and padding (wraps `.container`) |
-| `.page-breadcrumb` | Breadcrumb nav row — flex, DM Sans 0.85em |
-| `.page-breadcrumb__back` | Back arrow + label link with warm hover |
-| `.page-breadcrumb__sep` | Separator glyph between crumbs |
-| `.page-breadcrumb__current` | Current page label (monospace, muted) |
-| `.page-breadcrumb__action` | Right-aligned action link in the breadcrumb row (margin-left: auto, warm accent) |
-| `.detail-stats-card` | Stats-only card above the graphs — flex column |
-| `.detail-stat-list` | Responsive auto-fill grid of `<dt>/<dd>` pairs |
+| `.detail-page` | page-level flex column with gap and padding (wraps `.container`) |
+| `.detail-stats-card` | stats-only card above the graphs — flex column |
 | `.detail-graphs` | 3-column responsive grid containing the 3 chart cards |
-| `.detail-graph-card` | Individual chart card (min-width 0) |
-| `.detail-graph-body` | Fixed-height chart canvas wrapper (200px) |
-| `.detail-funcs-body` | Functions card body — flex column, list top / code bottom |
-| `.detail-funcs-list` | Scrollable top section of the functions panel (~40% height) |
-| `.detail-funcs-code` | Read-only code box at bottom of functions panel |
+| `.detail-graph-card` | individual chart card (min-width 0) |
+| `.detail-graph-body` | fixed-height chart canvas wrapper (200px) |
+| `.detail-funcs-body` | functions card body — flex column, list top / code bottom |
+| `.detail-funcs-list` | scrollable top section of the functions panel (~40% height) |
+| `.detail-funcs-code` | read-only code box at bottom of functions panel |
