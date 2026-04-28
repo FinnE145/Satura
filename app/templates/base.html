@@ -132,7 +132,7 @@
         (function () {
             const inviteEl = document.getElementById('nav-game-invite');
             if (inviteEl) {
-                fetch('/api/my-invite')
+                fetch('/friends/game-invites')
                     .then(function (r) { return r.ok ? r.json() : null; })
                     .then(function (data) {
                         if (!data || !data.invite) return;

@@ -13,12 +13,12 @@
             <li class="flex-row friend-item">
                 <span>{{ r.user.username }}</span>
                 <div>
-                    <form method="post">
+                    <form method="post" action="/friends">
                         <input type="hidden" name="action" value="accept_request">
                         <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
                         <button type="submit" class="btn btn-warm-bright-border btn--sm">Accept</button>
                     </form>
-                    <form method="post">
+                    <form method="post" action="/friends">
                         <input type="hidden" name="action" value="decline_request">
                         <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
                         <button type="submit" class="btn btn--ghost btn--sm">Decline</button>
@@ -43,7 +43,7 @@
                            placeholder="Start typing a username…">
                     <div id="friendSearchResults" class="friends-search-results" hidden></div>
                 </div>
-                <form method="post" id="addFriendForm">
+                <form method="post" action="/friends" id="addFriendForm">
                     <input type="hidden" name="action" value="send_request">
                     <input type="hidden" name="username" id="addFriendUsername">
                     <button type="submit" class="btn btn-warm-bright-border" id="addFriendBtn" disabled>
@@ -75,12 +75,12 @@
                         </button>
                         <ul class="action-menu__list" hidden>
                             <li><button type="button" class="action-menu__item" disabled>View profile</button></li>
-                            <li><form method="post">
+                            <li><form method="post" action="/friends">
                                 <input type="hidden" name="action" value="remove_friend">
                                 <input type="hidden" name="friendship_id" value="{{ f.friendship_id }}">
                                 <button type="submit" class="action-menu__item action-menu__item--danger">Remove friend</button>
                             </form></li>
-                            <li><form method="post">
+                            <li><form method="post" action="/friends">
                                 <input type="hidden" name="action" value="block">
                                 <input type="hidden" name="friendship_id" value="{{ f.friendship_id }}">
                                 <button type="submit" class="action-menu__item action-menu__item--danger">Block</button>
@@ -109,7 +109,7 @@
                 <li class="flex-row friend-item">
                     <span>{{ r.user.username }}</span>
                     <div>
-                        <form method="post">
+                        <form method="post" action="/friends">
                             <input type="hidden" name="action" value="cancel_request">
                             <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
                             <button type="submit" class="btn btn--ghost btn--sm" aria-label="Cancel request">
@@ -129,7 +129,7 @@
                 <li class="flex-row friend-item">
                     <span class="text-dim">{{ r.user.username }}</span>
                     <div>
-                        <form method="post">
+                        <form method="post" action="/friends">
                             <input type="hidden" name="action" value="hide_declined">
                             <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
                             <button type="submit" class="btn btn--ghost btn--sm" aria-label="Hide">
@@ -176,7 +176,7 @@
     });
 
     function fetchResults(q) {
-        fetch('/settings/friends/search?q=' + encodeURIComponent(q))
+        fetch('/friends/search?q=' + encodeURIComponent(q))
             .then(r => r.json())
             .then(function (data) {
                 resultsBox.innerHTML = '';

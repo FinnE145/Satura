@@ -1344,85 +1344,90 @@ def settings_about_legal():
     return render_template('settings_about_legal.html', settings_nav='about-legal')
 
 
-@bp.route('/settings/friends', methods=['GET', 'POST'])
+@bp.route('/friends', methods=['POST'])
+@login_required
+def friends_action():
+    me = current_user.id
+    action = request.form.get('action', '')
+
+    if action == 'send_request':
+        username = request.form.get('username', '').strip()
+        target = Account.query.filter_by(username=username, deleted=False, disabled=False).first()
+        if not target or target.id == me:
+            flash('User not found.')
+        else:
+            existing = Friendship.query.filter(
+                or_(
+                    (Friendship.requester_id == me) & (Friendship.addressee_id == target.id),
+                    (Friendship.requester_id == target.id) & (Friendship.addressee_id == me),
+                )
+            ).first()
+            if existing:
+                flash('A request or friendship already exists with that user.')
+            else:
+                db.session.add(Friendship(requester_id=me, addressee_id=target.id, status='pending'))
+                db.session.commit()
+                flash('Friend request sent.')
+
+    elif action == 'cancel_request':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, requester_id=me, status='pending').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    elif action == 'hide_declined':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, requester_id=me, status='declined').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    elif action == 'remove_friend':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter(
+            Friendship.id == fid,
+            Friendship.status == 'accepted',
+            or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+        ).first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    elif action == 'accept_request':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
+        if fs:
+            fs.status = 'accepted'
+            db.session.commit()
+
+    elif action == 'decline_request':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
+        if fs:
+            fs.status = 'declined'
+            db.session.commit()
+
+    elif action == 'block':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter(
+            Friendship.id == fid,
+            Friendship.status == 'accepted',
+            or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+        ).first()
+        if fs:
+            if fs.requester_id != me:
+                fs.requester_id, fs.addressee_id = fs.addressee_id, fs.requester_id
+            fs.status = 'blocked'
+            db.session.commit()
+
+    return redirect(url_for('main.settings_friends'))
+
+
+@bp.route('/settings/friends', methods=['GET'])
 @login_required
 def settings_friends():
     me = current_user.id
-    if request.method == 'POST':
-        action = request.form.get('action', '')
-
-        if action == 'send_request':
-            username = request.form.get('username', '').strip()
-            target = Account.query.filter_by(username=username, deleted=False, disabled=False).first()
-            if not target or target.id == me:
-                flash('User not found.')
-            else:
-                existing = Friendship.query.filter(
-                    or_(
-                        (Friendship.requester_id == me) & (Friendship.addressee_id == target.id),
-                        (Friendship.requester_id == target.id) & (Friendship.addressee_id == me),
-                    )
-                ).first()
-                if existing:
-                    flash('A request or friendship already exists with that user.')
-                else:
-                    db.session.add(Friendship(requester_id=me, addressee_id=target.id, status='pending'))
-                    db.session.commit()
-                    flash('Friend request sent.')
-
-        elif action == 'cancel_request':
-            fid = request.form.get('friendship_id', 0, type=int)
-            fs = Friendship.query.filter_by(id=fid, requester_id=me, status='pending').first()
-            if fs:
-                db.session.delete(fs)
-                db.session.commit()
-
-        elif action == 'hide_declined':
-            fid = request.form.get('friendship_id', 0, type=int)
-            fs = Friendship.query.filter_by(id=fid, requester_id=me, status='declined').first()
-            if fs:
-                db.session.delete(fs)
-                db.session.commit()
-
-        elif action == 'remove_friend':
-            fid = request.form.get('friendship_id', 0, type=int)
-            fs = Friendship.query.filter(
-                Friendship.id == fid,
-                Friendship.status == 'accepted',
-                or_(Friendship.requester_id == me, Friendship.addressee_id == me),
-            ).first()
-            if fs:
-                db.session.delete(fs)
-                db.session.commit()
-
-        elif action == 'accept_request':
-            fid = request.form.get('friendship_id', 0, type=int)
-            fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
-            if fs:
-                fs.status = 'accepted'
-                db.session.commit()
-
-        elif action == 'decline_request':
-            fid = request.form.get('friendship_id', 0, type=int)
-            fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
-            if fs:
-                fs.status = 'declined'
-                db.session.commit()
-
-        elif action == 'block':
-            fid = request.form.get('friendship_id', 0, type=int)
-            fs = Friendship.query.filter(
-                Friendship.id == fid,
-                Friendship.status == 'accepted',
-                or_(Friendship.requester_id == me, Friendship.addressee_id == me),
-            ).first()
-            if fs:
-                if fs.requester_id != me:
-                    fs.requester_id, fs.addressee_id = fs.addressee_id, fs.requester_id
-                fs.status = 'blocked'
-                db.session.commit()
-
-        return redirect(url_for('main.settings_friends'))
 
     accepted = Friendship.query.filter(
         Friendship.status == 'accepted',
@@ -1452,9 +1457,9 @@ def settings_friends():
     )
 
 
-@bp.route('/settings/friends/search')
+@bp.route('/friends/search')
 @login_required
-def settings_friends_search():
+def friends_search():
     q = request.args.get('q', '').strip()
     if len(q) < 2:
         return jsonify([])
@@ -1471,6 +1476,26 @@ def settings_friends_search():
         .all()
     )
     return jsonify([{'username': a.username} for a in results])
+
+
+@bp.route('/friends/game-invites')
+@login_required
+def friends_game_invites():
+    lobby = get_invite_for_user(current_user.id)
+    if lobby is None:
+        return jsonify({'invite': None})
+    join_url = (
+        f'/join/{lobby.join_alias}'
+        if lobby.join_alias
+        else f'/game/{lobby.game_id}/join'
+    )
+    return jsonify({
+        'invite': {
+            'game_id': lobby.game_id,
+            'host_username': lobby.player1_username,
+            'join_url': join_url,
+        }
+    })
 
 
 @bp.route('/contact', methods=['GET', 'POST'])
@@ -1580,25 +1605,6 @@ def game_create_lobby():
     create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias, invited_user_id=invited_user_id)
     return jsonify({'game_id': game_id, 'join_alias': alias}), 201
 
-
-@bp.route('/api/my-invite', methods=['GET'])
-@login_required
-def my_invite():
-    lobby = get_invite_for_user(current_user.id)
-    if lobby is None:
-        return jsonify({'invite': None})
-    join_url = (
-        f'/join/{lobby.join_alias}'
-        if lobby.join_alias
-        else f'/game/{lobby.game_id}/join'
-    )
-    return jsonify({
-        'invite': {
-            'game_id': lobby.game_id,
-            'host_username': lobby.player1_username,
-            'join_url': join_url,
-        }
-    })
 
 
 @bp.route('/join', methods=['GET'])
