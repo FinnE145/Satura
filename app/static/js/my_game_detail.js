@@ -598,6 +598,9 @@ function initCharts() {
     const warm       = activePalette.uiWarm;
     const warmBright = activePalette.warmBright;
     const cool       = activePalette.uiCool;
+    const myColor       = mySlot === 1 ? warm : cool;
+    const myColorBright = mySlot === 1 ? warmBright : cool;
+    const oppColor      = mySlot === 1 ? cool : warm;
     const textColor = 'rgba(246, 245, 244, 0.7)';
     const gridColor = 'rgba(246, 245, 244, 0.08)';
     const fontDef   = { family: "'DM Sans', sans-serif", size: 10 };
@@ -647,15 +650,15 @@ function initCharts() {
             labels: domLabels,
             datasets: [
                 {
-                    label: `P${mySlot} (mine)`,
-                    data:  phasesMeta.map(p => mySlot === 1 ? p.coverage_p1 : p.coverage_p2),
+                    label: `P1${mySlot === 1 ? ' (mine)' : ''}`,
+                    data:  phasesMeta.map(p => p.coverage_p1),
                     borderColor: warm, backgroundColor: 'transparent',
                     pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: warm,
                     hitRadius: 12, tension: 0.3,
                 },
                 {
-                    label: `P${oppSlot} (opp)`,
-                    data:  phasesMeta.map(p => mySlot === 1 ? p.coverage_p2 : p.coverage_p1),
+                    label: `P2${mySlot === 2 ? ' (mine)' : ''}`,
+                    data:  phasesMeta.map(p => p.coverage_p2),
                     borderColor: cool, backgroundColor: 'transparent',
                     pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: cool,
                     hitRadius: 12, tension: 0.3,
@@ -718,8 +721,8 @@ function initCharts() {
                             const s = myByTurn[t];
                             return s?.write_duration != null ? toUnit(s.write_duration) : null;
                         }),
-                        borderColor: warm, backgroundColor: 'transparent',
-                        pointBackgroundColor: warm, pointRadius: 3,
+                        borderColor: myColor, backgroundColor: 'transparent',
+                        pointBackgroundColor: myColor, pointRadius: 3,
                         spanGaps: true, tension: 0.3,
                     },
                     {
@@ -728,8 +731,8 @@ function initCharts() {
                             const s = oppByTurn[t];
                             return s?.write_duration != null ? toUnit(s.write_duration) : null;
                         }),
-                        borderColor: cool, backgroundColor: 'transparent',
-                        pointBackgroundColor: cool, pointRadius: 3,
+                        borderColor: oppColor, backgroundColor: 'transparent',
+                        pointBackgroundColor: oppColor, pointRadius: 3,
                         spanGaps: true, tension: 0.3,
                     },
                 ],
@@ -792,24 +795,24 @@ function initCharts() {
                 {
                     label: `P${mySlot} word count`,
                     data: myWordData,
-                    borderColor: warmBright, backgroundColor: 'transparent',
-                    pointBackgroundColor: warmBright, pointRadius: 3,
+                    borderColor: myColorBright, backgroundColor: 'transparent',
+                    pointBackgroundColor: myColorBright, pointRadius: 3,
                     spanGaps: true, tension: 0.3,
                     borderDash: [],
                 },
                 {
                     label: `P${mySlot} ops used`,
                     data: myOpsData,
-                    borderColor: warm, backgroundColor: 'transparent',
-                    pointBackgroundColor: warm, pointRadius: 3,
+                    borderColor: myColor, backgroundColor: 'transparent',
+                    pointBackgroundColor: myColor, pointRadius: 3,
                     spanGaps: true, tension: 0.3,
                     borderDash: [5, 3],
                 },
                 {
                     label: `P${oppSlot} ops used`,
                     data: oppOpsData,
-                    borderColor: cool, backgroundColor: 'transparent',
-                    pointBackgroundColor: cool, pointRadius: 3,
+                    borderColor: oppColor, backgroundColor: 'transparent',
+                    pointBackgroundColor: oppColor, pointRadius: 3,
                     spanGaps: true, tension: 0.3,
                     borderDash: [5, 3],
                 },
