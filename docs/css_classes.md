@@ -131,7 +131,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.error-msg` | red-tinted box with border — form validation errors |
-| `.info-msg` | layout base for an accented message box — pair with a colour modifier (`.warm`, `.cool`, etc.) |
+| `.info-msg` | layout base for an accented message box — pair with a colour modifier (`.warm`, `.cool`, etc.); no margin by default, `.settings-card-body .info-msg` adds bottom spacing |
 | `.info-msg__url` | monospace URL span inside `.info-msg` — selects all text on click |
 | `.empty-label` | small italic placeholder when a list or panel is empty |
 | `.is-disabled` | generic disabled-state utility (reduced opacity); use with `a` for non-interactive disabled links |
@@ -442,7 +442,6 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-nav-item--active` | active sidebar row — pair with `.btn-warm-bright-border` for hover colour |
 | `.settings-nav-sep` | horizontal divider between sidebar groups |
 | `.settings-main` | right-column stack for screen cards and flash messages |
-| `.settings-flash` | compact neutral status message block |
 | `.settings-card` | settings content card wrapper |
 | `.settings-card[id]` | adds top scroll margin for hash-anchor navigation under sticky nav |
 | `.settings-card-body` | standard inner padding for settings card content |

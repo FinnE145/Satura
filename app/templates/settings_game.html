@@ -8,6 +8,9 @@
         <h1 class="card-title">Game Defaults</h1>
     </header>
     <div class="settings-card-body">
+        {% if request.args.get('saved') == 'defaults' %}
+        <div class="info-msg warm" role="status" aria-live="polite">Game defaults saved.</div>
+        {% endif %}
         <form method="post" class="flex-col form-stack settings-form">
             <input type="hidden" name="action" value="save_defaults">
 
@@ -92,12 +95,14 @@
         </form>
     </div>
 </article>
-
 <article class="card settings-card" id="appearance">
     <header class="flex-row card-header">
         <h2 class="card-title">Appearance</h2>
     </header>
     <div class="settings-card-body settings-card-body--palette">
+        {% if request.args.get('saved') == 'appearance' %}
+        <div class="info-msg warm" role="status" aria-live="polite">Appearance saved.</div>
+        {% endif %}
         <form method="post" class="flex-col settings-palette-form">
             <input type="hidden" name="action" value="save_palette">
             <div class="settings-palette-grid" role="radiogroup" aria-label="Palette selection">

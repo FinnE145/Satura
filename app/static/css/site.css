@@ -2207,11 +2207,14 @@ body:has(.login-wrap) {
     display: flex;
     align-items: baseline;
     gap: 0.5em;
-    margin-top: 0.75em;
     padding: 0.55em 0.75em;
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
     font-size: 0.875em;
+}
+
+.settings-card-body .info-msg {
+    margin-bottom: 0.75em;
 }
 
 .info-msg__url {
@@ -2364,14 +2367,6 @@ body:has(.login-wrap) {
     gap: 1.1em;
 }
 
-.settings-flash {
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    color: var(--text-dim);
-    padding: 0.6em 0.85em;
-    font-size: 0.82em;
-}
 
 .settings-card {
     overflow: hidden;
@@ -2489,6 +2484,10 @@ body:has(.login-wrap) {
 .settings-form input[type='number']:focus,
 .settings-form input[type='range']:focus {
     border-color: var(--warm-dim);
+}
+
+.settings-form select {
+    padding: 0.625em 0.75em;
 }
 
 .settings-form input[type='range'] {
@@ -2726,6 +2725,10 @@ body:has(.login-wrap) {
 
 .friends-search-row form {
     display: flex;
+}
+
+.friends-search-row .btn {
+    align-self: stretch;
 }
 
 .friends-search-field {
