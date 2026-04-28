@@ -5,9 +5,9 @@
 {% block content %}
 <main class="site-main">
     <div class="container settings-layout">
-        <aside class="settings-sidebar-stack">
+        <aside class="flex-col settings-sidebar-stack">
             <div class="card settings-sidebar">
-                <nav class="settings-nav" aria-label="Settings sections">
+                <nav class="flex-col settings-nav" aria-label="Settings sections">
                     <a href="{{ url_for('main.settings_profile') }}"
                         class="settings-nav-item {% if settings_nav == 'profile' %}settings-nav-item--active btn-warm-bright-border{% endif %}">
                         <span class="material-symbols-outlined" aria-hidden="true">person</span>
@@ -60,7 +60,7 @@
             </div>
         </aside>
 
-        <section class="settings-main">
+        <section class="flex-col settings-main">
             {% with messages = get_flashed_messages() %}
             {% if messages %}
             <div class="settings-flash" role="status" aria-live="polite">{{ messages[0] }}</div>

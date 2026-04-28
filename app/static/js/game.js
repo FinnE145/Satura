@@ -18,7 +18,7 @@ const diagBadge = document.getElementById('diag-badge');
 const diagBody = document.getElementById('diagnostics-body');
 const outputBody = document.getElementById('output-body');
 const outcomeLabel = document.getElementById('outcome-label');
-const gameOverModal = document.getElementById('game-over-modal');
+const gameOverModal = document.getElementById('modal');
 const gameOverMessage = document.getElementById('game-over-message');
 const gameOverBackdrop = document.getElementById('game-over-backdrop');
 const btnDraw = document.getElementById('btn-draw');
@@ -35,6 +35,7 @@ const gameControlsDrawBtns = document.getElementById('game-controls-draw-btns');
 const btnDrawAccept = document.getElementById('btn-draw-accept');
 const btnDrawReject = document.getElementById('btn-draw-reject');
 const btnAutorun = document.getElementById('btn-autorun');
+const autorunLabel = document.getElementById('autorun-label');
 const playerSwitchEl = document.getElementById('player-switch');
 const playerSwitchP1 = document.getElementById('player-switch-p1');
 const playerSwitchP2 = document.getElementById('player-switch-p2');
@@ -61,28 +62,29 @@ if (isTestMode && gameId) {
         playerSwitchP1.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=1`;
         playerSwitchP2.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=2`;
         if (minePlayer === 1) {
-            playerSwitchP1.classList.add('player-switch__opt--active', 'warm');
+            playerSwitchP1.classList.add('seg-control__opt--active', 'warm');
         } else {
-            playerSwitchP2.classList.add('player-switch__opt--active', 'cool');
+            playerSwitchP2.classList.add('seg-control__opt--active', 'cool');
         }
         playerSwitchEl.hidden = false;
     }
     if (btnAutorun) btnAutorun.hidden = false;
+    if (autorunLabel) autorunLabel.hidden = false;
 }
 
 document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
     el.textContent = `P${minePlayer}`;
-    el.classList.add(`gc-player-badge--p${minePlayer}`, minePlayer === 1 ? 'warm-bright' : 'cool-bright');
+    el.classList.add(minePlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 document.querySelectorAll('[data-tc="badge-opp"]').forEach(el => {
     el.textContent = `P${oppPlayer}`;
-    el.classList.add(`gc-player-badge--p${oppPlayer}`, oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
+    el.classList.add(oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 if (boardLegendMineEl) {
-    boardLegendMineEl.className = `board-legend-item board-legend-item--p${minePlayer} ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
+    boardLegendMineEl.className = `badge ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 if (boardLegendOppEl) {
-    boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppPlayer} ${oppPlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
+    boardLegendOppEl.className = `badge ${oppPlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 
 let bankPollTimer = null;
@@ -160,7 +162,7 @@ function countWords(src) {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-    setStatus('pending');
+    setStatus('warn');
     setPhase('initialising');
     setSessionReady(false);
 
@@ -174,7 +176,7 @@ async function init() {
     try {
         sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
         sessionIdEl.title = gameId;
-        setStatus('ready');
+        setStatus('ok');
 
         // Show the latest board and actual server phase immediately.
         const initState = await get(`${apiBase}/state`);
@@ -693,9 +695,9 @@ function updateWordShortageNotice() {
 function diagItem(type, msg) {
     const icon = type === 'error' ? '\u2715' : '\u26a0';
     const div = document.createElement('div');
-    div.className = `diag-item diag-item--${type}`;
+    div.className = `diag-item text-${type}`;
     div.innerHTML =
-        `<span class="diag-icon">${icon}</span>` +
+        `<span class="flex-shrink-0 diag-icon">${icon}</span>` +
         `<span class="diag-msg">${esc(String(msg))}</span>`;
     return div;
 }
@@ -727,7 +729,7 @@ function renderOutput(state) {
         const row = document.createElement('div');
         row.className = 'log-entry';
         row.innerHTML =
-            `<span class="log-idx">${String(i + 1).padStart(2, '0')}</span>` +
+            `<span class="flex-shrink-0 log-idx">${String(i + 1).padStart(2, '0')}</span>` +
             formatLogEntry(entry);
         outputBody.appendChild(row);
     });
@@ -794,7 +796,7 @@ async function renderOutputStepByStep(state, onStep) {
         const row = document.createElement('div');
         row.className = 'log-entry';
         row.innerHTML =
-            `<span class="log-idx">${String(i + 1).padStart(2, '0')}</span>` +
+            `<span class="flex-shrink-0 log-idx">${String(i + 1).padStart(2, '0')}</span>` +
             formatLogEntry(entry);
         outputBody.appendChild(row);
 
@@ -925,8 +927,8 @@ function formatLogEntry(entry) {
 function op(cssType, detail, label) {
     const opLabel = label ?? cssType;
     const cls = cssType ? `log-op log-op--${cssType}` : 'log-op';
-    return `<span class="${cls}">${esc(opLabel)}</span>` +
-        `<span class="log-detail">${detail}</span>`;
+    return `<span class="flex-shrink-0 ${cls}">${esc(opLabel)}</span>` +
+        `<span class="flex-1 log-detail">${detail}</span>`;
 }
 
 function fmtResult(v) {
@@ -1105,7 +1107,7 @@ function updateBoardCoverage(board) {
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 function setStatus(state) {
-    statusDot.className = `status-dot status-dot--${state}`;
+    statusDot.className = `flex-shrink-0 status-dot status-dot--${state}`;
 }
 
 function setPhase(text, highlight = false, player = 0) {
@@ -1635,7 +1637,7 @@ function makeHistoryItem(label, sub, source, onClick) {
     if (preview) item.title = preview;
 
     const wrap = document.createElement('div');
-    wrap.className = 'script-history-item__label-wrap';
+    wrap.className = 'flex-col flex-1 min-w-0 script-history-item__label-wrap';
 
     const labelEl = document.createElement('span');
     labelEl.className = 'script-history-item__label';
@@ -1650,7 +1652,7 @@ function makeHistoryItem(label, sub, source, onClick) {
     }
 
     const copyIcon = document.createElement('span');
-    copyIcon.className = 'material-symbols-outlined script-history-item__copy';
+    copyIcon.className = 'flex-shrink-0 material-symbols-outlined script-history-item__copy';
     copyIcon.textContent = 'content_copy';
     copyIcon.setAttribute('aria-hidden', 'true');
 
@@ -1750,8 +1752,13 @@ if (!isTestMode) {
 function setAutorunUI(enabled) {
     autorunEnabled = enabled;
     if (!btnAutorun) return;
-    btnAutorun.classList.toggle('btn--ghost', !enabled);
-    btnAutorun.classList.toggle('btn-warm-bright-border', enabled);
+    const offOpt = document.getElementById('autorun-off');
+    if (offOpt) offOpt.classList.toggle('seg-control__opt--active', !enabled);
+    const onOpt = document.getElementById('autorun-on');
+    if (onOpt) {
+        onOpt.classList.toggle('seg-control__opt--active', enabled);
+        onOpt.classList.toggle('warm', enabled);
+    }
 }
 
 async function fetchAutorun() {
@@ -1764,10 +1771,15 @@ async function fetchAutorun() {
 
 if (isTestMode && btnAutorun) {
     fetchAutorun();
-    btnAutorun.addEventListener('click', async () => {
+    btnAutorun.addEventListener('click', async (e) => {
+        const opt = e.target.closest('.seg-control__opt');
+        if (!opt) return;
+        e.preventDefault();
+        const newEnabled = opt.id === 'autorun-on';
+        if (newEnabled === autorunEnabled) return;
         try {
-            const data = await post(`${apiBase}/autorun`, { player: minePlayer, enabled: !autorunEnabled });
-            setAutorunUI(data.autorun?.[minePlayer] ?? !autorunEnabled);
+            const data = await post(`${apiBase}/autorun`, { player: minePlayer, enabled: newEnabled });
+            setAutorunUI(data.autorun?.[minePlayer] ?? newEnabled);
         } catch (_) { }
     });
 }

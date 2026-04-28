@@ -43,8 +43,8 @@
         const name = username || 'Player 1';
         if (p1ReadyDot) {
             p1ReadyDot.className = ready
-                ? 'status-dot status-dot--ready'
-                : 'status-dot status-dot--pending';
+                ? 'flex-shrink-0 status-dot status-dot--ok'
+                : 'flex-shrink-0 status-dot status-dot--warn';
         }
         if (p1ReadyLabel) {
             p1ReadyLabel.textContent = ready ? `${name} ready` : `${name} not ready`;

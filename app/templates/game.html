@@ -3,116 +3,121 @@
 {% block title %}Satura | In Game{% endblock %}
 
 {% block nav %}
-<header class="game-header">
-    <a href="/" class="brand">
-        <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura" class="brand-mark"
-            width="28" height="28">
-        <span class="brand-wordmark">Satura</span>
+<header class="flex-row game-header">
+    <a href="/" class="flex-row flex-shrink-0 brand">
+        <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura"
+            class="flex-shrink-0 brand-mark" width="28" height="28">
+        <span class="flex-shrink-0 brand-wordmark">Satura</span>
     </a>
-    <span class="game-viewer-count" id="game-viewer-count" hidden>
+    <span class="ml-auto flex-row game-viewer-count" id="game-viewer-count" hidden>
         <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
         <span id="game-viewer-count-num"></span>
     </span>
-    <span class="player-switch" id="player-switch" hidden aria-label="Switch player view">
-        <a class="player-switch__opt player-switch__opt--p1" id="player-switch-p1" href="#">P1</a>
-        <a class="player-switch__opt player-switch__opt--p2" id="player-switch-p2" href="#">P2</a>
+    <span class="ml-auto seg-control" id="player-switch" hidden aria-label="Switch player view">
+        <a class="seg-control__opt seg-control__opt--p1" id="player-switch-p1" href="#">P1</a>
+        <a class="seg-control__opt seg-control__opt--p2" id="player-switch-p2" href="#">P2</a>
     </span>
 </header>
 {% endblock %}
 {% block footer %}{% endblock %}
 
 {% block content %}
-<main class="site-main" id="game-root"
-    data-game-id="{{ game_id }}"
-    data-player-num="{{ player_num or '' }}"
-    {% block game_root_extra_data %}{% endblock %}>
+<main class="site-main" id="game-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}" {% block
+    game_root_extra_data %}{% endblock %}>
 
     <div class="game-outer">
 
         <!-- Script history sidebar (large screens — outside the container) -->
-        <aside class="script-history-card card" id="script-history-card">
-            <div class="card-header">
+        <aside class="flex-col flex-shrink-0 script-history-card card" id="script-history-card">
+            <div class="flex-row card-header">
                 <h2 class="card-title">History</h2>
             </div>
-            <div class="script-history-body">
-                <div class="script-history-section">
+            <div class="flex-col flex-1 script-history-body">
+                <div class="flex-col script-history-section">
                     <div class="script-history-section-title label">Past Scripts</div>
-                    <div class="script-history-list" data-sh-list="scripts">
+                    <div class="flex-col script-history-list" data-sh-list="scripts">
                         <span class="empty-label">No scripts yet</span>
                     </div>
                 </div>
-                <div class="script-history-section">
+                <div class="flex-col script-history-section">
                     <div class="script-history-section-title label">Functions</div>
-                    <div class="script-history-list" data-sh-list="funcs">
+                    <div class="flex-col script-history-list" data-sh-list="funcs">
                         <span class="empty-label">No functions yet</span>
                     </div>
                 </div>
             </div>
         </aside>
 
-        <div class="game-container">
+        <div class="min-w-0 game-container">
 
             <!-- Workspace: editor + board -->
             <div class="workspace">
 
                 <!-- Editor card -->
-                <div class="card editor-card">
-                    <div class="card-header">
+                <div class="flex-col card editor-card">
+                    <div class="flex-row card-header">
                         <h2 class="card-title">Script</h2>
-                        <span class="script-meta">
+                        <span class="flex-row script-meta">
                             <span class="word-cost" id="word-cost"></span>
                             <span class="word-eta" id="word-eta"></span>
                             <span class="script-meta-sep" id="word-bank-sep" hidden aria-hidden="true">·</span>
                             <span class="word-bank" id="word-bank"></span>
                         </span>
-                        <button class="btn btn--ghost btn--sm script-history-toggle" id="btn-history-toggle"
-                            type="button" aria-expanded="false" aria-controls="script-history-panel">
+                        <button class="flex-shrink-0 btn btn--ghost btn--sm script-history-toggle"
+                            id="btn-history-toggle" type="button" aria-expanded="false"
+                            aria-controls="script-history-panel">
                             <span class="material-symbols-outlined" aria-hidden="true">history</span>
                             History
                         </button>
                     </div>
-                    <div class="editor-card-body">
-                        <div class="script-history-panel" id="script-history-panel" hidden
+                    <div class="flex-col flex-1 editor-card-body">
+                        <div class="flex-col script-history-panel" id="script-history-panel" hidden
                             aria-label="Script history panel">
-                            <div class="script-history-body">
-                                <div class="script-history-section">
+                            <div class="flex-col flex-1 script-history-body">
+                                <div class="flex-col script-history-section">
                                     <div class="script-history-section-title label">Past Scripts</div>
-                                    <div class="script-history-list" data-sh-list="scripts">
+                                    <div class="flex-col script-history-list" data-sh-list="scripts">
                                         <span class="empty-label">No scripts yet</span>
                                     </div>
                                 </div>
-                                <div class="script-history-section">
+                                <div class="flex-col script-history-section">
                                     <div class="script-history-section-title label">Functions</div>
-                                    <div class="script-history-list" data-sh-list="funcs">
+                                    <div class="flex-col script-history-list" data-sh-list="funcs">
                                         <span class="empty-label">No functions yet</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <textarea class="script-editor" id="script-editor" spellcheck="false" autocomplete="off"
+                        <textarea class="flex-1 script-editor" id="script-editor" spellcheck="false" autocomplete="off"
                             autocorrect="off" autocapitalize="off" placeholder="// write your script here"
                             aria-label="Script editor"></textarea>
                     </div>
-                    <div class="card-footer">
-                        <button class="btn btn--ghost btn-autorun-toggle" id="btn-autorun" type="button" hidden>Auto-run</button>
-                        <button class="btn btn--ghost" id="btn-compile" type="button" disabled>Compile</button>
-                        <button class="btn btn-warm-bright-border" id="btn-deploy" type="button" disabled>Deploy</button>
+                    <div class="flex-row card-footer">
+                        <span class="text-sm form-label" id="autorun-label" hidden>Auto-run</span>
+                        <span class="seg-control" id="btn-autorun" hidden aria-label="Auto-run">
+                            <a class="seg-control__opt seg-control__opt--off seg-control__opt--active" id="autorun-off"
+                                href="#">Off</a>
+                            <a class="seg-control__opt" id="autorun-on" href="#">On</a>
+                        </span>
+                        <button class="ml-auto btn btn--ghost" id="btn-compile" type="button" disabled>Compile</button>
+                        <button class="btn btn-warm-bright-border" id="btn-deploy" type="button"
+                            disabled>Deploy</button>
                     </div>
                 </div>
 
                 <!-- Board card -->
-                <div class="card board-card">
-                    <div class="card-header">
+                <div class="flex-col card board-card">
+                    <div class="flex-row card-header">
                         <h2 class="card-title">Board</h2>
-                        <span class="board-legend" id="board-legend">
+                        <span class="flex-row board-legend" id="board-legend">
                             <span class="text-small-sans text-muted" id="board-legend-info"></span>
                             <span class="board-legend-pills">
-                                <span class="board-legend-item" id="board-legend-mine"></span>
-                                <span class="board-legend-item" id="board-legend-opp"></span>
+                                <span class="badge" id="board-legend-mine"></span>
+                                <span class="badge" id="board-legend-opp"></span>
                             </span>
                         </span>
                     </div>
-                    <div class="board-wrap">
+                    <div class="flex-1 board-wrap">
                         <div class="board-grid" id="board-grid"></div>
                     </div>
                 </div>
@@ -121,57 +126,60 @@
 
             <!-- Time controls card (small screens only) -->
             <div class="card time-controls-card" id="time-controls-card">
-                <div class="game-controls-main">
-                    <div class="game-controls-side game-controls-side--mine">
-                        <span class="gc-player-badge" data-tc="badge-mine"></span>
-                        <span class="gc-clock" data-tc="clock-mine">--:--</span>
+                <div class="flex-row game-controls-main">
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--mine">
+                        <span class="badge" data-tc="badge-mine"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-mine">--:--</span>
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-mine"
                                 hidden></span></span>
                     </div>
-                    <div class="game-controls-side game-controls-side--opp">
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--opp">
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-opp" hidden></span></span>
-                        <span class="gc-clock" data-tc="clock-opp">--:--</span>
-                        <span class="gc-player-badge" data-tc="badge-opp"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-opp">--:--</span>
+                        <span class="badge" data-tc="badge-opp"></span>
                     </div>
                 </div>
             </div>
 
             <!-- Game controls panel -->
-            <div class="card game-controls" id="game-controls">
-                <div class="game-controls-main">
+            <div class="flex-col card game-controls" id="game-controls">
+                <div class="flex-row game-controls-main">
 
                     <!-- Mine side (always left) -->
-                    <div class="game-controls-side game-controls-side--mine" id="gc-side-mine">
-                        <span class="gc-player-badge" data-tc="badge-mine"></span>
-                        <span class="gc-clock" data-tc="clock-mine">--:--</span>
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--mine" id="gc-side-mine">
+                        <span class="badge" data-tc="badge-mine"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-mine">--:--</span>
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-mine"
                                 hidden></span></span>
                     </div>
 
                     <!-- Buttons -->
-                    <div class="game-controls-btns">
-                        <button type="button" class="game-controls-btn btn-warm-hover" id="btn-replay">
+                    <div class="flex-shrink-0 game-controls-btns">
+                        <button type="button" class="flex-col game-controls-btn btn-warm-hover" id="btn-replay">
                             <span class="material-symbols-outlined">replay</span>
                             <span class="icon-btn-label">Replay</span>
                         </button>
-                        <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-back">
+                        <button type="button" class="flex-col game-controls-btn btn-cool-hover" id="btn-history-back">
                             <span class="material-symbols-outlined">arrow_back</span>
                             <span class="icon-btn-label">Back</span>
                         </button>
-                        <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-forward">
+                        <button type="button" class="flex-col game-controls-btn btn-cool-hover"
+                            id="btn-history-forward">
                             <span class="material-symbols-outlined">arrow_forward</span>
                             <span class="icon-btn-label">Forward</span>
                         </button>
-                        <button type="button" class="game-controls-btn btn-warm-hover" id="btn-history-current">
+                        <button type="button" class="flex-col game-controls-btn btn-warm-hover"
+                            id="btn-history-current">
                             <span class="material-symbols-outlined">last_page</span>
                             <span class="icon-btn-label">Current</span>
                         </button>
-                        <button type="button" class="game-controls-btn game-controls-btn--draw btn-warn-hover"
+                        <button type="button" class="flex-col game-controls-btn game-controls-btn--draw btn-warn-hover"
                             id="btn-draw">
                             <span class="material-symbols-outlined">handshake</span>
                             <span class="icon-btn-label">Draw</span>
                         </button>
-                        <button type="button" class="game-controls-btn game-controls-btn--resign btn-danger-hover"
+                        <button type="button"
+                            class="flex-col game-controls-btn game-controls-btn--resign btn-danger-hover"
                             id="btn-resign">
                             <span class="material-symbols-outlined">flag</span>
                             <span class="icon-btn-label">Resign</span>
@@ -179,20 +187,21 @@
                     </div>
 
                     <!-- Opponent side (always right) -->
-                    <div class="game-controls-side game-controls-side--opp" id="gc-side-opp">
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--opp" id="gc-side-opp">
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-opp" hidden></span></span>
-                        <span class="gc-clock" data-tc="clock-opp">--:--</span>
-                        <span class="gc-player-badge" data-tc="badge-opp"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-opp">--:--</span>
+                        <span class="badge" data-tc="badge-opp"></span>
                     </div>
 
                 </div>
                 <span class="game-controls-confirm text-small-sans" id="game-controls-confirm" hidden></span>
                 <span class="game-controls-confirm text-small-sans" id="game-controls-past-notice" hidden>Viewing a past
                     game state</span>
-                <div class="game-controls-draw-area text-small-sans" id="game-controls-draw-area" hidden>
+                <div class="flex-row game-controls-draw-area text-small-sans" id="game-controls-draw-area" hidden>
                     <span id="game-controls-draw-msg"></span>
                     <div class="game-controls-draw-btns" id="game-controls-draw-btns" hidden>
-                        <button type="button" class="btn btn-cool-bright-border btn--sm" id="btn-draw-accept">Accept</button>
+                        <button type="button" class="btn btn-cool-bright-border btn--sm"
+                            id="btn-draw-accept">Accept</button>
                         <button type="button" class="btn btn--danger btn--sm" id="btn-draw-reject">Reject</button>
                     </div>
                 </div>
@@ -203,7 +212,7 @@
 
                 <!-- Diagnostics -->
                 <div class="card result-card" id="diagnostics-card">
-                    <div class="card-header">
+                    <div class="flex-row card-header">
                         <h2 class="card-title">Diagnostics</h2>
                         <span class="badge" id="diag-badge" aria-live="polite"></span>
                     </div>
@@ -214,7 +223,7 @@
 
                 <!-- Output -->
                 <div class="card result-card" id="output-card">
-                    <div class="card-header">
+                    <div class="flex-row card-header">
                         <h2 class="card-title">Output</h2>
                         <span class="outcome-label" id="outcome-label"></span>
                     </div>
@@ -226,17 +235,16 @@
             </div><!-- .results-row -->
 
             <!-- End-of-game modal -->
-            <div class="game-over-modal" id="game-over-modal" role="dialog" aria-modal="true"
-                aria-labelledby="game-over-title" hidden>
-                <div class="game-over-modal__backdrop" id="game-over-backdrop"></div>
-                <div class="card game-over-modal__card" role="document">
-                    <div class="card-header">
+            <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="game-over-title" hidden>
+                <div class="modal__backdrop" id="game-over-backdrop"></div>
+                <div class="card modal__card" role="document">
+                    <div class="flex-row card-header">
                         <h2 class="card-title" id="game-over-title">Game Over</h2>
                     </div>
-                    <div class="card-body game-over-modal__body">
-                        <p class="game-over-modal__message text-small-sans" id="game-over-message"></p>
+                    <div class="card-body modal__body">
+                        <p class="modal__message text-small-sans" id="game-over-message"></p>
                     </div>
-                    <div class="card-footer">
+                    <div class="flex-row card-footer">
                         {% block game_over_footer %}
                         <a class="btn btn-warm-bright-border" href="/my-games/{{ game_id }}">Review Game</a>
                         <a class="btn btn-cool-bright-border" href="/game/new">Create New</a>
@@ -246,10 +254,10 @@
             </div>
 
             <!-- Session status bar -->
-            <div class="session-bar" role="status" aria-live="polite">
-                <span class="session-bar-left">
-                    <span class="status-dot" id="status-dot" aria-hidden="true"></span>
-                    <span class="session-bar-group">
+            <div class="flex-row session-bar" role="status" aria-live="polite">
+                <span class="flex-row min-w-0 session-bar-left">
+                    <span class="flex-shrink-0 status-dot" id="status-dot" aria-hidden="true"></span>
+                    <span class="flex-row session-bar-group">
                         <span class="session-bar-key">Session</span>
                         <code class="session-id" id="session-id" title="">—</code>
                     </span>

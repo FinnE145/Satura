@@ -4,10 +4,10 @@
 
 {% block settings_content %}
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h1 class="card-title">Account</h1>
     </header>
-    <div class="settings-card-body settings-stack">
+    <div class="flex-col settings-card-body settings-stack">
         <div>
             <p class="label">Current Username</p>
             <p>{{ current_user.username }}</p>
@@ -20,11 +20,11 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Change Username</h2>
     </header>
     <div class="settings-card-body">
-        <form method="post" class="form-stack settings-form">
+        <form method="post" class="flex-col form-stack settings-form">
             <input type="hidden" name="action" value="change_username">
             <div class="field">
                 <label class="form-label" for="username">New username</label>
@@ -36,11 +36,11 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Change Email</h2>
     </header>
     <div class="settings-card-body">
-        <form method="post" class="form-stack settings-form">
+        <form method="post" class="flex-col form-stack settings-form">
             <input type="hidden" name="action" value="change_email">
             <div class="field">
                 <label class="form-label" for="email">New email</label>
@@ -52,11 +52,11 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Change Password</h2>
     </header>
     <div class="settings-card-body">
-        <form method="post" class="form-stack settings-form">
+        <form method="post" class="flex-col form-stack settings-form">
             <input type="hidden" name="action" value="change_password">
             <div class="field">
                 <label class="form-label" for="current_password">Current password</label>
@@ -78,11 +78,11 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Delete Account</h2>
     </header>
     <div class="settings-card-body">
-        <form method="post" class="form-stack settings-form settings-delete-form"
+        <form method="post" class="flex-col form-stack settings-form"
             onsubmit="return window.confirm('This will permanently anonymize your account and cannot be undone. Continue?');">
             <input type="hidden" name="action" value="delete_account">
             <p class="text-dim text-small-sans">This action is irreversible. Your account data (including

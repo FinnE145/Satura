@@ -5,12 +5,12 @@
 {% block settings_content %}
 {% if incoming %}
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Friend Requests <span class="text-muted text-small-sans">({{ incoming | length }})</span></h2>
     </header>
     <div class="settings-card-body">
-        <ul class="friends-list">{%- for r in incoming -%}
-            <li class="friend-item">
+        <ul class="flex-col friends-list">{%- for r in incoming -%}
+            <li class="flex-row friend-item">
                 <span>{{ r.user.username }}</span>
                 <div>
                     <form method="post">
@@ -31,14 +31,14 @@
 {% endif %}
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h1 class="card-title">Add Friend</h1>
     </header>
     <div class="settings-card-body">
-        <div class="form-stack" id="friendSearchWrap">
+        <div class="flex-col form-stack" id="friendSearchWrap">
             <label class="form-label" for="friendSearchInput">Search by username</label>
             <div class="friends-search-row">
-                <div class="friends-search-field">
+                <div class="flex-col flex-1 min-w-0 friends-search-field">
                     <input type="text" id="friendSearchInput" autocomplete="off"
                            placeholder="Start typing a username…">
                     <div id="friendSearchResults" class="friends-search-results" hidden></div>
@@ -56,13 +56,13 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Friends{% if friends %} <span class="text-muted text-small-sans">({{ friends | length }})</span>{% endif %}</h2>
     </header>
     <div class="settings-card-body">
         {% if friends %}
-        <ul class="friends-list">{%- for f in friends -%}
-            <li class="friend-item">
+        <ul class="flex-col friends-list">{%- for f in friends -%}
+            <li class="flex-row friend-item">
                 <span>{{ f.user.username }}</span>
                 <div>
                     <a href="{{ url_for('main.game_new', invite=f.user.username) }}" class="btn btn--ghost btn--sm">
@@ -70,7 +70,7 @@
                         Invite to game
                     </a>
                     <div class="action-menu">
-                        <button class="action-menu__btn" type="button" aria-label="More options">
+                        <button class="flex-row action-menu__btn" type="button" aria-label="More options">
                             <span class="material-symbols-outlined">more_horiz</span>
                         </button>
                         <ul class="action-menu__list" hidden>
@@ -98,15 +98,15 @@
 
 {% if pending_sent or declined %}
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Requests</h2>
     </header>
-    <div class="settings-card-body settings-stack">
+    <div class="flex-col settings-card-body settings-stack">
         {% if pending_sent %}
         <div>
             <p class="label">Pending</p>
-            <ul class="friends-list">{%- for r in pending_sent -%}
-                <li class="friend-item">
+            <ul class="flex-col friends-list">{%- for r in pending_sent -%}
+                <li class="flex-row friend-item">
                     <span>{{ r.user.username }}</span>
                     <div>
                         <form method="post">
@@ -125,8 +125,8 @@
         {% if declined %}
         <div>
             <p class="label">Declined</p>
-            <ul class="friends-list">{%- for r in declined -%}
-                <li class="friend-item">
+            <ul class="flex-col friends-list">{%- for r in declined -%}
+                <li class="flex-row friend-item">
                     <span class="text-dim">{{ r.user.username }}</span>
                     <div>
                         <form method="post">

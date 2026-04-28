@@ -84,11 +84,49 @@
         fields.starting_words,
     ];
 
+    const accomToggle = document.getElementById('accom-toggle');
+    const startingPlayerToggle = document.getElementById('starting-player-toggle');
+
     let selectedPreset = 'custom';
     let customDefaultsActive = false;
     let accomDefaultsActive = false;
     let currentGameId = null;
     let pollInterval = null;
+
+    function syncAccomToggle() {
+        const enabled = fields.accommodations_enabled.checked;
+        const offOpt = document.getElementById('accom-off');
+        if (offOpt) {
+            offOpt.classList.toggle('seg-control__opt--active', !enabled);
+        }
+        const onOpt = document.getElementById('accom-on');
+        if (onOpt) {
+            onOpt.classList.toggle('seg-control__opt--active', enabled);
+            onOpt.classList.toggle('warm', enabled);
+        }
+    }
+
+    function syncStartingPlayerToggle() {
+        if (!startingPlayerToggle || !fields.starting_player) return;
+        const val = fields.starting_player.value;
+        startingPlayerToggle.querySelectorAll('.seg-control__opt').forEach(opt => {
+            const isMatch = opt.dataset.value === val;
+            opt.classList.toggle('seg-control__opt--active', isMatch);
+
+            opt.classList.remove('warm', 'cool', 'bg-grey', 'bg-grey-light', 'bg-grey-lighter');
+
+            if (isMatch) {
+                if (val === 'random') {
+                    opt.classList.add('bg-grey-lighter');
+                }
+                if (val === '1') {
+                    opt.classList.add('warm');
+                } else if (val === '2') {
+                    opt.classList.add('cool');
+                }
+            }
+        });
+    }
     let p1IsReady = false;
     let inviteMode = false;
 
@@ -174,6 +212,7 @@
         }
 
         if (!enabled) {
+            syncAccomToggle();
             syncDefaultsNotice();
             return;
         }
@@ -192,6 +231,7 @@
             fields.p2_starting_words.value = String(userAccomDefaults.p2_starting_words);
             if (fields.starting_player) {
                 fields.starting_player.value = String(userAccomDefaults.starting_player);
+                syncStartingPlayerToggle();
             }
             accomDefaultsActive = true;
         } else if (accomFieldsAllEmpty) {
@@ -213,6 +253,7 @@
         }
 
         syncDefaultsNotice();
+        syncAccomToggle();
     }
 
     function buildPayload() {
@@ -278,8 +319,8 @@
             if (data.player2_joined) {
                 const name = data.player2_username || 'Player 2';
                 joinDot.className = data.player2_ready
-                    ? 'status-dot status-dot--ready'
-                    : 'status-dot status-dot--pending';
+                    ? 'flex-shrink-0 status-dot status-dot--ok'
+                    : 'flex-shrink-0 status-dot status-dot--warn';
                 joinLabel.textContent = data.player2_ready ? `${name} ready` : `${name} joined`;
                 lobbyActions.hidden = false;
                 updateStartingPlayerOptions(data.player2_username);
@@ -298,7 +339,7 @@
             p1ReadyBtn.textContent = 'Ready';
             p1ReadyBtn.disabled = false;
         }
-        if (joinDot) joinDot.className = 'status-dot status-dot--pending';
+        if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
         if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
         if (lobbyActions) lobbyActions.hidden = true;
         if (newLinkBtn) newLinkBtn.hidden = false;
@@ -315,7 +356,7 @@
         if (currentGameId) {
             try {
                 await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
-            } catch (_) {}
+            } catch (_) { }
         }
 
         stopPolling();
@@ -324,7 +365,7 @@
             p1ReadyBtn.textContent = 'Ready';
             p1ReadyBtn.disabled = false;
         }
-        if (joinDot) joinDot.className = 'status-dot status-dot--pending';
+        if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
         if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
         if (lobbyActions) lobbyActions.hidden = true;
         updateStartingPlayerOptions(null);
@@ -380,7 +421,7 @@
         try {
             await navigator.clipboard.writeText(joinUrl);
             copied = true;
-        } catch (_) {}
+        } catch (_) { }
         if (linkDisplay) {
             linkDisplay.firstChild.textContent = copied ? 'Copied link: ' : 'Copy this link: ';
             if (linkDisplayUrl) linkDisplayUrl.textContent = joinUrl;
@@ -410,7 +451,7 @@
         if (currentGameId) {
             try {
                 await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
-            } catch (_) {}
+            } catch (_) { }
         }
         resetLobbyUI();
     }
@@ -457,7 +498,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(buildPayload()),
                 });
-            } catch (_) {}
+            } catch (_) { }
         }, 300);
     }
 
@@ -474,6 +515,31 @@
         syncAccommodations();
         schedulePatchSettings();
     });
+
+    if (accomToggle) {
+        accomToggle.addEventListener('click', (e) => {
+            const opt = e.target.closest('.seg-control__opt');
+            if (!opt) return;
+            e.preventDefault();
+            const enabled = opt.id === 'accom-on';
+            if (enabled === fields.accommodations_enabled.checked) return;
+            fields.accommodations_enabled.checked = enabled;
+            fields.accommodations_enabled.dispatchEvent(new Event('change'));
+        });
+    }
+
+    if (startingPlayerToggle) {
+        startingPlayerToggle.addEventListener('click', (e) => {
+            const opt = e.target.closest('.seg-control__opt');
+            if (!opt || !fields.starting_player) return;
+            e.preventDefault();
+            const val = opt.dataset.value;
+            if (val === fields.starting_player.value) return;
+            fields.starting_player.value = val;
+            syncStartingPlayerToggle();
+            fields.starting_player.dispatchEvent(new Event('input'));
+        });
+    }
 
     coreInputs.forEach((input) => {
         if (input) input.addEventListener('input', () => {
@@ -505,11 +571,17 @@
     }
 
     if (inviteFriendBtn && inviteFriendList) {
+        function positionInviteList() {
+            const r = inviteFriendBtn.getBoundingClientRect();
+            inviteFriendList.style.top   = (r.bottom + 4) + 'px';
+            inviteFriendList.style.right = (window.innerWidth - r.right) + 'px';
+        }
         inviteFriendBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const open = !inviteFriendList.hidden;
             inviteFriendList.hidden = open;
             inviteFriendBtn.setAttribute('aria-expanded', String(!open));
+            if (!open) positionInviteList();
         });
         inviteFriendList.addEventListener('click', (e) => {
             const item = e.target.closest('[data-friend-id]');
@@ -539,5 +611,6 @@
     }
     syncAccommodations();
     syncDefaultsNotice();
+    syncStartingPlayerToggle();
     updateStartingPlayerOptions(null);
 })();

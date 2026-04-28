@@ -4,21 +4,21 @@
 
 {% block settings_content %}
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h1 class="card-title">Profile</h1>
     </header>
     <div class="settings-card-body">
-        <div class="settings-profile-head">
+        <div class="flex-row settings-profile-head">
             <h2 class="heading-display">{{ current_user.username }}</h2>
             <a href="{{ url_for('main.settings_friends') }}" class="text-dim warm-hover no-underline">Friends: {{ friend_count }}</a>
         </div>
 
         <div class="stat-grid">
-            <div class="stat-tile">
+            <div class="flex-col stat-tile">
                 <span class="label">Win/Loss/Draw</span>
                 <strong>{{ stats.wins }}-{{ stats.losses }}-{{ stats.draws }}</strong>
             </div>
-            <div class="stat-tile">
+            <div class="flex-col stat-tile">
                 <span class="label">Games Played</span>
                 <strong>{{ stats.games_played }}</strong>
             </div>
@@ -27,13 +27,13 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Recent Games</h2>
     </header>
     <div class="settings-card-body">
         {% if stats.recent_games %}
-        <section class="my-games-list-section">
-            <div class="game-timeline" role="list" id="gameTimeline">
+        <section class="flex-col my-games-list-section">
+            <div class="flex-col game-timeline" role="list" id="gameTimeline">
                 {% for g in stats.recent_games %}
                 <a class="game-timeline-row" href="/my-games/{{ g.game_id }}" role="listitem"
                     data-date="{{ g.finished_at.strftime('%Y-%m-%d') if g.finished_at else '' }}">
@@ -43,7 +43,7 @@
                     </span>
 
                     <div class="game-row-inner">
-                        <div class="game-row-thumb" data-my-slot="{{ g.my_slot }}">
+                        <div class="flex-shrink-0 game-row-thumb" data-my-slot="{{ g.my_slot }}">
                             {% if g.final_board_json %}
                             <canvas class="board-canvas" data-board='{{ g.final_board_json | safe }}'
                                 data-size="{{ g.board_size }}" data-mode="simple"></canvas>
@@ -51,22 +51,22 @@
                             <div class="game-row-thumb-placeholder"></div>
                             {% endif %}
 
-                            <span class="thumb-overlay thumb-overlay--bl js-tc-overlay" data-preset="{{ g.preset or '' }}"
+                            <span class="flex-row thumb-overlay thumb-overlay--bl js-tc-overlay" data-preset="{{ g.preset or '' }}"
                                 data-clock="{{ g.clock_seconds | int if g.clock_seconds else '' }}">
                                 {{ g.preset or '?' }}
                             </span>
 
-                            <span class="thumb-overlay thumb-overlay--br">{{ g.board_size or '?' }}</span>
+                            <span class="flex-row thumb-overlay thumb-overlay--br">{{ g.board_size or '?' }}</span>
 
                             {% if g.accommodations_enabled %}
-                            <span class="accom-dot" title="Game had custom accommodations">
+                            <span class="flex-row accom-dot" title="Game had custom accommodations">
                                 <span class="material-symbols-outlined">tune</span>
                             </span>
                             {% endif %}
                         </div>
 
-                        <div class="game-row-meta">
-                            <div class="game-row-result-line">
+                        <div class="flex-col min-w-0 game-row-meta">
+                            <div class="flex-row min-w-0 game-row-result-line">
                                 {% if g.result %}
                                 <span class="badge badge--{{ g.result | result_badge }}">{{ g.result | capitalize }}</span>
                                 {% else %}
@@ -81,7 +81,7 @@
                             {% endif %}
                         </div>
 
-                        <span class="game-row-arrow" aria-hidden="true">
+                        <span class="flex-row game-row-arrow" aria-hidden="true">
                             <span class="material-symbols-outlined">chevron_right</span>
                         </span>
                     </div>

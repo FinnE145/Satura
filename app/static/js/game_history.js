@@ -673,17 +673,17 @@ function renderStatsCoverageBar(board) {
 function setupBadges() {
     if (badgeMine) {
         badgeMine.textContent = 'P1';
-        badgeMine.className   = 'gc-player-badge gc-player-badge--p1 warm-bright';
+        badgeMine.className   = 'badge warm-bright';
     }
     if (badgeOpp) {
         badgeOpp.textContent = 'P2';
-        badgeOpp.className   = 'gc-player-badge gc-player-badge--p2 cool-bright';
+        badgeOpp.className   = 'badge cool-bright';
     }
     if (boardLegendMineEl) {
-        boardLegendMineEl.className = 'board-legend-item board-legend-item--p1 warm-bright';
+        boardLegendMineEl.className = 'badge warm-bright';
     }
     if (boardLegendOppEl) {
-        boardLegendOppEl.className = 'board-legend-item board-legend-item--p2 cool-bright';
+        boardLegendOppEl.className = 'badge cool-bright';
     }
 }
 

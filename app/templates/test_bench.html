@@ -4,12 +4,12 @@
 
 {% block content %}
 <main class="site-main">
-    <div class="container create-page-stack">
+    <div class="flex-col container create-page-stack">
         <article class="card">
-            <header class="card-header">
+            <header class="flex-row card-header">
                 <h1 class="card-title">Test Bench</h1>
             </header>
-            <div class="settings-card-body settings-stack">
+            <div class="flex-col settings-card-body settings-stack">
                 <p class="text-small-sans text-dim">
                     Play a solo test game. Both players are under your control. Test games are not saved.
                 </p>
@@ -18,13 +18,13 @@
                     <p class="hero-create-label">Preset</p>
                     <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Game preset">
                         {% for key in preset_order %}
-                        <button type="button" class="icon-btn btn-warm-hover" data-preset="{{ key }}" role="radio"
-                            aria-checked="false">
+                        <button type="button" class="flex-col icon-btn btn-warm-hover" data-preset="{{ key }}"
+                            role="radio" aria-checked="false">
                             <span class="material-symbols-outlined">{{ preset_icons[key] }}</span>
                             <span class="icon-btn-label">{{ key }} min</span>
                         </button>
                         {% endfor %}
-                        <button type="button" class="icon-btn btn-warm-hover" data-preset="custom" role="radio"
+                        <button type="button" class="flex-col icon-btn btn-warm-hover" data-preset="custom" role="radio"
                             aria-checked="false">
                             <span class="material-symbols-outlined">{{ preset_icons['custom'] }}</span>
                             <span class="icon-btn-label">Custom</span>
@@ -32,7 +32,8 @@
                     </div>
                 </div>
 
-                <form id="test-form" method="POST" action="/test/new" class="settings-form settings-stack" novalidate>
+                <form id="test-form" method="POST" action="/test/new"
+                    class="flex-col form-stack settings-form settings-stack" novalidate>
                     <input type="hidden" name="preset" id="selected-preset" value="5">
 
                     <div class="create-form-grid">
@@ -66,15 +67,18 @@
                         </div>
                     </div>
 
-                    <div class="toggle-row">
-                        <label class="toggle-label" for="accommodations_enabled">
-                            <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled" value="true">
-                            <span>Accommodations</span>
-                        </label>
+                    <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled" hidden>
+                    <div class="flex-row toggle-row">
+                        <span class="form-label">Accommodations</span>
                         <span class="text-small-sans text-dim">Customize per-player time and starting words.</span>
+                        <span class="ml-auto seg-control" id="accom-toggle" aria-label="Accommodations">
+                            <a class="seg-control__opt seg-control__opt--off seg-control__opt--active" id="accom-off"
+                                href="#">Off</a>
+                            <a class="seg-control__opt seg-control__opt--on" id="accom-on" href="#">On</a>
+                        </span>
                     </div>
 
-                    <section id="accommodations-section" class="settings-stack" hidden>
+                    <section id="accommodations-section" class="flex-col settings-stack" hidden>
                         <div class="split-grid">
                             <div class="field">
                                 <label class="form-label" for="p1_clock_minutes">P1 clock (min)</label>
@@ -101,13 +105,19 @@
                             </div>
                         </div>
 
+                        <select id="starting_player" name="starting_player" hidden>
+                            <option value="random">Random</option>
+                            <option value="1">P1</option>
+                            <option value="2">P2</option>
+                        </select>
                         <div class="field">
                             <label class="form-label" for="starting_player">Who starts</label>
-                            <select id="starting_player" name="starting_player">
-                                <option value="random">Random</option>
-                                <option value="1">P1</option>
-                                <option value="2">P2</option>
-                            </select>
+                            <span class="seg-control self-start" id="starting-player-toggle" aria-label="Who starts">
+                                <a class="seg-control__opt seg-control__opt--active bg-grey-lighter"
+                                    id="starting-random" href="#" data-value="random">Random</a>
+                                <a class="seg-control__opt" id="starting-p1" href="#" data-value="1">P1</a>
+                                <a class="seg-control__opt" id="starting-p2" href="#" data-value="2">P2</a>
+                            </span>
                         </div>
                     </section>
 
@@ -115,9 +125,10 @@
                         Custom defaults loaded. <a href="/settings/game#defaults" class="warm-link">Edit defaults</a>
                     </p>
 
-                    <div class="settings-stack">
+                    <div class="flex-col settings-stack">
                         <p class="hero-create-label hero-create-label--learn">Auto-run delay</p>
-                        <p class="text-small-sans text-dim">When auto-run is on for a player, they wait this many seconds in the write phase before deploying.</p>
+                        <p class="text-small-sans text-dim">When auto-run is on for a player, they wait this many
+                            seconds in the write phase before deploying.</p>
                         <div class="split-grid">
                             <div class="field">
                                 <label class="form-label" for="p1_autorun_delay">P1 delay (sec)</label>
@@ -139,7 +150,7 @@
                     {% endif %}
                     {% endwith %}
 
-                    <div class="card-footer create-form-footer">
+                    <div class="flex-row card-footer create-form-footer">
                         <button type="submit" class="btn btn-warm-bright-border">Start Test Game</button>
                     </div>
                 </form>

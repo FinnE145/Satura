@@ -4,12 +4,12 @@
 
 {% block settings_content %}
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h1 class="card-title">Feedback</h1>
     </header>
     <div class="settings-card-body">
         <p class="text-dim">Tell us what is working, what is broken, or what you want to see next.</p>
-        <form class="form-stack settings-form" method="post" action="{{ url_for('main.contact') }}">
+        <form class="flex-col form-stack settings-form" method="post" action="{{ url_for('main.contact') }}">
             <input type="hidden" name="form_source" value="settings-feedback">
             <div class="field">
                 <label class="form-label" for="name">Name or Username</label>

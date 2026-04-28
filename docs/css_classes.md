@@ -10,6 +10,7 @@ Update this file whenever a class is added, changed, or removed.
 ### Typography
 | Class | Description |
 |---|---|
+| `.text-default` | full-white text (`--text`) — override a parent's dimmed colour |
 | `.text-muted` | 50% opacity text — often hard to see, low contrast for minor details |
 | `.text-dim` | 70% opacity text — secondary/supporting text |
 | `.text-warm` | warm accent colour |
@@ -22,10 +23,10 @@ Update this file whenever a class is added, changed, or removed.
 | `.text-italic` | italic text |
 | `.text-center` | `text-align: center` utility |
 | `.text-small-sans` | 0.78em DM Sans — timestamps, metadata, disclaimers |
+| `.text-sm` | 0.875em — secondary copy, dropdowns, supplementary labels |
 | `.subheading` | italic Lora 0.9rem — taglines, subtitles, section intros |
 | `.heading-display` | 2rem Lora 600 — large page or section headings |
-| `.form-label` | 1em DM Sans 500, subtle colour — form field labels |
-| `.form-heading` | white text modifier for `.form-label` |
+| `.form-label` | 1em DM Sans 500, subtle colour — form field labels; compose with `.text-default` for white text |
 | `.label` | 0.72em DM Sans, uppercase, wide tracking — category/section tags — compose with `.text-warm`, `.text-cool`, etc. for colour |
 
 ### Colour modifiers
@@ -43,6 +44,12 @@ Palette-driven triplet: tint background, coloured text, dim border. Apply alongs
 | `.bg-grey-dark` | `--bg-header` background (darkest) |
 | `.bg-grey` | `--bg` background (page default) |
 | `.bg-grey-light` | `--bg-card` background (lightest) |
+| `.bg-grey-lighter` | hover tint / lighter accent background (`--bg-hover`) |
+| `.bg-warm` | warm tint background (`--warm-tint`) |
+| `.bg-cool` | cool tint background (`--cool-tint`) |
+| `.bg-error` | error tint background (`--error-tint`) |
+| `.bg-warn` | warning tint background (`--warn-tint`) |
+| `.bg-success` | success tint background (`--success-tint`) |
 
 ### Hover utilities
 | Class | Description |
@@ -60,6 +67,21 @@ Palette-driven triplet: tint background, coloured text, dim border. Apply alongs
 | `.toggle-row` | bordered row for inline toggle controls and helper text |
 | `.toggle-label` | inline checkbox + label treatment inside `.toggle-row` |
 | `.split-grid` | responsive two-column sub-grid for paired player fields |
+| `.seg-control` | segmented control — inline-flex group of options with shared border; options side by side |
+| `.seg-control__opt` | one option inside `.seg-control` — muted text, highlights on hover |
+| `.seg-control__opt--active` | active option — pair with `.warm` or `.cool` for accent colour |
+
+### Flex utilities
+Compose with component classes to provide layout without redundant CSS declarations in the component.
+| Class | Description |
+|---|---|
+| `.flex-row` | `display: flex; align-items: center` — horizontal flex container |
+| `.flex-col` | `display: flex; flex-direction: column` — vertical flex container |
+| `.flex-1` | `flex: 1` — grow/shrink to fill available space |
+| `.min-w-0` | `min-width: 0` — allows flex child to shrink below its content size (prevents overflow) |
+| `.ml-auto` | `margin-left: auto` — pushes element to far right within a flex row |
+| `.flex-shrink-0` | `flex-shrink: 0` — prevents a flex child from shrinking |
+| `.self-start` | `align-self: flex-start` — keeps a flex item content-sized in a column layout |
 
 ### Forms
 | Class | Description |
@@ -236,18 +258,18 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-container` | game-page content area — like `.container` but flex-child-friendly (no auto margin) |
 | `.create-page-stack` | vertical stack wrapper for create/new-game style pages |
 | `.create-form-grid` | responsive two-column form grid for core game-creation fields |
+| `.create-form-footer` | `.card-footer` modifier — removes padding and left-aligns buttons |
 
 ### Game screen header
 | Class | Description |
 |---|---|
 | `.game-header` | sticky-height header bar shown on the game screen in place of `.site-nav` — brand left, viewer count right |
 | `.game-viewer-count` | muted eye icon + number showing active spectator count; hidden when count is 0 |
-| `.player-switch` | segmented P1/P2 toggle shown in the game header in test mode (replaces viewer count) |
-| `.player-switch__opt` | one half of the player switch (P1 or P2 link); muted by default |
-| `.player-switch__opt--p1` | semantic slot marker for P1 option (no visual effect; colour via `.warm`) |
-| `.player-switch__opt--p2` | semantic slot marker for P2 option (no visual effect; colour via `.cool`) |
-| `.player-switch__opt--active` | marks the currently-viewed player; pair with `.warm` or `.cool` for colour |
-| `.btn-autorun-toggle` | pushes the auto-run button left in the card-footer using `margin-right: auto` |
+| `.seg-control` | see Generic — Layout |
+| `.seg-control__opt--p1` | semantic slot for P1 option (no visual effect) |
+| `.seg-control__opt--p2` | semantic slot for P2 option (no visual effect) |
+| `.seg-control__opt--off` | semantic slot for Off option (no visual effect) |
+| `.seg-control__opt--on` | semantic slot for On option (no visual effect) |
 
 ### Game page
 | Class | Description |
@@ -255,9 +277,9 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.session-bar` | status bar at the bottom of the game page |
 | `.session-bar-left` | left cluster inside `.session-bar` for session id and phase pill |
 | `.status-dot` | small coloured indicator dot (use with a state modifier) |
-| `.status-dot--ready` | green dot |
-| `.status-dot--pending` | yellow dot |
-| `.status-dot--error` | red dot |
+| `.status-dot--ok` | green dot — ready/connected |
+| `.status-dot--warn` | yellow dot — pending/loading |
+| `.status-dot--error` | red dot — error state |
 | `.session-bar-group` | flex group of related items within the session bar |
 | `.session-bar-key` | tiny uppercase key label in the session bar |
 | `.session-bar-sep` | non-selectable separator character between bar groups |
@@ -316,9 +338,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.result-card` | card with a scrollable body for compiler/execution output |
 | `.outcome-label` | small muted outcome summary line |
 | `.diag-ok` | small green success message in the diagnostics panel |
-| `.diag-item` | flex row for a single compiler diagnostic |
-| `.diag-item--error` | red error severity modifier |
-| `.diag-item--warn` | yellow warning severity modifier |
+| `.diag-item` | flex row for a single compiler diagnostic — compose with `.text-error` or `.text-warn` for severity colour |
 | `.diag-icon` | icon/symbol column in a diagnostic row |
 | `.diag-msg` | message text column in a diagnostic row |
 | `.log-entry` | flex row for a single execution log line |
@@ -379,9 +399,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.featured-opponent` | opponent username; `[data-slot="1"]` = warm, `[data-slot="2"]` = cool |
 | `.featured-reason` | muted end-reason line below result row |
 | `.featured-clocks` | flex row of two player clock values |
-| `.featured-clock` | single player clock with icon — use `--warm` or `--cool` modifier |
-| `.featured-clock--warm` | warm accent (P1) clock colour |
-| `.featured-clock--cool` | cool accent (P2) clock colour |
+| `.featured-clock` | single player clock with icon — colour via `.text-warm` or `.text-cool-bright` |
 | `.stat-list` | see Generic — Stat list |
 | `.featured-custom-section` | bordered sub-section for non-default game settings |
 | `.coverage-bar` | horizontal flex bar split into 5 colour segments (warm/cool/contested/black/blank) |
@@ -392,7 +410,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.coverage-segment--blank` | border-mid segment — unpainted cells |
 | `.my-games-list-section` | flex column wrapper for date filter + timeline list |
 | `.game-date-filter` | flex row holding date label, input, and clear button |
-| `.date-filter-label` | uppercase "date" button label that expands into the input on click |
+| `.date-filter-label` | "date" button label that expands into the input on click — typography via `.label .text-dim` |
 | `.date-filter-input` | styled date input revealed on label click |
 | `.date-filter-clear` | icon button to cancel date filtering |
 | `.game-timeline` | flex column game list with a vertical rule `::before` pseudo-element |
@@ -440,11 +458,10 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.settings-form` | form scope for non-textarea controls (select/range/number) |
 | `.settings-slider` | themed range slider used for board size selection |
 | `.settings-inline-form` | inline form wrapper for single-button actions |
-| `.settings-delete-form` | spacing modifier for destructive account form |
 | `.settings-palette-form` | stacked appearance form wrapper |
 | `.settings-palette-grid` | 2x2 responsive grid of palette options |
 | `.settings-palette-card` | selectable palette card/button with SVG preview — pair with `.btn-warm-hover` for hover colour |
-| `.settings-palette-card--active` | selected palette card state marker — pair with `.warm` for colour |
+| `.settings-palette-card--active` | semantic marker for the selected palette card — pair with `.warm` for colour (compound selector ensures `.warm` wins over the base card styles) |
 | `.settings-link-list` | vertical list of legal/about links |
 
 ### Friends page

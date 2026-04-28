@@ -3,18 +3,18 @@
 
 {% block content %}
 <main class="site-main">
-  <div class="my-games-page container">
+  <div class="flex-col my-games-page container">
 
     {# ── Featured top cards ──────────────────────────────────────────── #}
     {% if featured_games %}
     <section class="my-games-featured">
 
       {% for f in featured_games %}
-      <article class="card my-games-featured-card">
+      <article class="min-w-0 card my-games-featured-card">
         <div class="featured-card-inner">
 
           {# Board (top) #}
-          <div class="featured-board-area">
+          <div class="flex-shrink-0 featured-board-area">
             {% if f.final_board_json %}
             <canvas class="board-canvas" data-board='{{ f.final_board_json | safe }}' data-size="{{ f.board_size }}"
               data-mode="full"></canvas>
@@ -24,8 +24,8 @@
           </div>
 
           {# Stats (below board) #}
-          <div class="featured-stats-area">
-            <div class="featured-result-row">
+          <div class="flex-col flex-1 min-w-0 featured-stats-area">
+            <div class="flex-row featured-result-row">
               {% if f.result %}
               <span class="badge badge--{{ f.result | result_badge }}">{{ f.result | capitalize }}</span>
               {% endif %}
@@ -43,13 +43,13 @@
             {% endif %}
 
             {# Clock remaining per player #}
-            <div class="featured-clocks">
+            <div class="flex-row featured-clocks">
               <span class="label">Time left</span>
-              <span class="featured-clock featured-clock--warm">
+              <span class="flex-row featured-clock text-warm">
                 <span class="material-symbols-outlined">timer</span>
                 {{ f.p1_clock_remaining }}
               </span>
-              <span class="featured-clock featured-clock--cool">
+              <span class="flex-row featured-clock text-cool-bright">
                 <span class="material-symbols-outlined">timer</span>
                 {{ f.p2_clock_remaining }}
               </span>
@@ -69,7 +69,7 @@
 
             {# Custom settings sub-section #}
             {% if f.has_custom %}
-            <div class="featured-custom-section">
+            <div class="flex-col featured-custom-section">
               <p class="label">Custom settings</p>
               <dl class="stat-list">
                 {%- for k, v in f.custom_settings.items() %}<div>
@@ -95,19 +95,19 @@
     {% endif %}
 
     {# ── Timeline list ───────────────────────────────────────────────── #}
-    <section class="my-games-list-section">
+    <section class="flex-col my-games-list-section">
 
       {# Date filter: "date" label → date input → X to clear #}
-      <div class="game-date-filter">
-        <button type="button" class="date-filter-label" id="dateFilterLabel">date</button>
+      <div class="flex-row game-date-filter">
+        <button type="button" class="date-filter-label label text-dim" id="dateFilterLabel">date</button>
         <input type="date" class="date-filter-input" id="dateFilterInput" hidden aria-label="Filter games by date">
-        <button type="button" class="date-filter-clear" id="dateFilterClear" hidden aria-label="Clear date filter">
+        <button type="button" class="flex-row date-filter-clear" id="dateFilterClear" hidden aria-label="Clear date filter">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
       {% if game_data %}
-      <div class="game-timeline" role="list" id="gameTimeline">
+      <div class="flex-col game-timeline" role="list" id="gameTimeline">
         {% for g in game_data %}
         <a class="game-timeline-row" href="/my-games/{{ g.game_id }}" role="listitem"
           data-date="{{ g.finished_at.strftime('%Y-%m-%d') if g.finished_at else '' }}">
@@ -119,7 +119,7 @@
           <div class="game-row-inner">
 
             {# Board thumbnail #}
-            <div class="game-row-thumb" data-my-slot="{{ g.my_slot }}">
+            <div class="flex-shrink-0 game-row-thumb" data-my-slot="{{ g.my_slot }}">
               {% if g.final_board_json %}
               <canvas class="board-canvas" data-board='{{ g.final_board_json | safe }}' data-size="{{ g.board_size }}"
                 data-mode="simple"></canvas>
@@ -128,25 +128,25 @@
               {% endif %}
 
               {# Time control overlay (bottom-left) — JS replaces text with icon #}
-              <span class="thumb-overlay thumb-overlay--bl js-tc-overlay" data-preset="{{ g.preset or '' }}"
+              <span class="flex-row thumb-overlay thumb-overlay--bl js-tc-overlay" data-preset="{{ g.preset or '' }}"
                 data-clock="{{ g.clock_seconds | int if g.clock_seconds else '' }}">
                 {{ g.preset or '?' }}
               </span>
 
               {# Board size overlay (bottom-right) #}
-              <span class="thumb-overlay thumb-overlay--br">{{ g.board_size or '?' }}</span>
+              <span class="flex-row thumb-overlay thumb-overlay--br">{{ g.board_size or '?' }}</span>
 
               {# Accommodations indicator #}
               {% if g.accommodations_enabled %}
-              <span class="accom-dot" title="Game had custom accommodations">
+              <span class="flex-row accom-dot" title="Game had custom accommodations">
                 <span class="material-symbols-outlined">tune</span>
               </span>
               {% endif %}
             </div>
 
             {# Metadata #}
-            <div class="game-row-meta">
-              <div class="game-row-result-line">
+            <div class="flex-col min-w-0 game-row-meta">
+              <div class="flex-row min-w-0 game-row-result-line">
                 {% if g.result %}
                 <span class="badge badge--{{ g.result | result_badge }}">{{ g.result | capitalize }}</span>
                 {% else %}
@@ -162,7 +162,7 @@
             </div>
 
             {# Hover arrow #}
-            <span class="game-row-arrow" aria-hidden="true">
+            <span class="flex-row game-row-arrow" aria-hidden="true">
               <span class="material-symbols-outlined">chevron_right</span>
             </span>
 

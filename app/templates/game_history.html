@@ -7,10 +7,10 @@
   data-my-slot="1"
   data-op-limit="{{ game.op_limit or '' }}">
 
-  <div class="container detail-page">
+  <div class="flex-col container detail-page">
 
     {# ── Breadcrumb ─────────────────────────────────────────────────────── #}
-    <nav class="page-breadcrumb" aria-label="Breadcrumb">
+    <nav class="flex-row page-breadcrumb" aria-label="Breadcrumb">
       <a href="{{ url_for('main.my_games') }}" class="page-breadcrumb__back">
         <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
         My Games
@@ -20,10 +20,10 @@
     </nav>
 
     {# ── Stats card ─────────────────────────────────────────────────────── #}
-    <section class="card detail-stats-card">
+    <section class="flex-col card detail-stats-card">
 
       {# Result + players #}
-      <div class="featured-result-row">
+      <div class="flex-row featured-result-row">
         {% if result_badge %}
         <span class="badge badge--{{ result_badge }}">{{ result_text }}</span>
         {% endif %}
@@ -44,12 +44,12 @@
       <div class="coverage-bar" id="stats-coverage-bar"></div>
 
       {# Clocks #}
-      <div class="featured-clocks">
-        <span class="featured-clock featured-clock--warm">
+      <div class="flex-row featured-clocks">
+        <span class="flex-row featured-clock text-warm">
           <span class="material-symbols-outlined" aria-hidden="true">timer</span>
           P1 — {{ p1_clock_remaining }}
         </span>
-        <span class="featured-clock featured-clock--cool">
+        <span class="flex-row featured-clock text-cool-bright">
           <span class="material-symbols-outlined" aria-hidden="true">timer</span>
           P2 — {{ p2_clock_remaining }}
         </span>
@@ -76,7 +76,7 @@
 
       {# Custom / accommodation settings #}
       {% if has_custom %}
-      <div class="featured-custom-section">
+      <div class="flex-col featured-custom-section">
         <p class="label">Custom settings</p>
         <dl class="stat-list">
           {%- for k, v in custom_settings.items() -%}
@@ -94,8 +94,8 @@
     {# ── Graphs ─────────────────────────────────────────────────────────── #}
     <div class="detail-graphs">
 
-      <div class="card detail-graph-card">
-        <div class="card-header">
+      <div class="min-w-0 card detail-graph-card">
+        <div class="flex-row card-header">
           <h2 class="card-title">Board Dominance</h2>
         </div>
         <div class="detail-graph-body">
@@ -103,8 +103,8 @@
         </div>
       </div>
 
-      <div class="card detail-graph-card">
-        <div class="card-header">
+      <div class="min-w-0 card detail-graph-card">
+        <div class="flex-row card-header">
           <h2 class="card-title">Time Per Turn</h2>
         </div>
         <div class="detail-graph-body">
@@ -112,8 +112,8 @@
         </div>
       </div>
 
-      <div class="card detail-graph-card">
-        <div class="card-header">
+      <div class="min-w-0 card detail-graph-card">
+        <div class="flex-row card-header">
           <h2 class="card-title">Ops Per Phase</h2>
         </div>
         <div class="detail-graph-body">
@@ -124,63 +124,63 @@
     </div>
 
     {# ── Board (solo — fills space without the script card) ─────────────── #}
-    <div class="card board-card board-card--solo">
-      <div class="card-header">
+    <div class="flex-col card board-card board-card--solo">
+      <div class="flex-row card-header">
         <h2 class="card-title">Board</h2>
-        <span class="board-legend" id="board-legend">
+        <span class="flex-row board-legend" id="board-legend">
           <span class="text-small-sans text-muted" id="board-legend-info"></span>
           <span class="board-legend-pills">
-            <span class="board-legend-item" id="board-legend-mine"></span>
-            <span class="board-legend-item" id="board-legend-opp"></span>
+            <span class="badge" id="board-legend-mine"></span>
+            <span class="badge" id="board-legend-opp"></span>
           </span>
         </span>
       </div>
-      <div class="board-wrap">
+      <div class="flex-1 board-wrap">
         <div class="board-grid" id="board-grid"></div>
       </div>
     </div>
 
     {# ── Navigation controls ─────────────────────────────────────────────── #}
-    <div class="card game-controls game-controls--solo active-time" id="game-controls">
-      <div class="game-controls-main">
+    <div class="flex-col card game-controls game-controls--solo active-time" id="game-controls">
+      <div class="flex-row game-controls-main">
 
-        <div class="game-controls-side game-controls-side--mine">
-          <span class="gc-player-badge" id="badge-mine"></span>
-          <span class="gc-clock" id="clock-mine">--:--</span>
+        <div class="flex-1 min-w-0 game-controls-side game-controls-side--mine">
+          <span class="badge" id="badge-mine"></span>
+          <span class="flex-shrink-0 gc-clock" id="clock-mine">--:--</span>
           <span class="phase-pill-wrap">
             <span class="phase-pill" id="phase-mine" hidden></span>
           </span>
         </div>
 
-        <div class="game-controls-btns">
-          <button type="button" class="game-controls-btn btn-warm-hover" id="btn-replay"
+        <div class="flex-shrink-0 game-controls-btns">
+          <button type="button" class="flex-col game-controls-btn btn-warm-hover" id="btn-replay"
               title="Replay execution step by step">
             <span class="material-symbols-outlined" aria-hidden="true">replay</span>
             <span class="icon-btn-label">Replay</span>
           </button>
-          <button type="button" class="game-controls-btn btn-cool-hover" id="btn-back"
+          <button type="button" class="flex-col game-controls-btn btn-cool-hover" id="btn-back"
               title="Previous phase">
             <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
             <span class="icon-btn-label">Back</span>
           </button>
-          <button type="button" class="game-controls-btn btn-cool-hover" id="btn-forward"
+          <button type="button" class="flex-col game-controls-btn btn-cool-hover" id="btn-forward"
               title="Next phase">
             <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
             <span class="icon-btn-label">Forward</span>
           </button>
-          <button type="button" class="game-controls-btn btn-warm-hover" id="btn-end"
+          <button type="button" class="flex-col game-controls-btn btn-warm-hover" id="btn-end"
               title="Jump to final phase">
             <span class="material-symbols-outlined" aria-hidden="true">last_page</span>
             <span class="icon-btn-label">End</span>
           </button>
         </div>
 
-        <div class="game-controls-side game-controls-side--opp">
+        <div class="flex-1 min-w-0 game-controls-side game-controls-side--opp">
           <span class="phase-pill-wrap">
             <span class="phase-pill" id="phase-opp" hidden></span>
           </span>
-          <span class="gc-clock" id="clock-opp">--:--</span>
-          <span class="gc-player-badge" id="badge-opp"></span>
+          <span class="flex-shrink-0 gc-clock" id="clock-opp">--:--</span>
+          <span class="badge" id="badge-opp"></span>
         </div>
 
       </div>

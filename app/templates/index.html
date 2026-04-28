@@ -4,13 +4,13 @@
 
 {% block content %}
 <div class="page-split">
-    <div class="page-left">
+    <div class="flex-1 min-w-0 page-left">
         <main class="site-main">
             <div class="container">
 
                 <!-- ── Hero ────────────────────────────────────────────────────────── -->
                 <section class="hero">
-                    <div class="hero-content">
+                    <div class="flex-col min-w-0 hero-content">
                         <img src="{{ url_for('static', filename='satura_wordmark_white.svg') }}" alt="Satura"
                             class="wordmark">
                         <p class="tagline">A competitive programming<br>strategy game.</p>
@@ -18,48 +18,48 @@
                             <p class="hero-create-label">Create game</p>
                             <div class="hero-modes">
 
-                                <a href="/game/new?preset=60" class="icon-btn btn-warm-hover">
+                                <a href="/game/new?preset=60" class="flex-col icon-btn btn-warm-hover">
                                     <span class="material-symbols-outlined">hourglass_top</span>
                                     <span class="icon-btn-label">60 min</span>
                                 </a>
-                                <a href="/game/new?preset=30" class="icon-btn btn-warm-hover">
+                                <a href="/game/new?preset=30" class="flex-col icon-btn btn-warm-hover">
                                     <span class="material-symbols-outlined">timer</span>
                                     <span class="icon-btn-label">30 min</span>
                                 </a>
-                                <a href="/game/new?preset=15" class="icon-btn btn-warm-hover">
+                                <a href="/game/new?preset=15" class="flex-col icon-btn btn-warm-hover">
                                     <span class="material-symbols-outlined">speed</span>
                                     <span class="icon-btn-label">15 min</span>
                                 </a>
-                                <a href="/game/new?preset=5" class="icon-btn btn-warm-hover">
+                                <a href="/game/new?preset=5" class="flex-col icon-btn btn-warm-hover">
                                     <span class="material-symbols-outlined">rocket</span>
                                     <span class="icon-btn-label">5 min</span>
                                 </a>
-                                <a href="/game/new?preset=custom" class="icon-btn btn-warm-hover">
+                                <a href="/game/new?preset=custom" class="flex-col icon-btn btn-warm-hover">
                                     <span class="material-symbols-outlined">alarm_smart_wake</span>
                                     <span class="icon-btn-label">Custom</span>
                                 </a>
                             </div>
                             <p class="hero-create-label hero-create-label--learn">Learn to play</p>
                             <div class="hero-modes">
-                                <a href="#" class="icon-btn btn-cool-hover">
+                                <a href="#" class="flex-col icon-btn btn-cool-hover">
                                     <span class="material-symbols-outlined">bolt</span>
                                     <span class="icon-btn-label">Quickstart</span>
                                 </a>
-                                <a href="#" class="icon-btn btn-cool-hover">
+                                <a href="#" class="flex-col icon-btn btn-cool-hover">
                                     <span class="material-symbols-outlined">menu_book</span>
                                     <span class="icon-btn-label">Game guide</span>
                                 </a>
                             </div>
                         </div>
-                        <p class="hero-stat">
-                            <span class="stat-dot"></span>
+                        <p class="flex-row hero-stat">
+                            <span class="flex-shrink-0 stat-dot"></span>
                             {{ total_games }} game{{ 's' if total_games != 1 else '' }} played
                         </p>
                     </div>
                 </section>
 
                 <!-- ── Objective ────────────────────────────────────────────────────── -->
-                <section class="explainer">
+                <section class="flex-col explainer">
                     <span class="label text-warm">The objective</span>
                     <h2 class="heading-display">Own the board.</h2>
                     <p class="subheading text-muted">Every cell holds a paint value for each player — zero to five.
@@ -68,16 +68,16 @@
                 </section>
 
                 <!-- ── Mechanic ─────────────────────────────────────────────────────── -->
-                <section class="explainer">
+                <section class="flex-col explainer">
                     <span class="label text-warm">The mechanic</span>
                     <h2 class="heading-display">Your move<br>is a script.</h2>
                     <p class="subheading text-muted">Paint the board by writing code that controls your agent.
                         Every script is a bet on what your opponent will do — write robust code to adapt,
                         or efficient code to save words.</p>
                     <div class="code-window">
-                        <div class="code-bar">
+                        <div class="flex-row code-bar">
                             <span class="code-timer" id="demo-timer">14:35</span>
-                            <span class="code-cost" id="demo-cost"></span>
+                            <span class="ml-auto code-cost" id="demo-cost"></span>
                             <span class="code-bank" id="demo-bank"></span>
                             <span class="code-eta" id="demo-eta"></span>
                         </div>
@@ -89,7 +89,7 @@
         </main>
     </div><!-- .page-left -->
 
-    <div class="page-right">
+    <div class="flex-shrink-0 page-right">
         <canvas id="hero-canvas"></canvas>
     </div>
 </div><!-- .page-split -->
@@ -316,11 +316,11 @@
                 const need = demoWordCount - demoBank;
                 if (need <= 0) {
                     etaEl.textContent = 'ready';
-                    etaEl.className = 'code-eta code-eta--ready';
+                    etaEl.className = 'code-eta text-warm';
                 } else {
                     const secs = Math.ceil(need / BANK_RATE);
                     etaEl.textContent = secs < 60 ? `~${secs}s` : `~${Math.ceil(secs / 60)}m`;
-                    etaEl.className = 'code-eta code-eta--waiting';
+                    etaEl.className = 'code-eta text-muted';
                 }
             } else {
                 costEl.textContent = '';

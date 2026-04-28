@@ -4,23 +4,23 @@
 
 {% block content %}
 <main class="site-main">
-    <div class="container create-page-stack" id="create-root" data-username="{{ username }}">
+    <div class="flex-col container create-page-stack" id="create-root" data-username="{{ username }}">
         <article class="card">
-            <header class="card-header">
+            <header class="flex-row card-header">
                 <h1 class="card-title">Create Game</h1>
             </header>
-            <div class="settings-card-body settings-stack">
+            <div class="flex-col settings-card-body settings-stack">
                 <div>
                     <p class="hero-create-label">Preset</p>
                     <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Game preset">
                         {% for key in preset_order %}
-                        <button type="button" class="icon-btn btn-warm-hover" data-preset="{{ key }}" role="radio"
-                            aria-checked="false">
+                        <button type="button" class="flex-col icon-btn btn-warm-hover" data-preset="{{ key }}"
+                            role="radio" aria-checked="false">
                             <span class="material-symbols-outlined">{{ preset_icons[key] }}</span>
                             <span class="icon-btn-label">{{ key }} min</span>
                         </button>
                         {% endfor %}
-                        <button type="button" class="icon-btn btn-warm-hover" data-preset="custom" role="radio"
+                        <button type="button" class="flex-col icon-btn btn-warm-hover" data-preset="custom" role="radio"
                             aria-checked="false">
                             <span class="material-symbols-outlined">{{ preset_icons['custom'] }}</span>
                             <span class="icon-btn-label">Custom</span>
@@ -28,7 +28,7 @@
                     </div>
                 </div>
 
-                <form id="create-form" class="form-stack settings-form" novalidate>
+                <form id="create-form" class="flex-col form-stack settings-form" novalidate>
                     <div class="create-form-grid">
                         <div class="field">
                             <label class="form-label" for="clock_seconds">Clock (min)</label>
@@ -60,15 +60,18 @@
                         </div>
                     </div>
 
-                    <div class="toggle-row">
-                        <label class="toggle-label" for="accommodations_enabled">
-                            <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled">
-                            <span>Accommodations</span>
-                        </label>
+                    <input type="checkbox" id="accommodations_enabled" name="accommodations_enabled" hidden>
+                    <div class="flex-row toggle-row">
+                        <span class="form-label">Accommodations</span>
                         <span class="text-small-sans text-dim">Customize per-player time and starting words.</span>
+                        <span class="ml-auto seg-control" id="accom-toggle" aria-label="Accommodations">
+                            <a class="seg-control__opt seg-control__opt--off seg-control__opt--active" id="accom-off"
+                                href="#">Off</a>
+                            <a class="seg-control__opt seg-control__opt--on" id="accom-on" href="#">On</a>
+                        </span>
                     </div>
 
-                    <section id="accommodations-section" class="settings-stack" hidden>
+                    <section id="accommodations-section" class="flex-col settings-stack" hidden>
                         <div class="split-grid">
                             <div class="field">
                                 <label class="form-label" for="p1_clock_seconds">My clock (min)</label>
@@ -95,13 +98,19 @@
                             </div>
                         </div>
 
+                        <select id="starting_player" name="starting_player" hidden>
+                            <option value="random">Random</option>
+                            <option value="1" id="starting-opt-me">Me</option>
+                            <option value="2" id="starting-opt-opp">Opponent</option>
+                        </select>
                         <div class="field">
                             <label class="form-label" for="starting_player">Who starts</label>
-                            <select id="starting_player" name="starting_player">
-                                <option value="random">Random</option>
-                                <option value="1" id="starting-opt-me">Me</option>
-                                <option value="2" id="starting-opt-opp">Opponent</option>
-                            </select>
+                            <span class="seg-control self-start" id="starting-player-toggle" aria-label="Who starts">
+                                <a class="seg-control__opt seg-control__opt--active bg-grey-lighter"
+                                    id="starting-random" href="#" data-value="random">Random</a>
+                                <a class="seg-control__opt" id="starting-p1" href="#" data-value="1">P1</a>
+                                <a class="seg-control__opt" id="starting-p2" href="#" data-value="2">P2</a>
+                            </span>
                         </div>
                     </section>
 
@@ -109,21 +118,27 @@
                         Custom defaults loaded. <a href="/settings/game#defaults" class="warm-link">Edit defaults</a>
                     </p>
 
-                    <div class="card-footer create-form-footer">
-                        <button type="button" class="btn btn-warm-bright-border" id="copy-link-btn">Copy invite link</button>
+                    <div class="flex-row card-footer create-form-footer">
+                        <button type="button" class="btn btn-warm-bright-border" id="copy-link-btn">Copy invite
+                            link</button>
                         {% if invite_friend %}
                         <button type="button" class="btn btn-cool-bright-border" id="preset-invite-btn"
                             data-friend-id="{{ invite_friend.id }}"
-                            data-friend-username="{{ invite_friend.username }}">Invite {{ invite_friend.username }}</button>
+                            data-friend-username="{{ invite_friend.username }}">Invite {{ invite_friend.username
+                            }}</button>
                         {% endif %}
                         {% if current_user.is_authenticated %}
                         <div class="action-menu" id="invite-friend-menu">
-                            <button type="button" class="btn {% if not invite_friend %}btn-cool-bright-border{% else %}btn--ghost{% endif %}" id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
+                            <button type="button"
+                                class="btn {% if not invite_friend %}btn-cool-bright-border{% else %}btn--ghost{% endif %}"
+                                id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
                             <ul class="action-menu__list" id="invite-friend-list" hidden role="menu">
                                 {% if friends %}
-                                    {% for f in friends %}
-                                    <li><button type="button" class="action-menu__item" data-friend-id="{{ f.id }}" data-friend-username="{{ f.username }}" role="menuitem">{{ f.username }}</button></li>
-                                    {% endfor %}
+                                {% for f in friends %}
+                                <li><button type="button" class="action-menu__item" data-friend-id="{{ f.id }}"
+                                        data-friend-username="{{ f.username }}" role="menuitem">{{ f.username
+                                        }}</button></li>
+                                {% endfor %}
                                 {% else %}
                                 <li><span class="action-menu__item is-disabled">No friends yet</span></li>
                                 {% endif %}
@@ -139,14 +154,15 @@
                     <div id="create-error" class="error-msg" hidden></div>
                 </form>
 
-                <div id="lobby-panel" hidden class="settings-stack">
-                    <div class="toggle-row">
-                        <span class="status-dot status-dot--pending" id="join-dot"></span>
+                <div id="lobby-panel" hidden class="flex-col settings-stack">
+                    <div class="flex-row toggle-row">
+                        <span class="flex-shrink-0 status-dot status-dot--warn" id="join-dot"></span>
                         <span id="join-label" class="text-dim">Waiting for player to join…</span>
                     </div>
-                    <div id="lobby-actions" class="card-footer" hidden>
+                    <div id="lobby-actions" class="flex-row card-footer" hidden>
                         <button type="button" class="btn btn--ghost" id="new-link-btn">New link</button>
-                        <button type="button" class="btn btn--ghost" id="revoke-invite-btn" hidden>Revoke invite</button>
+                        <button type="button" class="btn btn--ghost" id="revoke-invite-btn" hidden>Revoke
+                            invite</button>
                         <button type="button" class="btn btn-warm-bright-border" id="p1-ready-btn">Ready</button>
                     </div>
                 </div>

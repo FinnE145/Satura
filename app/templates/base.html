@@ -24,32 +24,32 @@
 
     <!-- ── Nav ─────────────────────────────────────────────────────────────────── -->
     {% block nav %}<nav class="site-nav">
-        <div class="nav-inner container">
-            <a href="/" class="brand">
+        <div class="flex-row nav-inner container">
+            <a href="/" class="flex-row flex-shrink-0 brand">
                 <img src="{{ url_for('static', filename=active_palette.mark_file) }}" alt="Satura Logo"
-                    class="brand-mark" width="28" height="28">
-                <span class="brand-wordmark">Satura</span>
+                    class="flex-shrink-0 brand-mark" width="28" height="28">
+                <span class="flex-shrink-0 brand-wordmark">Satura</span>
             </a>
-            <div class="nav-center-slot">
+            <div class="flex-row flex-1 nav-center-slot">
                 {% if active_game_id %}
-                <a href="/game/{{ active_game_id }}" class="nav-in-game" data-game-id="{{ active_game_id }}">
+                <a href="/game/{{ active_game_id }}" class="flex-col nav-in-game" data-game-id="{{ active_game_id }}">
                     <span class="nav-in-game-title">In game</span>
                     <span class="nav-in-game-phase" data-nav="phase"></span>
                 </a>
                 {% elif current_user.is_authenticated %}
-                <a class="nav-game-invite" id="nav-game-invite" hidden></a>
+                <a class="flex-col nav-game-invite" id="nav-game-invite" hidden></a>
                 {% endif %}
             </div>
-            <div class="nav-links">
+            <div class="flex-row nav-links">
                 <a href="/game/new" class="nav-link">New game</a>
                 <a href="/join" class="nav-link">Join game</a>
                 <a href="/my-games" class="nav-link">My games</a>
                 <a href="/test/new" class="nav-link">Test bench</a>
                 <a href="/how-to-play" class="nav-link">How to play</a>
             </div>
-            <div class="nav-actions">
+            <div class="flex-row nav-actions">
                 {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.settings_profile') }}" class="nav-profile-btn"
+                <a href="{{ url_for('main.settings_profile') }}" class="flex-row nav-profile-btn"
                     aria-label="Open profile settings" title="Profile settings">
                     <span class="material-symbols-outlined">account_circle</span>
                 </a>
@@ -65,12 +65,12 @@
 
     <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
     {% block footer %}<footer class="site-footer">
-        <div class="footer-inner container">
-            <div class="left">
+        <div class="flex-row footer-inner container">
+            <div class="flex-row left">
                 <a href="/about">About Satura</a>
                 <a href="/contact">Contact</a>
             </div>
-            <div class="right">
+            <div class="flex-row ml-auto right">
                 <a href="/legal/terms">Terms of Use</a>
                 <a href="/legal/privacy">Privacy Policy</a>
                 <a href="/legal/cookies">Cookie Policy</a>

@@ -373,7 +373,7 @@ function renderFunctions(phaseIdx) {
         item.className = 'script-history-item' + (available ? '' : ' is-disabled');
 
         const labelWrap = document.createElement('div');
-        labelWrap.className = 'script-history-item__label-wrap';
+        labelWrap.className = 'flex-col flex-1 min-w-0 script-history-item__label-wrap';
 
         const labelEl = document.createElement('span');
         labelEl.className = 'script-history-item__label';
@@ -870,17 +870,17 @@ function renderStatsCoverageBar(board) {
 function setupBadges() {
     if (badgeMine) {
         badgeMine.textContent = `P${mySlot}`;
-        badgeMine.className   = `gc-player-badge gc-player-badge--p${mySlot} ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
+        badgeMine.className   = `badge ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (badgeOpp) {
         badgeOpp.textContent = `P${oppSlot}`;
-        badgeOpp.className   = `gc-player-badge gc-player-badge--p${oppSlot} ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
+        badgeOpp.className   = `badge ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (boardLegendMineEl) {
-        boardLegendMineEl.className = `board-legend-item board-legend-item--p${mySlot} ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
+        boardLegendMineEl.className = `badge ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (boardLegendOppEl) {
-        boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppSlot} ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
+        boardLegendOppEl.className = `badge ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
 }
 

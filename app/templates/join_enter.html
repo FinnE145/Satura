@@ -5,19 +5,19 @@
 {% block content %}
 <main class="site-main">
     <div class="container">
-        <div class="join-enter-wrap">
+        <div class="flex-col join-enter-wrap">
             <header>
                 <h1 class="heading-display">Join a Game</h1>
                 <p class="subheading text-dim">Enter a code or paste a link shared by the host.</p>
             </header>
 
-            <div class="join-code-field">
+            <div class="flex-col join-code-field">
                 <div class="join-code-row" id="join-code-row">
-                    <span class="join-code-prefix">satura.dev/join/</span>
+                    <span class="flex-row join-code-prefix">satura.dev/join/</span>
                     <input
                         type="text"
                         id="join-code-input"
-                        class="join-code-input"
+                        class="flex-1 join-code-input"
                         placeholder="XXXXXX"
                         autocomplete="off"
                         autocorrect="off"

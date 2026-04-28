@@ -4,7 +4,7 @@
 
 {% block settings_content %}
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h1 class="card-title">About</h1>
     </header>
     <div class="settings-card-body">
@@ -14,11 +14,11 @@
 </article>
 
 <article class="card settings-card">
-    <header class="card-header">
+    <header class="flex-row card-header">
         <h2 class="card-title">Legal</h2>
     </header>
     <div class="settings-card-body">
-        <div class="settings-link-list">
+        <div class="flex-col settings-link-list">
             <a href="{{ url_for('main.legal_terms') }}">Terms of Use</a>
             <a href="{{ url_for('main.legal_privacy') }}">Privacy Policy</a>
             <a href="{{ url_for('main.legal_cookies') }}">Cookie Policy</a>

@@ -4,13 +4,13 @@
 
 {% block content %}
 <main class="site-main">
-    <div class="container create-page-stack" id="join-root" data-game-id="{{ game_id }}" data-my-username="{{ current_user.username if current_user.is_authenticated else '' }}" data-p1-username="{{ p1_username }}">
+    <div class="flex-col container create-page-stack" id="join-root" data-game-id="{{ game_id }}" data-my-username="{{ current_user.username if current_user.is_authenticated else '' }}" data-p1-username="{{ p1_username }}">
         <article class="card">
-            <header class="card-header">
+            <header class="flex-row card-header">
                 <h1 class="card-title">Join Game</h1>
                 <p class="subheading text-dim">Hosted by {{ p1_username }}</p>
             </header>
-            <div class="settings-card-body settings-stack" id="join-body">
+            <div class="flex-col settings-card-body settings-stack" id="join-body">
                 <div class="create-form-grid" id="join-settings-grid">
                     <div class="field">
                         <span class="form-label">Board size</span>
@@ -59,14 +59,14 @@
                     </div>
                 </section>
 
-                <div class="toggle-row">
-                    <span class="status-dot status-dot--pending" id="p1-ready-dot"></span>
+                <div class="flex-row toggle-row">
+                    <span class="flex-shrink-0 status-dot status-dot--warn" id="p1-ready-dot"></span>
                     <span class="text-dim" id="p1-ready-label">{{ p1_username }} not ready</span>
                 </div>
 
                 <div id="join-error" class="error-msg" hidden></div>
 
-                <div class="card-footer">
+                <div class="flex-row card-footer">
                     <button type="button" class="btn btn--ghost" id="leave-btn">Leave</button>
                     <button type="button" class="btn btn-warm-bright-border" id="p2-ready-btn" disabled>Ready</button>
                 </div>

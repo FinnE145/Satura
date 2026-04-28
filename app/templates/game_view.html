@@ -9,79 +9,79 @@
     data-p2-username="{{ p2_username }}">
     <div class="game-outer">
 
-        <div class="game-container">
+        <div class="min-w-0 game-container">
 
             <!-- Board card (solo — fills the full container up to 1000px) -->
-            <div class="card board-card board-card--solo">
-                <div class="card-header">
+            <div class="flex-col card board-card board-card--solo">
+                <div class="flex-row card-header">
                     <h2 class="card-title">Board</h2>
-                    <span class="board-legend" id="board-legend">
+                    <span class="flex-row board-legend" id="board-legend">
                         <span class="text-small-sans text-muted" id="board-legend-info"></span>
                         <span class="board-legend-pills">
-                            <span class="board-legend-item" id="board-legend-p1"></span>
-                            <span class="board-legend-item" id="board-legend-p2"></span>
+                            <span class="badge" id="board-legend-p1"></span>
+                            <span class="badge" id="board-legend-p2"></span>
                         </span>
                     </span>
                 </div>
-                <div class="board-wrap">
+                <div class="flex-1 board-wrap">
                     <div class="board-grid" id="board-grid"></div>
                 </div>
             </div>
 
             <!-- Time controls card (small screens only) -->
             <div class="card time-controls-card" id="time-controls-card">
-                <div class="game-controls-main">
-                    <div class="game-controls-side game-controls-side--mine">
-                        <span class="gc-player-badge" data-tc="badge-p1"></span>
-                        <span class="gc-clock" data-tc="clock-p1">--:--</span>
+                <div class="flex-row game-controls-main">
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--mine">
+                        <span class="badge" data-tc="badge-p1"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-p1">--:--</span>
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p1"
                                 hidden></span></span>
                     </div>
-                    <div class="game-controls-side game-controls-side--opp">
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--opp">
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p2" hidden></span></span>
-                        <span class="gc-clock" data-tc="clock-p2">--:--</span>
-                        <span class="gc-player-badge" data-tc="badge-p2"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-p2">--:--</span>
+                        <span class="badge" data-tc="badge-p2"></span>
                     </div>
                 </div>
             </div>
 
             <!-- Game controls panel -->
-            <div class="card game-controls game-controls--solo" id="game-controls">
-                <div class="game-controls-main">
+            <div class="flex-col card game-controls game-controls--solo" id="game-controls">
+                <div class="flex-row game-controls-main">
 
                     <!-- P1 side (always left, warm) -->
-                    <div class="game-controls-side game-controls-side--mine" id="gc-side-p1">
-                        <span class="gc-player-badge" data-tc="badge-p1"></span>
-                        <span class="gc-clock" data-tc="clock-p1">--:--</span>
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--mine" id="gc-side-p1">
+                        <span class="badge" data-tc="badge-p1"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-p1">--:--</span>
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p1"
                                 hidden></span></span>
                     </div>
 
                     <!-- Buttons -->
-                    <div class="game-controls-btns">
-                        <button type="button" class="game-controls-btn btn-warm-hover" id="btn-replay">
+                    <div class="flex-shrink-0 game-controls-btns">
+                        <button type="button" class="flex-col game-controls-btn btn-warm-hover" id="btn-replay">
                             <span class="material-symbols-outlined">replay</span>
                             <span class="icon-btn-label">Replay</span>
                         </button>
-                        <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-back">
+                        <button type="button" class="flex-col game-controls-btn btn-cool-hover" id="btn-history-back">
                             <span class="material-symbols-outlined">arrow_back</span>
                             <span class="icon-btn-label">Back</span>
                         </button>
-                        <button type="button" class="game-controls-btn btn-cool-hover" id="btn-history-forward">
+                        <button type="button" class="flex-col game-controls-btn btn-cool-hover" id="btn-history-forward">
                             <span class="material-symbols-outlined">arrow_forward</span>
                             <span class="icon-btn-label">Forward</span>
                         </button>
-                        <button type="button" class="game-controls-btn btn-warm-hover" id="btn-history-current">
+                        <button type="button" class="flex-col game-controls-btn btn-warm-hover" id="btn-history-current">
                             <span class="material-symbols-outlined">last_page</span>
                             <span class="icon-btn-label">Current</span>
                         </button>
                     </div>
 
                     <!-- P2 side (always right, cool) -->
-                    <div class="game-controls-side game-controls-side--opp" id="gc-side-p2">
+                    <div class="flex-1 min-w-0 game-controls-side game-controls-side--opp" id="gc-side-p2">
                         <span class="phase-pill-wrap"><span class="phase-pill" data-tc="phase-p2" hidden></span></span>
-                        <span class="gc-clock" data-tc="clock-p2">--:--</span>
-                        <span class="gc-player-badge" data-tc="badge-p2"></span>
+                        <span class="flex-shrink-0 gc-clock" data-tc="clock-p2">--:--</span>
+                        <span class="badge" data-tc="badge-p2"></span>
                     </div>
 
                 </div>
@@ -90,17 +90,17 @@
             </div>
 
             <!-- End-of-game modal -->
-            <div class="game-over-modal" id="game-over-modal" role="dialog" aria-modal="true"
+            <div class="modal" id="modal" role="dialog" aria-modal="true"
                 aria-labelledby="game-over-title" hidden>
-                <div class="game-over-modal__backdrop" id="game-over-backdrop"></div>
-                <div class="card game-over-modal__card" role="document">
-                    <div class="card-header">
+                <div class="modal__backdrop" id="game-over-backdrop"></div>
+                <div class="card modal__card" role="document">
+                    <div class="flex-row card-header">
                         <h2 class="card-title" id="game-over-title">Game Over</h2>
                     </div>
-                    <div class="card-body game-over-modal__body">
-                        <p class="game-over-modal__message text-small-sans" id="game-over-message"></p>
+                    <div class="card-body modal__body">
+                        <p class="modal__message text-small-sans" id="game-over-message"></p>
                     </div>
-                    <div class="card-footer">
+                    <div class="flex-row card-footer">
                         <a class="btn btn-warm-bright-border" href="/history/{{ game_id }}">View History</a>
                         <a class="btn btn-cool-bright-border" href="/game/new">New Game</a>
                     </div>
@@ -108,10 +108,10 @@
             </div>
 
             <!-- Session status bar -->
-            <div class="session-bar" role="status" aria-live="polite">
-                <span class="session-bar-left">
-                    <span class="status-dot" id="status-dot" aria-hidden="true"></span>
-                    <span class="session-bar-group">
+            <div class="flex-row session-bar" role="status" aria-live="polite">
+                <span class="flex-row min-w-0 session-bar-left">
+                    <span class="flex-shrink-0 status-dot" id="status-dot" aria-hidden="true"></span>
+                    <span class="flex-row session-bar-group">
                         <span class="session-bar-key">Spectating</span>
                         <code class="session-id" id="session-id" title="">—</code>
                     </span>
