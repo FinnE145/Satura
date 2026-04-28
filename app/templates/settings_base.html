@@ -63,7 +63,7 @@
         <section class="flex-col settings-main">
             {% with messages = get_flashed_messages() %}
             {% if messages %}
-            <div class="settings-flash" role="status" aria-live="polite">{{ messages[0] }}</div>
+            <div class="info-msg warm" role="status" aria-live="polite">{{ messages[0] }}</div>
             {% endif %}
             {% endwith %}
             {% block settings_content %}{% endblock %}

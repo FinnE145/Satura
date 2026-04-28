@@ -1295,7 +1295,7 @@ def settings_game():
                 settings.accom_starting_player = accom_starting_player
 
                 db.session.commit()
-                flash('Game defaults saved.')
+                return redirect(url_for('main.settings_game', saved='defaults', _anchor='defaults'))
 
             return redirect(url_for('main.settings_game', _anchor='defaults'))
 
@@ -1306,7 +1306,7 @@ def settings_game():
             else:
                 settings.palette = palette
                 db.session.commit()
-                flash('Appearance saved.')
+                return redirect(url_for('main.settings_game', saved='appearance', _anchor='appearance'))
             return redirect(url_for('main.settings_game', _anchor='appearance'))
 
     return render_template(
