@@ -23,6 +23,11 @@
                         <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
                         <button type="submit" class="btn btn--ghost btn--sm">Decline</button>
                     </form>
+                    <form method="post" action="/friends">
+                        <input type="hidden" name="action" value="block">
+                        <input type="hidden" name="friendship_id" value="{{ r.friendship_id }}">
+                        <button type="submit" class="btn btn--danger btn--sm">Block</button>
+                    </form>
                 </div>
             </li>
         {%- endfor %}</ul>
@@ -141,6 +146,28 @@
             {%- endfor %}</ul>
         </div>
         {% endif %}
+    </div>
+</article>
+{% endif %}
+
+{% if blocked %}
+<article class="card settings-card">
+    <header class="flex-row card-header">
+        <h2 class="card-title">Blocked <span class="text-muted text-small-sans">({{ blocked | length }})</span></h2>
+    </header>
+    <div class="settings-card-body">
+        <ul class="flex-col friends-list">{%- for b in blocked -%}
+            <li class="flex-row friend-item">
+                <span class="text-dim">{{ b.user.username }}</span>
+                <div>
+                    <form method="post" action="/friends">
+                        <input type="hidden" name="action" value="unblock">
+                        <input type="hidden" name="friendship_id" value="{{ b.friendship_id }}">
+                        <button type="submit" class="btn btn--ghost btn--sm">Unblock</button>
+                    </form>
+                </div>
+            </li>
+        {%- endfor %}</ul>
     </div>
 </article>
 {% endif %}

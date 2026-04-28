@@ -1363,7 +1363,13 @@ def friends_action():
                 )
             ).first()
             if existing:
-                flash('A request or friendship already exists with that user.')
+                if existing.status == 'blocked':
+                    if existing.requester_id == me:
+                        flash("You've blocked this user.")
+                    else:
+                        flash('User not found.')
+                else:
+                    flash('A request or friendship already exists with that user.')
             else:
                 db.session.add(Friendship(requester_id=me, addressee_id=target.id, status='pending'))
                 db.session.commit()
@@ -1412,13 +1418,22 @@ def friends_action():
         fid = request.form.get('friendship_id', 0, type=int)
         fs = Friendship.query.filter(
             Friendship.id == fid,
-            Friendship.status == 'accepted',
-            or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+            or_(
+                (Friendship.status == 'accepted') & or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+                (Friendship.status == 'pending') & (Friendship.addressee_id == me),
+            ),
         ).first()
         if fs:
             if fs.requester_id != me:
                 fs.requester_id, fs.addressee_id = fs.addressee_id, fs.requester_id
             fs.status = 'blocked'
+            db.session.commit()
+
+    elif action == 'unblock':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, requester_id=me, status='blocked').first()
+        if fs:
+            db.session.delete(fs)
             db.session.commit()
 
     return redirect(url_for('main.settings_friends'))
@@ -1447,6 +1462,9 @@ def settings_friends():
     declined_rows = Friendship.query.filter_by(requester_id=me, status='declined').all()
     declined = [{'user': fs.addressee, 'friendship_id': fs.id} for fs in declined_rows]
 
+    blocked_rows = Friendship.query.filter_by(requester_id=me, status='blocked').all()
+    blocked = [{'user': fs.addressee, 'friendship_id': fs.id} for fs in blocked_rows]
+
     return render_template(
         'settings_friends.html',
         settings_nav='friends',
@@ -1454,6 +1472,7 @@ def settings_friends():
         incoming=incoming,
         pending_sent=pending_sent,
         declined=declined,
+        blocked=blocked,
     )
 
 
@@ -1463,18 +1482,22 @@ def friends_search():
     q = request.args.get('q', '').strip()
     if len(q) < 2:
         return jsonify([])
-    results = (
-        Account.query
-        .filter(
-            Account.username.ilike(f'{q}%'),
-            Account.id != current_user.id,
-            Account.deleted == False,
-            Account.disabled == False,
-        )
-        .order_by(Account.username)
-        .limit(10)
-        .all()
+    me = current_user.id
+    block_rows = Friendship.query.filter(
+        Friendship.status == 'blocked',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).all()
+    blocked_ids = {b.addressee_id if b.requester_id == me else b.requester_id for b in block_rows}
+
+    query = Account.query.filter(
+        Account.username.ilike(f'{q}%'),
+        Account.id != me,
+        Account.deleted == False,
+        Account.disabled == False,
     )
+    if blocked_ids:
+        query = query.filter(Account.id.notin_(blocked_ids))
+    results = query.order_by(Account.username).limit(10).all()
     return jsonify([{'username': a.username} for a in results])
 
 
