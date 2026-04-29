@@ -11,6 +11,8 @@ This repository contains a grid-based, turn-based competitive programming game w
 When working on any HTML, CSS, or UI:
 - Always read and follow `docs/style_guide.md` before making changes.
 - Before writing any new CSS, check `docs/css_classes.md` to see if an existing class already applies.
+- **Use utility classes first.** The generic section of `docs/css_classes.md` lists reusable utilities (typography, colour modifiers, layout, flex, buttons, etc.). Reach for these before writing any custom CSS. If a utility class does what you need — or is close enough — use it.
+- Write as little custom CSS as possible. Custom CSS is only justified when no combination of existing utilities and component classes covers the need.
 - Any new CSS class that could plausibly be reused elsewhere on the site must be written generically (not scoped to a single page or component).
 - Update `docs/css_classes.md` whenever a class is added, changed, or removed.
 - NEVER use inline styles to get around this rule. Do it right the first time.
