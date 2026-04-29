@@ -259,6 +259,17 @@ h6 {
     background: var(--success-tint);
 }
 
+/* ─── Icon utilities ─────────────────────────────────────────────────────────── */
+
+.icon-fill {
+    font-variation-settings: 'FILL' 1;
+}
+
+/* Preserve game-controls-btn weight when fill is active */
+.game-controls-btn .material-symbols-outlined.icon-fill {
+    font-variation-settings: 'FILL' 1, 'wght' 300;
+}
+
 /* ─── Colour hover utilities ─────────────────────────────────────────────────── */
 
 .no-underline {

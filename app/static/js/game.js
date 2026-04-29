@@ -110,6 +110,7 @@ let activePalette = {
     cool: bodyPalette?.paletteCool || fallbackPalette.cool,
 };
 let lastBoardState = null;
+let lastExecState = null;
 let lastBank = 0;
 let lastRate = 1 / 3;
 let currentWordCount = 0;
@@ -120,6 +121,7 @@ let clockSnapshot = null;
 let phaseSnapshot = null;
 let lastReplayKey = null;
 let replayInFlight = false;
+let replayCancelled = false;
 let stepDelayMs = 500;
 let gameOverModalShown = false;
 let hasSignaledBeginWrite = false;
@@ -232,6 +234,7 @@ async function refreshBank() {
         applySessionState(state);
         if (viewingPhase === null) {
             viewState = state;
+            if ((state?.exec_log?.length ?? 0) > 0) lastExecState = state;
             await replayPolledExecution(state);
         }
         if (state?.game_over === true && bankPollTimer) {
@@ -559,11 +562,18 @@ btnDeploy.addEventListener('click', async () => {
         // Fetch exec log, territory, and board from game state
         const state = await get(`${apiBase}/state`);
         applySessionState(state);
+        if ((state?.exec_log?.length ?? 0) > 0) lastExecState = state;
+        replayCancelled = false;
         replayInFlight = true;
+        setReplayButtonActive(true);
+        updateHistoryButtons();
         try {
             await replayExecution(preExecState, state, myPlayer);
         } finally {
             replayInFlight = false;
+            replayCancelled = false;
+            setReplayButtonActive(false);
+            updateHistoryButtons();
         }
         markReplaySeen(state);
         maybeShowGameOverModal(state);
@@ -761,6 +771,7 @@ async function replayExecution(preExecState, postExecState, actorPlayer = 1, sho
             if (!isInstantSensingOp(entry)) {
                 await delay(stepDelayMs);
             }
+            if (replayCancelled) break;
             applyOperationToReplayState(replayState, entry, replayBase, actorPlayer);
             renderBoard(replayState);
         }
@@ -792,6 +803,7 @@ async function renderOutputStepByStep(state, onStep) {
         if (!isInstantSensingOp(entry)) {
             await delay(stepDelayMs);
         }
+        if (replayCancelled) break;
 
         const row = document.createElement('div');
         row.className = 'log-entry';
@@ -1361,11 +1373,17 @@ async function replayPolledExecution(state) {
 
     const actor = Number(state?.last_exec_player ?? state?.current_player ?? 1);
     const preExecState = cloneBoardAndAgents(lastBoardState);
+    replayCancelled = false;
     replayInFlight = true;
+    setReplayButtonActive(true);
+    updateHistoryButtons();
     try {
         await replayExecution(preExecState, state, actor === 2 ? 2 : 1, actor === minePlayer);
     } finally {
         replayInFlight = false;
+        replayCancelled = false;
+        setReplayButtonActive(false);
+        updateHistoryButtons();
     }
     markReplaySeen(state);
     maybeShowGameOverModal(state);
@@ -1433,8 +1451,11 @@ function delay(ms) {
 
 if (btnReplay) {
     btnReplay.addEventListener('click', async () => {
-        if (!gameId || !viewState || replayInFlight) return;
-        const log = viewState.exec_log ?? [];
+        if (!gameId || !viewState) return;
+        if (replayInFlight) { replayCancelled = true; return; }
+        const replaySource = (viewState?.exec_log?.length ?? 0) > 0 ? viewState : lastExecState;
+        if (!replaySource) return;
+        const log = replaySource.exec_log ?? [];
         if (log.length === 0) return;
 
         const wasLive = viewingPhase === null;
@@ -1458,13 +1479,19 @@ if (btnReplay) {
             } catch (_) { /* proceed without pre-state */ }
         }
 
-        const actorPlayer = viewState.player_slot ?? viewState.last_exec_player ?? 1;
+        const actorPlayer = replaySource.player_slot ?? replaySource.last_exec_player ?? 1;
 
+        replayCancelled = false;
         replayInFlight = true;
+        setReplayButtonActive(true);
+        updateHistoryButtons();
         try {
-            await replayExecution(preExecState, viewState, actorPlayer);
+            await replayExecution(preExecState, replaySource, actorPlayer);
         } finally {
             replayInFlight = false;
+            replayCancelled = false;
+            setReplayButtonActive(false);
+            updateHistoryButtons();
         }
 
         if (wasLive) {
@@ -1513,6 +1540,18 @@ function updatePastNotice() {
     gameControlsPastNotice.hidden = false;
 }
 
+function setReplayButtonActive(active) {
+    if (!btnReplay) return;
+    const icon = btnReplay.querySelector('.material-symbols-outlined');
+    if (active) {
+        if (icon) { icon.textContent = 'stop'; icon.classList.add('icon-fill'); }
+        btnReplay.classList.add('game-controls-btn--is-warm', 'warm');
+    } else {
+        if (icon) { icon.textContent = 'replay'; icon.classList.remove('icon-fill'); }
+        btnReplay.classList.remove('game-controls-btn--is-warm', 'warm');
+    }
+}
+
 function updateHistoryButtons() {
     const inHistory = viewingPhase !== null;
     const atStart = inHistory && viewingPhase === 0;
@@ -1520,9 +1559,9 @@ function updateHistoryButtons() {
     // Disable back when live and no phases yet recorded
     const noHistory = !inHistory && knownTotalPhases < 2;
 
-    if (btnHistoryBack) btnHistoryBack.disabled = atStart || noHistory;
-    if (btnHistoryForward) btnHistoryForward.disabled = !inHistory || atEnd;
-    if (btnHistoryCurrent) btnHistoryCurrent.disabled = !inHistory;
+    if (btnHistoryBack) btnHistoryBack.disabled = atStart || noHistory || replayInFlight;
+    if (btnHistoryForward) btnHistoryForward.disabled = !inHistory || atEnd || replayInFlight;
+    if (btnHistoryCurrent) btnHistoryCurrent.disabled = !inHistory || replayInFlight;
 }
 
 if (btnHistoryBack) {

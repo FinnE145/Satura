@@ -51,6 +51,11 @@ Palette-driven triplet: tint background, coloured text, dim border. Apply alongs
 | `.bg-warn` | warning tint background (`--warn-tint`) |
 | `.bg-success` | success tint background (`--success-tint`) |
 
+### Icon utilities
+| Class | Description |
+|---|---|
+| `.icon-fill` | Applies `FILL 1` variation axis to a Material Symbol icon — renders the icon in its filled/solid variant |
+
 ### Hover utilities
 | Class | Description |
 |---|---|

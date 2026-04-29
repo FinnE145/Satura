@@ -58,6 +58,7 @@ const activePalette = {
 let currentPhaseIdx = phasesMeta.length > 0 ? phasesMeta.length - 1 : 0;
 const stateCache    = new Map();
 let replayInFlight  = false;
+let replayCancelled = false;
 let selectedFuncName = null;
 const charts        = {};
 
@@ -410,13 +411,26 @@ function renderFunctions(phaseIdx) {
 
 // ── Navigation buttons ─────────────────────────────────────────────────────────
 
+function setReplayButtonActive(active) {
+    if (!btnReplay) return;
+    const icon = btnReplay.querySelector('.material-symbols-outlined');
+    if (active) {
+        if (icon) { icon.textContent = 'stop'; icon.classList.add('icon-fill'); }
+        btnReplay.classList.add('game-controls-btn--is-warm', 'warm');
+    } else {
+        if (icon) { icon.textContent = 'replay'; icon.classList.remove('icon-fill'); }
+        btnReplay.classList.remove('game-controls-btn--is-warm', 'warm');
+    }
+}
+
 function updateNavButtons() {
     const atStart = currentPhaseIdx === 0;
     const atEnd   = currentPhaseIdx >= phasesMeta.length - 1;
     if (btnBack)    btnBack.disabled    = atStart || replayInFlight;
     if (btnForward) btnForward.disabled = atEnd   || replayInFlight;
     if (btnEnd)     btnEnd.disabled     = atEnd   || replayInFlight;
-    if (btnReplay)  btnReplay.disabled  = replayInFlight || phasesMeta.length === 0;
+    if (btnReplay)  btnReplay.disabled  = phasesMeta.length === 0;
+    setReplayButtonActive(replayInFlight);
 }
 
 // ── Fetch & navigate ───────────────────────────────────────────────────────────
@@ -519,6 +533,7 @@ async function replayCurrentPhase() {
         } catch { /* proceed without */ }
     }
 
+    replayCancelled = false;
     replayInFlight = true;
     updateNavButtons();
 
@@ -536,6 +551,7 @@ async function replayCurrentPhase() {
     for (let i = 0; i < log.length; i++) {
         const entry = log[i];
         if (!isInstantSensingOp(entry)) await delay(400);
+        if (replayCancelled) break;
 
         const row = document.createElement('div');
         row.className = 'log-entry';
@@ -553,6 +569,7 @@ async function replayCurrentPhase() {
     if (postExecState) renderBoard(postExecState);
 
     replayInFlight = false;
+    replayCancelled = false;
     updateNavButtons();
 }
 
@@ -892,7 +909,10 @@ function setupBadges() {
 if (btnBack)    btnBack.addEventListener('click',    () => { if (!replayInFlight) navigateTo(currentPhaseIdx - 1); });
 if (btnForward) btnForward.addEventListener('click', () => { if (!replayInFlight) navigateTo(currentPhaseIdx + 1); });
 if (btnEnd)     btnEnd.addEventListener('click',     () => { if (!replayInFlight) navigateTo(phasesMeta.length - 1); });
-if (btnReplay)  btnReplay.addEventListener('click',  () => replayCurrentPhase());
+if (btnReplay)  btnReplay.addEventListener('click',  () => {
+    if (replayInFlight) { replayCancelled = true; return; }
+    replayCurrentPhase();
+});
 
 // ── Keyboard navigation ────────────────────────────────────────────────────────
 
