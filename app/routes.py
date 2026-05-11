@@ -16,8 +16,8 @@ from urllib.parse import urlsplit
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
-from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction
-from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby
+from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction, Friendship
+from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, get_invite_for_user, create_test_session, get_test_session, remove_test_session
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -485,6 +485,7 @@ def new_game_legacy():
 
 
 @bp.route('/game/new')
+@login_required
 def game_new():
     preset_order = ('60', '30', '15', '5')
     preset_icons = {
@@ -525,6 +526,24 @@ def game_new():
                 'starting_player': user_settings.accom_starting_player or 'random',
             }
 
+    me = current_user.id
+    accepted = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).all()
+    friends = [
+        fs.addressee if fs.requester_id == me else fs.requester
+        for fs in accepted
+    ]
+
+    invite_friend = None
+    invite_username = request.args.get('invite', '').strip()
+    if invite_username:
+        invite_friend = next(
+            (f for f in friends if f.username == invite_username),
+            None,
+        )
+
     return render_template(
         'game_new.html',
         presets=Config.TIME_CONTROL_PRESETS,
@@ -535,6 +554,8 @@ def game_new():
         username=current_user.username if current_user.is_authenticated else '',
         user_custom_defaults=user_custom_defaults,
         user_accom_defaults=user_accom_defaults,
+        friends=friends,
+        invite_friend=invite_friend,
     )
 
 
@@ -957,16 +978,16 @@ def game_history(game_id):
     if game.is_draw:
         if game.end_reason == 'stalemate':
             result_text = 'Stalemate'
-            result_badge = 'stalemate'
+            result_badge = 'ok'
         else:
             result_text = 'Draw'
-            result_badge = 'draw'
+            result_badge = 'warn'
     elif game.winner == 1:
         result_text = 'P1 Won'
-        result_badge = 'win'
+        result_badge = 'success'
     elif game.winner == 2:
         result_text = 'P2 Won'
-        result_badge = 'loss'
+        result_badge = 'error'
     else:
         result_text = None
         result_badge = None
@@ -1114,7 +1135,12 @@ def how_to_play():
 @login_required
 def settings_profile():
     stats = _make_recent_games(current_user)
-    return render_template('settings_profile.html', settings_nav='profile', stats=stats)
+    me = current_user.id
+    friend_count = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).count()
+    return render_template('settings_profile.html', settings_nav='profile', stats=stats, friend_count=friend_count)
 
 
 @bp.route('/settings/account', methods=['GET', 'POST'])
@@ -1269,7 +1295,7 @@ def settings_game():
                 settings.accom_starting_player = accom_starting_player
 
                 db.session.commit()
-                flash('Game defaults saved.')
+                return redirect(url_for('main.settings_game', saved='defaults', _anchor='defaults'))
 
             return redirect(url_for('main.settings_game', _anchor='defaults'))
 
@@ -1280,7 +1306,7 @@ def settings_game():
             else:
                 settings.palette = palette
                 db.session.commit()
-                flash('Appearance saved.')
+                return redirect(url_for('main.settings_game', saved='appearance', _anchor='appearance'))
             return redirect(url_for('main.settings_game', _anchor='appearance'))
 
     return render_template(
@@ -1316,6 +1342,183 @@ def settings_feedback():
 @login_required
 def settings_about_legal():
     return render_template('settings_about_legal.html', settings_nav='about-legal')
+
+
+@bp.route('/friends', methods=['POST'])
+@login_required
+def friends_action():
+    me = current_user.id
+    action = request.form.get('action', '')
+
+    if action == 'send_request':
+        username = request.form.get('username', '').strip()
+        target = Account.query.filter_by(username=username, deleted=False, disabled=False).first()
+        if not target or target.id == me:
+            flash('User not found.')
+        else:
+            existing = Friendship.query.filter(
+                or_(
+                    (Friendship.requester_id == me) & (Friendship.addressee_id == target.id),
+                    (Friendship.requester_id == target.id) & (Friendship.addressee_id == me),
+                )
+            ).first()
+            if existing:
+                if existing.status == 'blocked':
+                    if existing.requester_id == me:
+                        flash("You've blocked this user.")
+                    else:
+                        flash('User not found.')
+                else:
+                    flash('A request or friendship already exists with that user.')
+            else:
+                db.session.add(Friendship(requester_id=me, addressee_id=target.id, status='pending'))
+                db.session.commit()
+                flash('Friend request sent.')
+
+    elif action == 'cancel_request':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, requester_id=me, status='pending').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    elif action == 'hide_declined':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, requester_id=me, status='declined').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    elif action == 'remove_friend':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter(
+            Friendship.id == fid,
+            Friendship.status == 'accepted',
+            or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+        ).first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    elif action == 'accept_request':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
+        if fs:
+            fs.status = 'accepted'
+            db.session.commit()
+
+    elif action == 'decline_request':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, addressee_id=me, status='pending').first()
+        if fs:
+            fs.status = 'declined'
+            db.session.commit()
+
+    elif action == 'block':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter(
+            Friendship.id == fid,
+            or_(
+                (Friendship.status == 'accepted') & or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+                (Friendship.status == 'pending') & (Friendship.addressee_id == me),
+            ),
+        ).first()
+        if fs:
+            if fs.requester_id != me:
+                fs.requester_id, fs.addressee_id = fs.addressee_id, fs.requester_id
+            fs.status = 'blocked'
+            db.session.commit()
+
+    elif action == 'unblock':
+        fid = request.form.get('friendship_id', 0, type=int)
+        fs = Friendship.query.filter_by(id=fid, requester_id=me, status='blocked').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    return redirect(url_for('main.settings_friends'))
+
+
+@bp.route('/settings/friends', methods=['GET'])
+@login_required
+def settings_friends():
+    me = current_user.id
+
+    accepted = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).all()
+    friends = [
+        {'user': fs.addressee if fs.requester_id == me else fs.requester, 'friendship_id': fs.id}
+        for fs in accepted
+    ]
+
+    incoming_rows = Friendship.query.filter_by(addressee_id=me, status='pending').all()
+    incoming = [{'user': fs.requester, 'friendship_id': fs.id} for fs in incoming_rows]
+
+    pending_rows = Friendship.query.filter_by(requester_id=me, status='pending').all()
+    pending_sent = [{'user': fs.addressee, 'friendship_id': fs.id} for fs in pending_rows]
+
+    declined_rows = Friendship.query.filter_by(requester_id=me, status='declined').all()
+    declined = [{'user': fs.addressee, 'friendship_id': fs.id} for fs in declined_rows]
+
+    blocked_rows = Friendship.query.filter_by(requester_id=me, status='blocked').all()
+    blocked = [{'user': fs.addressee, 'friendship_id': fs.id} for fs in blocked_rows]
+
+    return render_template(
+        'settings_friends.html',
+        settings_nav='friends',
+        friends=friends,
+        incoming=incoming,
+        pending_sent=pending_sent,
+        declined=declined,
+        blocked=blocked,
+    )
+
+
+@bp.route('/friends/search')
+@login_required
+def friends_search():
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    me = current_user.id
+    block_rows = Friendship.query.filter(
+        Friendship.status == 'blocked',
+        or_(Friendship.requester_id == me, Friendship.addressee_id == me),
+    ).all()
+    blocked_ids = {b.addressee_id if b.requester_id == me else b.requester_id for b in block_rows}
+
+    query = Account.query.filter(
+        Account.username.ilike(f'{q}%'),
+        Account.id != me,
+        Account.deleted == False,
+        Account.disabled == False,
+    )
+    if blocked_ids:
+        query = query.filter(Account.id.notin_(blocked_ids))
+    results = query.order_by(Account.username).limit(10).all()
+    return jsonify([{'username': a.username} for a in results])
+
+
+@bp.route('/friends/game-invites')
+@login_required
+def friends_game_invites():
+    lobby = get_invite_for_user(current_user.id)
+    if lobby is None:
+        return jsonify({'invite': None})
+    join_url = (
+        f'/join/{lobby.join_alias}'
+        if lobby.join_alias
+        else f'/game/{lobby.game_id}/join'
+    )
+    return jsonify({
+        'invite': {
+            'game_id': lobby.game_id,
+            'host_username': lobby.player1_username,
+            'join_url': join_url,
+        }
+    })
 
 
 @bp.route('/contact', methods=['GET', 'POST'])
@@ -1406,10 +1609,38 @@ def game_create_lobby():
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
 
+    invited_user_id = data.get('invited_user_id')
+    if invited_user_id is not None:
+        invited_user_id = int(invited_user_id)
+        me = current_user.id
+        friendship = Friendship.query.filter(
+            Friendship.status == 'accepted',
+            or_(
+                (Friendship.requester_id == me) & (Friendship.addressee_id == invited_user_id),
+                (Friendship.requester_id == invited_user_id) & (Friendship.addressee_id == me),
+            ),
+        ).first()
+        if friendship is None:
+            return jsonify({'error': 'not friends with that user'}), 400
+
     game_id = str(uuid.uuid4())
     alias = _gen_join_alias()
-    create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias)
+    create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias, invited_user_id=invited_user_id)
     return jsonify({'game_id': game_id, 'join_alias': alias}), 201
+
+
+
+@bp.route('/join', methods=['GET'])
+def join_enter():
+    return render_template('join_enter.html')
+
+
+@bp.route('/join/<alias>/info', methods=['GET'])
+def join_alias_info(alias):
+    lobby = get_lobby_by_alias(alias.upper())
+    if lobby is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({'owner': lobby.player1_username})
 
 
 @bp.route('/join/<alias>', methods=['GET'])
@@ -1432,6 +1663,8 @@ def game_join_page(game_id):
     lobby = get_lobby(game_id)
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
+    if lobby.invited_user_id is not None and current_user.id != lobby.invited_user_id:
+        return render_template('stub.html', page_title='Game not found'), 404
     return render_template(
         'game_join.html',
         game_id=game_id,
@@ -1448,6 +1681,8 @@ def game_join(game_id):
         return jsonify({'error': 'game not found'}), 404
     if current_user.id == lobby.player1_id:
         return jsonify({'error': 'cannot join your own game'}), 400
+    if lobby.invited_user_id is not None and current_user.id != lobby.invited_user_id:
+        return jsonify({'error': 'this invite is for a specific player'}), 403
     if lobby.player2_id is not None and lobby.player2_id != current_user.id:
         return jsonify({'error': 'game is full'}), 409
     lobby.player2_id = current_user.id
@@ -1870,3 +2105,296 @@ def game_functions(game_id):
         })
 
     return jsonify(result)
+
+
+# ── Test bench ────────────────────────────────────────────────────────────────
+
+@bp.route('/test')
+@login_required
+def test_bench():
+    return redirect(url_for('main.test_bench_new'))
+
+
+@bp.route('/test/new')
+@login_required
+def test_bench_new():
+    preset_order = ('60', '30', '15', '5')
+    preset_icons = {
+        '60': 'hourglass_top',
+        '30': 'timer',
+        '15': 'speed',
+        '5': 'rocket',
+        'custom': 'alarm_smart_wake',
+    }
+    preset_param = request.args.get('preset')
+    if preset_param not in ('60', '30', '15', '5', 'custom'):
+        preset_param = None
+    if preset_param is None:
+        user_settings = _get_or_create_settings(current_user)
+        preset_param = user_settings.default_time_control or '5'
+
+    user_settings = _get_or_create_settings(current_user)
+    user_custom_defaults = None
+    user_accom_defaults = None
+    if user_settings.custom_clock_seconds is not None:
+        user_custom_defaults = {
+            'clock_seconds': user_settings.custom_clock_seconds,
+            'board_size': user_settings.custom_board_size_val,
+            'op_limit': user_settings.custom_op_limit,
+            'word_rate': user_settings.custom_word_rate,
+            'starting_words': user_settings.custom_starting_words,
+        }
+    if user_settings.accom_p1_clock_seconds is not None:
+        user_accom_defaults = {
+            'p1_clock_seconds': user_settings.accom_p1_clock_seconds,
+            'p2_clock_seconds': user_settings.accom_p2_clock_seconds,
+            'p1_starting_words': user_settings.accom_p1_starting_words,
+            'p2_starting_words': user_settings.accom_p2_starting_words,
+            'starting_player': user_settings.accom_starting_player or 'random',
+        }
+
+    return render_template(
+        'test_bench.html',
+        presets=Config.TIME_CONTROL_PRESETS,
+        preset_order=preset_order,
+        preset_icons=preset_icons,
+        board_size_stops=Config.BOARD_SIZE_STOPS,
+        default_preset=preset_param,
+        user_custom_defaults=user_custom_defaults,
+        user_accom_defaults=user_accom_defaults,
+    )
+
+
+@bp.route('/test/new', methods=['POST'])
+@login_required
+def test_bench_new_start():
+    form = request.form
+    preset = form.get('preset', '5')
+    payload = {
+        'preset': preset,
+        'accommodations_enabled': form.get('accommodations_enabled', ''),
+    }
+    if preset == 'custom':
+        try:
+            payload['clock_seconds'] = float(form.get('clock_minutes', 5)) * 60
+        except (TypeError, ValueError):
+            payload['clock_seconds'] = 300.0
+        payload['board_size'] = form.get('board_size', '6')
+        payload['op_limit'] = form.get('op_limit', '25')
+        payload['word_rate'] = form.get('word_rate', '1.0')
+        payload['starting_words'] = form.get('starting_words', '30')
+
+    if _coerce_bool(form.get('accommodations_enabled', '')):
+        try:
+            payload['p1_clock_seconds'] = float(form.get('p1_clock_minutes', 5)) * 60
+        except (TypeError, ValueError):
+            pass
+        try:
+            payload['p2_clock_seconds'] = float(form.get('p2_clock_minutes', 5)) * 60
+        except (TypeError, ValueError):
+            pass
+        payload['p1_starting_words'] = form.get('p1_starting_words', '')
+        payload['p2_starting_words'] = form.get('p2_starting_words', '')
+        payload['starting_player'] = form.get('starting_player', 'random')
+
+    try:
+        parsed = _parse_session_config(payload)
+    except ValueError as exc:
+        flash(str(exc))
+        return redirect(url_for('main.test_bench_new'))
+
+    try:
+        p1_autorun_delay = max(0.0, float(form.get('p1_autorun_delay', '0')))
+    except (TypeError, ValueError):
+        p1_autorun_delay = 0.0
+    try:
+        p2_autorun_delay = max(0.0, float(form.get('p2_autorun_delay', '0')))
+    except (TypeError, ValueError):
+        p2_autorun_delay = 0.0
+
+    game_id = str(uuid.uuid4())
+    create_test_session(
+        game_id=game_id,
+        size=parsed['size'],
+        op_limit=parsed['op_limit'],
+        clock_seconds=parsed['clock_seconds'],
+        word_rate=parsed['word_rate'],
+        starting_words=parsed['p1_starting_words'],
+        p2_starting_words=parsed['p2_starting_words'],
+        p1_clock_seconds=parsed['p1_clock_seconds'],
+        p2_clock_seconds=parsed['p2_clock_seconds'],
+        starting_player=parsed['starting_player'],
+        user_id=current_user.id,
+        p1_autorun_delay=p1_autorun_delay,
+        p2_autorun_delay=p2_autorun_delay,
+    )
+    return redirect(url_for('main.test_game_page', game_id=game_id))
+
+
+@bp.route('/test/<game_id>')
+@login_required
+def test_game_page(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return render_template('stub.html', page_title='Test game not found'), 404
+    if session._user_id != current_user.id:
+        return render_template('stub.html', page_title='Forbidden'), 403
+    player_num = request.args.get('player', '1')
+    if player_num not in ('1', '2'):
+        player_num = '1'
+    return render_template('test_game.html', game_id=game_id, player_num=int(player_num))
+
+
+@bp.route('/test/<game_id>/state', methods=['GET'])
+@login_required
+def test_game_state(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    session.check_clock_expired()
+    state = session.get_state(for_player=None)
+    state['total_phases'] = session._phase_counter
+    return jsonify(state)
+
+
+@bp.route('/test/<game_id>/state/<int:phase_number>', methods=['GET'])
+@login_required
+def test_game_phase_state(game_id, phase_number):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+    if phase_number < 0 or phase_number >= len(session._mem_phases):
+        return jsonify({'error': 'phase not found'}), 404
+
+    phase = session._mem_phases[phase_number]
+    board_raw = json.loads(phase['board_state_json'])
+    board = [[{'p1': cell[0], 'p2': cell[1]} for cell in row] for row in board_raw]
+    agents_raw = json.loads(phase['agents_json'])
+    exec_log = json.loads(phase['exec_log_json']) if phase['exec_log_json'] else []
+
+    return jsonify({
+        'board': board,
+        'agents': agents_raw,
+        'exec_log': exec_log,
+        'exec_ops_consumed': phase['ops_consumed'],
+        'op_limit': session.engine.op_limit,
+        'phase_number': phase['phase_number'],
+        'total_phases': session._phase_counter,
+        'exec_type': phase['exec_type'],
+        'player_slot': phase['player_slot'],
+    })
+
+
+@bp.route('/test/<game_id>/compile', methods=['POST'])
+@login_required
+def test_compile_script(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+    result = session.compile_script(player, data.get('source', ''), user_id=current_user.id)
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/deploy', methods=['POST'])
+@login_required
+def test_deploy_script(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+    result = session.deploy_script(player, data.get('source', ''), user_id=current_user.id)
+    status = 200 if result.get('ok') else 422
+    return jsonify(result), status
+
+
+@bp.route('/test/<game_id>/resign', methods=['POST'])
+@login_required
+def test_resign(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+    result = session.resign(player, user_id=current_user.id)
+    if not result.get('ok'):
+        return jsonify(result), 403
+    return jsonify(result)
+
+
+@bp.route('/test/<game_id>/begin_write', methods=['POST'])
+@login_required
+def test_begin_write(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+    session.skip_opening_pre_write()
+    return jsonify({'ok': True})
+
+
+@bp.route('/test/<game_id>/scripts', methods=['GET'])
+@login_required
+def test_scripts(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    player_str = request.args.get('player', '1')
+    player_slot = int(player_str) if player_str in ('1', '2') else 1
+    scripts = [
+        {'turn': s['turn_number'], 'source': s['source_text']}
+        for s in session._mem_scripts
+        if s['player_slot'] == player_slot
+    ]
+    return jsonify(scripts)
+
+
+@bp.route('/test/<game_id>/functions', methods=['GET'])
+@login_required
+def test_functions(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    return jsonify(list(session._mem_funcs.values()))
+
+
+@bp.route('/test/<game_id>/autorun', methods=['GET', 'POST'])
+@login_required
+def test_autorun(game_id):
+    session = get_test_session(game_id)
+    if session is None:
+        return jsonify({'error': 'game not found'}), 404
+    if session._user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        player = int(data.get('player', 1)) if str(data.get('player', 1)) in ('1', '2') else 1
+        enabled = bool(data.get('enabled', False))
+        session.set_autorun(player, enabled)
+        return jsonify({'ok': True, 'autorun': session.get_autorun()})
+
+    return jsonify({'autorun': session.get_autorun()})

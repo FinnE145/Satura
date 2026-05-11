@@ -50,11 +50,15 @@
     const linkDisplayUrl = document.getElementById('link-display-url');
     const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));
     const copyLinkBtn = document.getElementById('copy-link-btn');
+    const presetInviteBtn = document.getElementById('preset-invite-btn');
+    const inviteFriendBtn = document.getElementById('invite-friend-btn');
+    const inviteFriendList = document.getElementById('invite-friend-list');
     const lobbyPanel = document.getElementById('lobby-panel');
     const joinDot = document.getElementById('join-dot');
     const joinLabel = document.getElementById('join-label');
     const lobbyActions = document.getElementById('lobby-actions');
     const newLinkBtn = document.getElementById('new-link-btn');
+    const revokeInviteBtn = document.getElementById('revoke-invite-btn');
     const p1ReadyBtn = document.getElementById('p1-ready-btn');
 
     const fields = {
@@ -80,12 +84,51 @@
         fields.starting_words,
     ];
 
+    const accomToggle = document.getElementById('accom-toggle');
+    const startingPlayerToggle = document.getElementById('starting-player-toggle');
+
     let selectedPreset = 'custom';
     let customDefaultsActive = false;
     let accomDefaultsActive = false;
     let currentGameId = null;
     let pollInterval = null;
+
+    function syncAccomToggle() {
+        const enabled = fields.accommodations_enabled.checked;
+        const offOpt = document.getElementById('accom-off');
+        if (offOpt) {
+            offOpt.classList.toggle('seg-control__opt--active', !enabled);
+        }
+        const onOpt = document.getElementById('accom-on');
+        if (onOpt) {
+            onOpt.classList.toggle('seg-control__opt--active', enabled);
+            onOpt.classList.toggle('warm', enabled);
+        }
+    }
+
+    function syncStartingPlayerToggle() {
+        if (!startingPlayerToggle || !fields.starting_player) return;
+        const val = fields.starting_player.value;
+        startingPlayerToggle.querySelectorAll('.seg-control__opt').forEach(opt => {
+            const isMatch = opt.dataset.value === val;
+            opt.classList.toggle('seg-control__opt--active', isMatch);
+
+            opt.classList.remove('warm', 'cool', 'bg-grey', 'bg-grey-light', 'bg-grey-lighter');
+
+            if (isMatch) {
+                if (val === 'random') {
+                    opt.classList.add('bg-grey-lighter');
+                }
+                if (val === '1') {
+                    opt.classList.add('warm');
+                } else if (val === '2') {
+                    opt.classList.add('cool');
+                }
+            }
+        });
+    }
     let p1IsReady = false;
+    let inviteMode = false;
 
     function setError(message) {
         if (!errorBox) return;
@@ -128,6 +171,7 @@
         presetButtons.forEach((button) => {
             const active = button.dataset.preset === selectedPreset;
             button.classList.toggle('is-active', active);
+            button.classList.toggle('warm', active);
             button.setAttribute('aria-checked', active ? 'true' : 'false');
         });
     }
@@ -168,6 +212,7 @@
         }
 
         if (!enabled) {
+            syncAccomToggle();
             syncDefaultsNotice();
             return;
         }
@@ -186,6 +231,7 @@
             fields.p2_starting_words.value = String(userAccomDefaults.p2_starting_words);
             if (fields.starting_player) {
                 fields.starting_player.value = String(userAccomDefaults.starting_player);
+                syncStartingPlayerToggle();
             }
             accomDefaultsActive = true;
         } else if (accomFieldsAllEmpty) {
@@ -207,6 +253,7 @@
         }
 
         syncDefaultsNotice();
+        syncAccomToggle();
     }
 
     function buildPayload() {
@@ -272,8 +319,8 @@
             if (data.player2_joined) {
                 const name = data.player2_username || 'Player 2';
                 joinDot.className = data.player2_ready
-                    ? 'status-dot status-dot--ready'
-                    : 'status-dot status-dot--pending';
+                    ? 'flex-shrink-0 status-dot status-dot--ok'
+                    : 'flex-shrink-0 status-dot status-dot--warn';
                 joinLabel.textContent = data.player2_ready ? `${name} ready` : `${name} joined`;
                 lobbyActions.hidden = false;
                 updateStartingPlayerOptions(data.player2_username);
@@ -283,30 +330,45 @@
         }
     }
 
-    async function handleCopyLink() {
-        setError('');
-        copyLinkBtn.disabled = true;
+    function resetLobbyUI() {
+        stopPolling();
+        p1IsReady = false;
+        inviteMode = false;
+        currentGameId = null;
+        if (p1ReadyBtn) {
+            p1ReadyBtn.textContent = 'Ready';
+            p1ReadyBtn.disabled = false;
+        }
+        if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
+        if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
+        if (lobbyActions) lobbyActions.hidden = true;
+        if (newLinkBtn) newLinkBtn.hidden = false;
+        if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+        if (lobbyPanel) lobbyPanel.hidden = true;
+        if (linkDisplay) linkDisplay.hidden = true;
+        updateStartingPlayerOptions(null);
+    }
 
-        // Close old lobby if re-generating
+    async function _createLobby(payload, triggeredByBtn) {
+        setError('');
+        if (triggeredByBtn) triggeredByBtn.disabled = true;
+
         if (currentGameId) {
             try {
                 await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
-            } catch (_) {}
+            } catch (_) { }
         }
 
-        // Reset lobby UI state
         stopPolling();
         p1IsReady = false;
         if (p1ReadyBtn) {
             p1ReadyBtn.textContent = 'Ready';
             p1ReadyBtn.disabled = false;
         }
-        if (joinDot) joinDot.className = 'status-dot status-dot--pending';
+        if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
         if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
         if (lobbyActions) lobbyActions.hidden = true;
         updateStartingPlayerOptions(null);
-
-        const payload = buildPayload();
 
         try {
             const response = await fetch('/game/lobby', {
@@ -317,44 +379,81 @@
 
             if (response.status === 401) {
                 window.location.href = '/login?next=/game/new';
-                return;
+                return null;
             }
 
             const data = await response.json();
             if (!response.ok) {
                 setError(data.error || 'Failed to create game.');
-                return;
+                return null;
             }
 
-            const gameId = data.game_id;
-            if (!gameId) {
+            if (!data.game_id) {
                 setError('Server did not return a game id.');
-                return;
+                return null;
             }
 
-            currentGameId = gameId;
-            const alias = data.join_alias;
-            const joinUrl = alias
-                ? `${location.origin}/join/${encodeURIComponent(alias)}`
-                : `${location.origin}/game/${encodeURIComponent(gameId)}/join`;
-            let copied = false;
-            try {
-                await navigator.clipboard.writeText(joinUrl);
-                copied = true;
-            } catch (_) {}
-            if (linkDisplay) {
-                linkDisplay.firstChild.textContent = copied ? 'Copied link: ' : 'Copy this link: ';
-                if (linkDisplayUrl) linkDisplayUrl.textContent = joinUrl;
-                linkDisplay.hidden = false;
-            }
-
+            currentGameId = data.game_id;
             if (lobbyPanel) lobbyPanel.hidden = false;
-            startLobbyPoll(gameId);
+            startLobbyPoll(data.game_id);
+            return data;
         } catch (error) {
             setError(error?.message || 'Network error while creating game.');
+            return null;
         } finally {
-            copyLinkBtn.disabled = false;
+            if (triggeredByBtn) triggeredByBtn.disabled = false;
         }
+    }
+
+    async function handleCopyLink() {
+        inviteMode = false;
+        if (newLinkBtn) newLinkBtn.hidden = false;
+        if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+
+        const data = await _createLobby(buildPayload(), copyLinkBtn);
+        if (!data) return;
+
+        const alias = data.join_alias;
+        const joinUrl = alias
+            ? `${location.origin}/join/${encodeURIComponent(alias)}`
+            : `${location.origin}/game/${encodeURIComponent(data.game_id)}/join`;
+        let copied = false;
+        try {
+            await navigator.clipboard.writeText(joinUrl);
+            copied = true;
+        } catch (_) { }
+        if (linkDisplay) {
+            linkDisplay.firstChild.textContent = copied ? 'Copied link: ' : 'Copy this link: ';
+            if (linkDisplayUrl) linkDisplayUrl.textContent = joinUrl;
+            linkDisplay.hidden = false;
+        }
+    }
+
+    async function handleInviteFriend(friendId, friendUsername) {
+        inviteMode = true;
+        if (newLinkBtn) newLinkBtn.hidden = true;
+        if (revokeInviteBtn) revokeInviteBtn.hidden = false;
+        if (linkDisplay) linkDisplay.hidden = true;
+
+        const payload = Object.assign(buildPayload(), { invited_user_id: friendId });
+        const data = await _createLobby(payload, null);
+        if (!data) {
+            inviteMode = false;
+            if (newLinkBtn) newLinkBtn.hidden = false;
+            if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+            return;
+        }
+
+        if (joinLabel) joinLabel.textContent = `Waiting for ${friendUsername} to join…`;
+    }
+
+    async function handleRevokeInvite() {
+        if (currentGameId) {
+            try {
+                await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
+            } catch (_) { }
+        }
+        resetLobbyUI();
     }
 
     async function handleReady() {
@@ -399,7 +498,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(buildPayload()),
                 });
-            } catch (_) {}
+            } catch (_) { }
         }, 300);
     }
 
@@ -416,6 +515,31 @@
         syncAccommodations();
         schedulePatchSettings();
     });
+
+    if (accomToggle) {
+        accomToggle.addEventListener('click', (e) => {
+            const opt = e.target.closest('.seg-control__opt');
+            if (!opt) return;
+            e.preventDefault();
+            const enabled = opt.id === 'accom-on';
+            if (enabled === fields.accommodations_enabled.checked) return;
+            fields.accommodations_enabled.checked = enabled;
+            fields.accommodations_enabled.dispatchEvent(new Event('change'));
+        });
+    }
+
+    if (startingPlayerToggle) {
+        startingPlayerToggle.addEventListener('click', (e) => {
+            const opt = e.target.closest('.seg-control__opt');
+            if (!opt || !fields.starting_player) return;
+            e.preventDefault();
+            const val = opt.dataset.value;
+            if (val === fields.starting_player.value) return;
+            fields.starting_player.value = val;
+            syncStartingPlayerToggle();
+            fields.starting_player.dispatchEvent(new Event('input'));
+        });
+    }
 
     coreInputs.forEach((input) => {
         if (input) input.addEventListener('input', () => {
@@ -436,6 +560,45 @@
     if (copyLinkBtn) copyLinkBtn.addEventListener('click', handleCopyLink);
     if (p1ReadyBtn) p1ReadyBtn.addEventListener('click', handleReady);
     if (newLinkBtn) newLinkBtn.addEventListener('click', handleNewLink);
+    if (revokeInviteBtn) revokeInviteBtn.addEventListener('click', handleRevokeInvite);
+    if (presetInviteBtn) {
+        presetInviteBtn.addEventListener('click', () => {
+            handleInviteFriend(
+                Number(presetInviteBtn.dataset.friendId),
+                presetInviteBtn.dataset.friendUsername || 'friend',
+            );
+        });
+    }
+
+    if (inviteFriendBtn && inviteFriendList) {
+        function positionInviteList() {
+            const r = inviteFriendBtn.getBoundingClientRect();
+            inviteFriendList.style.top   = (r.bottom + 4) + 'px';
+            inviteFriendList.style.right = (window.innerWidth - r.right) + 'px';
+        }
+        inviteFriendBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = !inviteFriendList.hidden;
+            inviteFriendList.hidden = open;
+            inviteFriendBtn.setAttribute('aria-expanded', String(!open));
+            if (!open) positionInviteList();
+        });
+        inviteFriendList.addEventListener('click', (e) => {
+            const item = e.target.closest('[data-friend-id]');
+            if (!item) return;
+            const friendId = Number(item.dataset.friendId);
+            const friendUsername = item.dataset.friendUsername || 'friend';
+            inviteFriendList.hidden = true;
+            inviteFriendBtn.setAttribute('aria-expanded', 'false');
+            handleInviteFriend(friendId, friendUsername);
+        });
+        document.addEventListener('click', (e) => {
+            if (!inviteFriendList.hidden && !inviteFriendBtn.contains(e.target) && !inviteFriendList.contains(e.target)) {
+                inviteFriendList.hidden = true;
+                inviteFriendBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     selectPreset(defaultPreset);
     if (defaultPreset === 'custom') {
@@ -448,5 +611,6 @@
     }
     syncAccommodations();
     syncDefaultsNotice();
+    syncStartingPlayerToggle();
     updateStartingPlayerOptions(null);
 })();

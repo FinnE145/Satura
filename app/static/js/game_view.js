@@ -7,7 +7,7 @@ const gameControlsEl = document.getElementById('game-controls');
 const boardLegendP1El = document.getElementById('board-legend-p1');
 const boardLegendP2El = document.getElementById('board-legend-p2');
 const boardLegendInfoEl = document.getElementById('board-legend-info');
-const gameOverModal = document.getElementById('game-over-modal');
+const gameOverModal = document.getElementById('modal');
 const gameOverMessage = document.getElementById('game-over-message');
 const gameOverBackdrop = document.getElementById('game-over-backdrop');
 const btnReplay = document.getElementById('btn-replay');
@@ -27,14 +27,14 @@ const p2Username = gameRoot?.dataset?.p2Username || 'P2';
 // Set up player badges (always P1 = warm/left, P2 = cool/right)
 document.querySelectorAll('[data-tc="badge-p1"]').forEach(el => {
     el.textContent = 'P1';
-    el.classList.add('gc-player-badge--p1');
+    el.classList.add('warm-bright');
 });
 document.querySelectorAll('[data-tc="badge-p2"]').forEach(el => {
     el.textContent = 'P2';
-    el.classList.add('gc-player-badge--p2');
+    el.classList.add('cool-bright');
 });
-if (boardLegendP1El) boardLegendP1El.className = 'board-legend-item board-legend-item--p1';
-if (boardLegendP2El) boardLegendP2El.className = 'board-legend-item board-legend-item--p2';
+if (boardLegendP1El) boardLegendP1El.className = 'badge warm-bright';
+if (boardLegendP2El) boardLegendP2El.className = 'badge cool-bright';
 
 let statePollTimer = null;
 let clockRenderTimer = null;
@@ -87,7 +87,7 @@ if (gameOverBackdrop) {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-    setStatus('pending');
+    setStatus('warn');
     setPhase('initialising');
 
     if (!gameId || !apiBase) {
@@ -100,7 +100,7 @@ async function init() {
     try {
         sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
         sessionIdEl.title = gameId;
-        setStatus('ready');
+        setStatus('ok');
 
         const initState = await get(`${apiBase}/state`);
         lastLiveState = initState;
@@ -140,7 +140,7 @@ async function refreshState() {
             const prevTotal = knownTotalPhases;
             knownTotalPhases = state.total_phases;
             if (viewingPhase !== null && knownTotalPhases > prevTotal) {
-                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm');
+                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm', 'warm');
                 updatePastNotice();
             }
         }
@@ -269,8 +269,8 @@ function formatPhaseLabel(state) {
 
 function phasePillClass(isWrite, player) {
     const classes = ['phase-pill'];
-    if (player === 1) classes.push('phase-pill--p1');
-    else if (player === 2) classes.push('phase-pill--p2');
+    if (player === 1) classes.push('phase-pill--p1', 'warm');
+    else if (player === 2) classes.push('phase-pill--p2', 'cool');
     if (isWrite) classes.push('phase-pill--write');
     return classes.join(' ');
 }
@@ -494,7 +494,7 @@ function updateBoardCoverage(board) {
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 function setStatus(state) {
-    statusDot.className = `status-dot status-dot--${state}`;
+    statusDot.className = `flex-shrink-0 status-dot status-dot--${state}`;
 }
 
 // ── Replay helpers ────────────────────────────────────────────────────────────
@@ -636,7 +636,7 @@ async function navigateToPhase(phaseNum) {
 function exitHistoryMode() {
     viewingPhase = null;
     gameControlsPastNotice.hidden = true;
-    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm');
+    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm', 'warm');
     if (lastLiveState) {
         viewState = lastLiveState;
         renderBoard(lastLiveState);

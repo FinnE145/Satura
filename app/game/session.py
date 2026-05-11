@@ -62,6 +62,7 @@ class PendingLobby:
     player2_username: str | None = None
     player1_ready: bool = False
     player2_ready: bool = False
+    invited_user_id: int | None = None
 
     def lobby_status(self) -> dict:
         return {
@@ -581,11 +582,159 @@ class GameSession:
             pass  # best-effort; in-memory state is authoritative
 
 
+class TestGameSession(GameSession):
+    """GameSession variant that stores all history in-memory.
+    Both player slots belong to the same user. Each player can be set to
+    auto-run (re-deploys their saved script automatically each write phase)
+    or left in manual mode (waits for an explicit deploy request).
+    No database writes of any kind are performed."""
+
+    def __init__(self, game_id: str, engine: Engine, user_id: int):
+        super().__init__(game_id, engine)
+        self._user_id: int = user_id
+        self._mem_phases: list[dict] = []
+        self._mem_scripts: list[dict] = []
+        self._mem_funcs: dict[str, dict] = {}  # name → {name, args, source} (latest wins)
+        self._autorun: dict[int, bool] = {1: False, 2: False}
+        self._saved_script: dict[int, str] = {1: '', 2: ''}
+        self._autorun_delay: dict[int, float] = {1: 0.0, 2: 0.0}
+        self._autorun_pending_deadline: float | None = None
+
+    def _persist_phase(
+        self,
+        exec_type: str,
+        player_slot: int,
+        outcome: str | None = None,
+        exec_log: list[dict] | None = None,
+        ops_consumed: int = 0,
+        script_id: int | None = None,
+    ) -> None:
+        self._mem_phases.append({
+            "phase_number": self._phase_counter,
+            "player_slot": player_slot,
+            "exec_type": exec_type,
+            "script_id": script_id,
+            "outcome": outcome,
+            "exec_log_json": json.dumps(exec_log) if exec_log is not None else None,
+            "ops_consumed": ops_consumed,
+            "board_state_json": self._snapshot_board_json(),
+            "agents_json": self._snapshot_agents_json(),
+            "word_banks_json": self._snapshot_word_banks_json(),
+            "clock_remaining_json": self._snapshot_clock_json(),
+        })
+        self._prev_phase_id = self._phase_counter
+        self._phase_counter += 1
+
+    def _persist_initial_phase(self) -> None:
+        self._persist_phase("initial", self.current_player)
+
+    def _persist_script(
+        self,
+        source: str,
+        word_count: int,
+        player_slot: int,
+        account_id: int | None,
+    ) -> int | None:
+        script_id = self._turn_counter
+        self._mem_scripts.append({
+            "id": script_id,
+            "player_slot": player_slot,
+            "turn_number": self._turn_counter,
+            "source_text": source,
+        })
+        self._turn_counter += 1
+        return script_id
+
+    def _persist_functions(
+        self,
+        source: str,
+        script_id: int | None,
+        player_slot: int,
+        account_id: int | None,
+        funcs_before: set[str],
+    ) -> None:
+        import re as _re
+        bodies = self.engine.persisted_funcs.get(0, {})
+        new_names = set(bodies.keys()) - funcs_before
+        source_lines = source.splitlines()
+        for name in new_names:
+            func_def = bodies[name]
+            func_text = _extract_func_text(source_lines, func_def.line)
+            first_line = func_text.split('\n')[0] if func_text else ''
+            m = _re.search(r'\(([^)]*)\)', first_line)
+            args = [a.strip() for a in m.group(1).split(',') if a.strip()] if m and m.group(1).strip() else []
+            self._mem_funcs[name] = {"name": name, "args": args, "source": func_text}
+
+    def _persist_result(self) -> None:
+        pass
+
+    def _animation_wait_seconds(self, exec_log: list[dict]) -> float:
+        return 0.1
+
+    def set_autorun(self, player: int, enabled: bool) -> None:
+        if player in (1, 2):
+            self._autorun[player] = enabled
+
+    def set_autorun_delay(self, player: int, delay: float) -> None:
+        if player in (1, 2):
+            self._autorun_delay[player] = max(0.0, delay)
+
+    def get_autorun(self) -> dict:
+        return {1: self._autorun[1], 2: self._autorun[2]}
+
+    def deploy_script(self, player: int, source: str, user_id: int | None = None) -> dict:
+        result = super().deploy_script(player, source, user_id=user_id)
+        if result.get('ok'):
+            self._saved_script[player] = source
+        return result
+
+    def get_state(self, for_player=None) -> dict:
+        self._check_autorun_deadline()
+        return super().get_state(for_player)
+
+    def _check_autorun_deadline(self) -> None:
+        if self.game_over or self.phase != 'write':
+            self._autorun_pending_deadline = None
+            return
+        if self._autorun_pending_deadline is None:
+            return
+        if time.monotonic() >= self._autorun_pending_deadline:
+            self._autorun_pending_deadline = None
+            player = self.current_player
+            if self._autorun.get(player) and self._saved_script.get(player):
+                self._auto_deploy(player)
+
+    def _enter_write_phase(self) -> None:
+        super()._enter_write_phase()
+        if not self.game_over:
+            player = self.current_player
+            if self._autorun.get(player) and self._saved_script.get(player):
+                delay = self._autorun_delay.get(player, 0.0)
+                if delay <= 0:
+                    self._auto_deploy(player)
+                else:
+                    self._autorun_pending_deadline = time.monotonic() + delay
+
+    def _auto_deploy(self, player: int) -> None:
+        script = self._saved_script[player]
+        result = self.engine.compile(script)
+        if not result.ok:
+            return
+        self.engine.spend_words(player, result.word_count)
+        script_id = self._persist_script(script, result.word_count, player, None)
+        self._current_script_id = script_id
+        funcs_before: set[str] = set(self.engine.persisted_funcs.get(0, {}).keys())
+        self._program[player] = result.program
+        self._run_exec1()
+        self._persist_functions(script, script_id, player, None, funcs_before)
+
+
 # ------------------------------------------------------------------ module registry
 
 _sessions: dict[str, "GameSession"] = {}
 _pending_lobbies: dict[str, PendingLobby] = {}
 _alias_index: dict[str, str] = {}  # join_alias (uppercase) -> game_id
+_invite_index: dict[int, str] = {}  # invited_user_id -> game_id
 
 
 def _restore_session_from_db(game_id: str) -> "GameSession | None":
@@ -698,17 +847,20 @@ def _restore_session_from_db(game_id: str) -> "GameSession | None":
         return None
 
 
-def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '') -> PendingLobby:
+def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '', invited_user_id: int | None = None) -> PendingLobby:
     lobby = PendingLobby(
         game_id=game_id,
         settings=settings,
         player1_id=player1_id,
         player1_username=username,
         join_alias=join_alias,
+        invited_user_id=invited_user_id,
     )
     _pending_lobbies[game_id] = lobby
     if join_alias:
         _alias_index[join_alias.upper()] = game_id
+    if invited_user_id is not None:
+        _invite_index[invited_user_id] = game_id
     return lobby
 
 
@@ -727,10 +879,19 @@ def get_lobby(game_id: str) -> PendingLobby | None:
     return _pending_lobbies.get(game_id)
 
 
+def get_invite_for_user(user_id: int) -> PendingLobby | None:
+    game_id = _invite_index.get(user_id)
+    if game_id is None:
+        return None
+    return _pending_lobbies.get(game_id)
+
+
 def remove_lobby(game_id: str) -> None:
     lobby = _pending_lobbies.pop(game_id, None)
     if lobby and lobby.join_alias:
         _alias_index.pop(lobby.join_alias.upper(), None)
+    if lobby and lobby.invited_user_id is not None:
+        _invite_index.pop(lobby.invited_user_id, None)
 
 
 def create_session(
@@ -756,3 +917,48 @@ def get_session(game_id: str) -> GameSession | None:
     if session is not None:
         return session
     return _restore_session_from_db(game_id)
+
+
+_test_sessions: dict[str, "TestGameSession"] = {}
+
+
+def create_test_session(
+    game_id: str,
+    size: int,
+    op_limit: int,
+    clock_seconds: float,
+    word_rate: float,
+    starting_words: float,
+    user_id: int,
+    p1_clock_seconds: float | None = None,
+    p2_clock_seconds: float | None = None,
+    p2_starting_words: float | None = None,
+    starting_player: int = 1,
+    p1_autorun_delay: float = 0.0,
+    p2_autorun_delay: float = 0.0,
+) -> "TestGameSession":
+    """Create an in-memory-only test game. P1 = user, P2 = halt bot."""
+    engine = Engine(size, op_limit, clock_seconds, word_rate)
+    engine._word_bank[1] = starting_words
+    engine._word_bank[2] = p2_starting_words if p2_starting_words is not None else starting_words
+    if p1_clock_seconds is not None:
+        engine._clock_remaining[1] = p1_clock_seconds
+    if p2_clock_seconds is not None:
+        engine._clock_remaining[2] = p2_clock_seconds
+    session = TestGameSession(game_id, engine, user_id=user_id)
+    session.set_players(user_id, user_id)
+    session._autorun_delay[1] = max(0.0, p1_autorun_delay)
+    session._autorun_delay[2] = max(0.0, p2_autorun_delay)
+    session.current_player = starting_player if starting_player in (1, 2) else 1
+    _test_sessions[game_id] = session
+    session._persist_initial_phase()
+    session._run_exec2()
+    return session
+
+
+def get_test_session(game_id: str) -> "TestGameSession | None":
+    return _test_sessions.get(game_id)
+
+
+def remove_test_session(game_id: str) -> None:
+    _test_sessions.pop(game_id, None)

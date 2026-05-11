@@ -18,7 +18,7 @@ const diagBadge = document.getElementById('diag-badge');
 const diagBody = document.getElementById('diagnostics-body');
 const outputBody = document.getElementById('output-body');
 const outcomeLabel = document.getElementById('outcome-label');
-const gameOverModal = document.getElementById('game-over-modal');
+const gameOverModal = document.getElementById('modal');
 const gameOverMessage = document.getElementById('game-over-message');
 const gameOverBackdrop = document.getElementById('game-over-backdrop');
 const btnDraw = document.getElementById('btn-draw');
@@ -34,29 +34,57 @@ const gameControlsDrawMsg = document.getElementById('game-controls-draw-msg');
 const gameControlsDrawBtns = document.getElementById('game-controls-draw-btns');
 const btnDrawAccept = document.getElementById('btn-draw-accept');
 const btnDrawReject = document.getElementById('btn-draw-reject');
+const btnAutorun = document.getElementById('btn-autorun');
+const autorunLabel = document.getElementById('autorun-label');
+const playerSwitchEl = document.getElementById('player-switch');
+const playerSwitchP1 = document.getElementById('player-switch-p1');
+const playerSwitchP2 = document.getElementById('player-switch-p2');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const gameRoot = document.getElementById('game-root');
 const gameId = gameRoot?.dataset?.gameId || null;
-const apiBase = gameId ? `/game/${encodeURIComponent(gameId)}` : null;
+const endpointPrefix = gameRoot?.dataset?.endpointPrefix || '/game';
+const apiBase = gameId ? `${endpointPrefix}/${encodeURIComponent(gameId)}` : null;
+const isTestMode = gameRoot?.dataset?.testMode === 'true';
 const myPlayer = parseInt(gameRoot?.dataset?.playerNum) || null;
 const minePlayer = myPlayer || 1;
 const oppPlayer = minePlayer === 1 ? 2 : 1;
 
+if (isTestMode && btnDraw) btnDraw.hidden = true;
+
+// ── Test-mode: player switch ──────────────────────────────────────────────────
+
+let autorunEnabled = false;
+
+if (isTestMode && gameId) {
+    if (playerSwitchEl && playerSwitchP1 && playerSwitchP2) {
+        playerSwitchP1.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=1`;
+        playerSwitchP2.href = `${endpointPrefix}/${encodeURIComponent(gameId)}?player=2`;
+        if (minePlayer === 1) {
+            playerSwitchP1.classList.add('seg-control__opt--active', 'warm');
+        } else {
+            playerSwitchP2.classList.add('seg-control__opt--active', 'cool');
+        }
+        playerSwitchEl.hidden = false;
+    }
+    if (btnAutorun) btnAutorun.hidden = false;
+    if (autorunLabel) autorunLabel.hidden = false;
+}
+
 document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
     el.textContent = `P${minePlayer}`;
-    el.classList.add(`gc-player-badge--p${minePlayer}`);
+    el.classList.add(minePlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 document.querySelectorAll('[data-tc="badge-opp"]').forEach(el => {
     el.textContent = `P${oppPlayer}`;
-    el.classList.add(`gc-player-badge--p${oppPlayer}`);
+    el.classList.add(oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 if (boardLegendMineEl) {
-    boardLegendMineEl.className = `board-legend-item board-legend-item--p${minePlayer}`;
+    boardLegendMineEl.className = `badge ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 if (boardLegendOppEl) {
-    boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppPlayer}`;
+    boardLegendOppEl.className = `badge ${oppPlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 
 let bankPollTimer = null;
@@ -82,6 +110,7 @@ let activePalette = {
     cool: bodyPalette?.paletteCool || fallbackPalette.cool,
 };
 let lastBoardState = null;
+let lastExecState = null;
 let lastBank = 0;
 let lastRate = 1 / 3;
 let currentWordCount = 0;
@@ -92,6 +121,7 @@ let clockSnapshot = null;
 let phaseSnapshot = null;
 let lastReplayKey = null;
 let replayInFlight = false;
+let replayCancelled = false;
 let stepDelayMs = 500;
 let gameOverModalShown = false;
 let hasSignaledBeginWrite = false;
@@ -134,7 +164,7 @@ function countWords(src) {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-    setStatus('pending');
+    setStatus('warn');
     setPhase('initialising');
     setSessionReady(false);
 
@@ -148,7 +178,7 @@ async function init() {
     try {
         sessionIdEl.textContent = gameId.slice(0, 8) + '\u2026';
         sessionIdEl.title = gameId;
-        setStatus('ready');
+        setStatus('ok');
 
         // Show the latest board and actual server phase immediately.
         const initState = await get(`${apiBase}/state`);
@@ -192,7 +222,7 @@ async function refreshBank() {
             knownTotalPhases = state.total_phases;
             // New phase arrived while user is browsing history — highlight Current button and update notice
             if (viewingPhase !== null && knownTotalPhases > prevTotal) {
-                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm');
+                if (btnHistoryCurrent) btnHistoryCurrent.classList.add('game-controls-btn--is-warm', 'warm');
                 updatePastNotice();
             }
         }
@@ -204,6 +234,7 @@ async function refreshBank() {
         applySessionState(state);
         if (viewingPhase === null) {
             viewState = state;
+            if ((state?.exec_log?.length ?? 0) > 0) lastExecState = state;
             await replayPolledExecution(state);
         }
         if (state?.game_over === true && bankPollTimer) {
@@ -531,11 +562,18 @@ btnDeploy.addEventListener('click', async () => {
         // Fetch exec log, territory, and board from game state
         const state = await get(`${apiBase}/state`);
         applySessionState(state);
+        if ((state?.exec_log?.length ?? 0) > 0) lastExecState = state;
+        replayCancelled = false;
         replayInFlight = true;
+        setReplayButtonActive(true);
+        updateHistoryButtons();
         try {
             await replayExecution(preExecState, state, myPlayer);
         } finally {
             replayInFlight = false;
+            replayCancelled = false;
+            setReplayButtonActive(false);
+            updateHistoryButtons();
         }
         markReplaySeen(state);
         maybeShowGameOverModal(state);
@@ -555,7 +593,7 @@ editor.addEventListener('input', () => {
     const src = editor.value;
     const hasContent = src.trim().length > 0;
     btnCompile.classList.toggle('btn--ghost', !hasContent);
-    btnCompile.classList.toggle('btn--secondary', hasContent);
+    btnCompile.classList.toggle('btn-cool-bright-border', hasContent);
 
     currentWordCount = countWords(src);
     compileState = null;
@@ -667,9 +705,9 @@ function updateWordShortageNotice() {
 function diagItem(type, msg) {
     const icon = type === 'error' ? '\u2715' : '\u26a0';
     const div = document.createElement('div');
-    div.className = `diag-item diag-item--${type}`;
+    div.className = `diag-item text-${type}`;
     div.innerHTML =
-        `<span class="diag-icon">${icon}</span>` +
+        `<span class="flex-shrink-0 diag-icon">${icon}</span>` +
         `<span class="diag-msg">${esc(String(msg))}</span>`;
     return div;
 }
@@ -701,7 +739,7 @@ function renderOutput(state) {
         const row = document.createElement('div');
         row.className = 'log-entry';
         row.innerHTML =
-            `<span class="log-idx">${String(i + 1).padStart(2, '0')}</span>` +
+            `<span class="flex-shrink-0 log-idx">${String(i + 1).padStart(2, '0')}</span>` +
             formatLogEntry(entry);
         outputBody.appendChild(row);
     });
@@ -733,6 +771,7 @@ async function replayExecution(preExecState, postExecState, actorPlayer = 1, sho
             if (!isInstantSensingOp(entry)) {
                 await delay(stepDelayMs);
             }
+            if (replayCancelled) break;
             applyOperationToReplayState(replayState, entry, replayBase, actorPlayer);
             renderBoard(replayState);
         }
@@ -764,11 +803,12 @@ async function renderOutputStepByStep(state, onStep) {
         if (!isInstantSensingOp(entry)) {
             await delay(stepDelayMs);
         }
+        if (replayCancelled) break;
 
         const row = document.createElement('div');
         row.className = 'log-entry';
         row.innerHTML =
-            `<span class="log-idx">${String(i + 1).padStart(2, '0')}</span>` +
+            `<span class="flex-shrink-0 log-idx">${String(i + 1).padStart(2, '0')}</span>` +
             formatLogEntry(entry);
         outputBody.appendChild(row);
 
@@ -899,8 +939,8 @@ function formatLogEntry(entry) {
 function op(cssType, detail, label) {
     const opLabel = label ?? cssType;
     const cls = cssType ? `log-op log-op--${cssType}` : 'log-op';
-    return `<span class="${cls}">${esc(opLabel)}</span>` +
-        `<span class="log-detail">${detail}</span>`;
+    return `<span class="flex-shrink-0 ${cls}">${esc(opLabel)}</span>` +
+        `<span class="flex-1 log-detail">${detail}</span>`;
 }
 
 function fmtResult(v) {
@@ -1079,7 +1119,7 @@ function updateBoardCoverage(board) {
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 function setStatus(state) {
-    statusDot.className = `status-dot status-dot--${state}`;
+    statusDot.className = `flex-shrink-0 status-dot status-dot--${state}`;
 }
 
 function setPhase(text, highlight = false, player = 0) {
@@ -1103,9 +1143,9 @@ function _applyPhaseToElements(text, className, player) {
 function phasePillClass(isWrite, player) {
     const classes = ['phase-pill'];
     if (player === 1) {
-        classes.push('phase-pill--p1');
+        classes.push('phase-pill--p1', 'warm');
     } else if (player === 2) {
-        classes.push('phase-pill--p2');
+        classes.push('phase-pill--p2', 'cool');
     }
     if (isWrite) {
         classes.push('phase-pill--write');
@@ -1333,11 +1373,17 @@ async function replayPolledExecution(state) {
 
     const actor = Number(state?.last_exec_player ?? state?.current_player ?? 1);
     const preExecState = cloneBoardAndAgents(lastBoardState);
+    replayCancelled = false;
     replayInFlight = true;
+    setReplayButtonActive(true);
+    updateHistoryButtons();
     try {
         await replayExecution(preExecState, state, actor === 2 ? 2 : 1, actor === minePlayer);
     } finally {
         replayInFlight = false;
+        replayCancelled = false;
+        setReplayButtonActive(false);
+        updateHistoryButtons();
     }
     markReplaySeen(state);
     maybeShowGameOverModal(state);
@@ -1405,8 +1451,11 @@ function delay(ms) {
 
 if (btnReplay) {
     btnReplay.addEventListener('click', async () => {
-        if (!gameId || !viewState || replayInFlight) return;
-        const log = viewState.exec_log ?? [];
+        if (!gameId || !viewState) return;
+        if (replayInFlight) { replayCancelled = true; return; }
+        const replaySource = (viewState?.exec_log?.length ?? 0) > 0 ? viewState : lastExecState;
+        if (!replaySource) return;
+        const log = replaySource.exec_log ?? [];
         if (log.length === 0) return;
 
         const wasLive = viewingPhase === null;
@@ -1430,13 +1479,19 @@ if (btnReplay) {
             } catch (_) { /* proceed without pre-state */ }
         }
 
-        const actorPlayer = viewState.player_slot ?? viewState.last_exec_player ?? 1;
+        const actorPlayer = replaySource.player_slot ?? replaySource.last_exec_player ?? 1;
 
+        replayCancelled = false;
         replayInFlight = true;
+        setReplayButtonActive(true);
+        updateHistoryButtons();
         try {
-            await replayExecution(preExecState, viewState, actorPlayer);
+            await replayExecution(preExecState, replaySource, actorPlayer);
         } finally {
             replayInFlight = false;
+            replayCancelled = false;
+            setReplayButtonActive(false);
+            updateHistoryButtons();
         }
 
         if (wasLive) {
@@ -1465,7 +1520,7 @@ async function navigateToPhase(phaseNum) {
 function exitHistoryMode() {
     viewingPhase = null;
     gameControlsPastNotice.hidden = true;
-    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm');
+    if (btnHistoryCurrent) btnHistoryCurrent.classList.remove('game-controls-btn--is-warm', 'warm');
     if (lastLiveState) {
         viewState = lastLiveState;
         renderBoard(lastLiveState);
@@ -1485,6 +1540,18 @@ function updatePastNotice() {
     gameControlsPastNotice.hidden = false;
 }
 
+function setReplayButtonActive(active) {
+    if (!btnReplay) return;
+    const icon = btnReplay.querySelector('.material-symbols-outlined');
+    if (active) {
+        if (icon) { icon.textContent = 'stop'; icon.classList.add('icon-fill'); }
+        btnReplay.classList.add('game-controls-btn--is-warm', 'warm');
+    } else {
+        if (icon) { icon.textContent = 'replay'; icon.classList.remove('icon-fill'); }
+        btnReplay.classList.remove('game-controls-btn--is-warm', 'warm');
+    }
+}
+
 function updateHistoryButtons() {
     const inHistory = viewingPhase !== null;
     const atStart = inHistory && viewingPhase === 0;
@@ -1492,9 +1559,9 @@ function updateHistoryButtons() {
     // Disable back when live and no phases yet recorded
     const noHistory = !inHistory && knownTotalPhases < 2;
 
-    if (btnHistoryBack) btnHistoryBack.disabled = atStart || noHistory;
-    if (btnHistoryForward) btnHistoryForward.disabled = !inHistory || atEnd;
-    if (btnHistoryCurrent) btnHistoryCurrent.disabled = !inHistory;
+    if (btnHistoryBack) btnHistoryBack.disabled = atStart || noHistory || replayInFlight;
+    if (btnHistoryForward) btnHistoryForward.disabled = !inHistory || atEnd || replayInFlight;
+    if (btnHistoryCurrent) btnHistoryCurrent.disabled = !inHistory || replayInFlight;
 }
 
 if (btnHistoryBack) {
@@ -1548,8 +1615,9 @@ function isSmallScreen() {
 async function loadHistoryData() {
     if (!gameId || !myPlayer) return;
     try {
+        const scriptsUrl = isTestMode ? `${apiBase}/scripts?player=${minePlayer}` : `${apiBase}/scripts`;
         const [scripts, funcs] = await Promise.all([
-            get(`${apiBase}/scripts`),
+            get(scriptsUrl),
             get(`${apiBase}/functions`),
         ]);
         renderHistoryInto(scriptHistoryCard, scripts, funcs);
@@ -1608,7 +1676,7 @@ function makeHistoryItem(label, sub, source, onClick) {
     if (preview) item.title = preview;
 
     const wrap = document.createElement('div');
-    wrap.className = 'script-history-item__label-wrap';
+    wrap.className = 'flex-col flex-1 min-w-0 script-history-item__label-wrap';
 
     const labelEl = document.createElement('span');
     labelEl.className = 'script-history-item__label';
@@ -1623,7 +1691,7 @@ function makeHistoryItem(label, sub, source, onClick) {
     }
 
     const copyIcon = document.createElement('span');
-    copyIcon.className = 'material-symbols-outlined script-history-item__copy';
+    copyIcon.className = 'flex-shrink-0 material-symbols-outlined script-history-item__copy';
     copyIcon.textContent = 'content_copy';
     copyIcon.setAttribute('aria-hidden', 'true');
 
@@ -1712,8 +1780,48 @@ async function refreshViewerCount() {
     }
 }
 
-refreshViewerCount();
-let viewerCountTimer = setInterval(refreshViewerCount, 10000);
+let viewerCountTimer = null;
+if (!isTestMode) {
+    refreshViewerCount();
+    viewerCountTimer = setInterval(refreshViewerCount, 10000);
+}
+
+// ── Auto-run toggle (test mode) ───────────────────────────────────────────────
+
+function setAutorunUI(enabled) {
+    autorunEnabled = enabled;
+    if (!btnAutorun) return;
+    const offOpt = document.getElementById('autorun-off');
+    if (offOpt) offOpt.classList.toggle('seg-control__opt--active', !enabled);
+    const onOpt = document.getElementById('autorun-on');
+    if (onOpt) {
+        onOpt.classList.toggle('seg-control__opt--active', enabled);
+        onOpt.classList.toggle('warm', enabled);
+    }
+}
+
+async function fetchAutorun() {
+    if (!apiBase) return;
+    try {
+        const data = await get(`${apiBase}/autorun`);
+        setAutorunUI(data.autorun?.[minePlayer] ?? false);
+    } catch (_) { }
+}
+
+if (isTestMode && btnAutorun) {
+    fetchAutorun();
+    btnAutorun.addEventListener('click', async (e) => {
+        const opt = e.target.closest('.seg-control__opt');
+        if (!opt) return;
+        e.preventDefault();
+        const newEnabled = opt.id === 'autorun-on';
+        if (newEnabled === autorunEnabled) return;
+        try {
+            const data = await post(`${apiBase}/autorun`, { player: minePlayer, enabled: newEnabled });
+            setAutorunUI(data.autorun?.[minePlayer] ?? newEnabled);
+        } catch (_) { }
+    });
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

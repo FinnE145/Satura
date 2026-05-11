@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Satura | New Game{% endblock %}
+{% block title %}Satura | Test Bench{% endblock %}
 
 {% block content %}
 <main class="site-main">
-    <div class="flex-col container create-page-stack" id="create-root" data-username="{{ username }}">
+    <div class="flex-col container create-page-stack">
         <article class="card">
             <header class="flex-row card-header">
-                <h1 class="card-title">Create Game</h1>
+                <h1 class="card-title">Test Bench</h1>
             </header>
             <div class="flex-col settings-card-body settings-stack">
+                <p class="text-small-sans text-dim">
+                    Play a solo test game. Both players are under your control. Test games are not saved.
+                </p>
+
                 <div>
                     <p class="hero-create-label">Preset</p>
                     <div class="hero-modes" id="preset-row" role="radiogroup" aria-label="Game preset">
@@ -28,11 +32,14 @@
                     </div>
                 </div>
 
-                <form id="create-form" class="flex-col form-stack settings-form" novalidate>
+                <form id="test-form" method="POST" action="/test/new"
+                    class="flex-col form-stack settings-form settings-stack" novalidate>
+                    <input type="hidden" name="preset" id="selected-preset" value="5">
+
                     <div class="create-form-grid">
                         <div class="field">
-                            <label class="form-label" for="clock_seconds">Clock (min)</label>
-                            <input type="number" id="clock_seconds" name="clock_seconds" min="0.5" max="360" step="0.5">
+                            <label class="form-label" for="clock_minutes">Clock (min)</label>
+                            <input type="number" id="clock_minutes" name="clock_minutes" min="0.5" max="360" step="0.5">
                         </div>
 
                         <div class="field">
@@ -74,25 +81,25 @@
                     <section id="accommodations-section" class="flex-col settings-stack" hidden>
                         <div class="split-grid">
                             <div class="field">
-                                <label class="form-label" for="p1_clock_seconds">My clock (min)</label>
-                                <input type="number" id="p1_clock_seconds" name="p1_clock_seconds" min="0.5" max="360"
+                                <label class="form-label" for="p1_clock_minutes">P1 clock (min)</label>
+                                <input type="number" id="p1_clock_minutes" name="p1_clock_minutes" min="0.5" max="360"
                                     step="0.5">
                             </div>
 
                             <div class="field">
-                                <label class="form-label" for="p2_clock_seconds">Opponent's clock (min)</label>
-                                <input type="number" id="p2_clock_seconds" name="p2_clock_seconds" min="0.5" max="360"
+                                <label class="form-label" for="p2_clock_minutes">P2 clock (min)</label>
+                                <input type="number" id="p2_clock_minutes" name="p2_clock_minutes" min="0.5" max="360"
                                     step="0.5">
                             </div>
 
                             <div class="field">
-                                <label class="form-label" for="p1_starting_words">My starting words</label>
+                                <label class="form-label" for="p1_starting_words">P1 starting words</label>
                                 <input type="number" id="p1_starting_words" name="p1_starting_words" min="0" max="500"
                                     step="1">
                             </div>
 
                             <div class="field">
-                                <label class="form-label" for="p2_starting_words">Opponent's starting words</label>
+                                <label class="form-label" for="p2_starting_words">P2 starting words</label>
                                 <input type="number" id="p2_starting_words" name="p2_starting_words" min="0" max="500"
                                     step="1">
                             </div>
@@ -100,8 +107,8 @@
 
                         <select id="starting_player" name="starting_player" hidden>
                             <option value="random">Random</option>
-                            <option value="1" id="starting-opt-me">Me</option>
-                            <option value="2" id="starting-opt-opp">Opponent</option>
+                            <option value="1">P1</option>
+                            <option value="2">P2</option>
                         </select>
                         <div class="field">
                             <label class="form-label" for="starting_player">Who starts</label>
@@ -118,54 +125,35 @@
                         Custom defaults loaded. <a href="/settings/game#defaults" class="warm-link">Edit defaults</a>
                     </p>
 
-                    <div class="flex-row card-footer create-form-footer">
-                        <button type="button" class="btn btn-warm-bright-border" id="copy-link-btn">Copy invite
-                            link</button>
-                        {% if invite_friend %}
-                        <button type="button" class="btn btn-cool-bright-border" id="preset-invite-btn"
-                            data-friend-id="{{ invite_friend.id }}"
-                            data-friend-username="{{ invite_friend.username }}">Invite {{ invite_friend.username
-                            }}</button>
-                        {% endif %}
-                        {% if current_user.is_authenticated %}
-                        <div class="action-menu" id="invite-friend-menu">
-                            <button type="button"
-                                class="btn {% if not invite_friend %}btn-cool-bright-border{% else %}btn--ghost{% endif %}"
-                                id="invite-friend-btn" aria-haspopup="true" aria-expanded="false">Invite friend</button>
-                            <ul class="action-menu__list" id="invite-friend-list" hidden role="menu">
-                                {% if friends %}
-                                {% for f in friends %}
-                                <li><button type="button" class="action-menu__item" data-friend-id="{{ f.id }}"
-                                        data-friend-username="{{ f.username }}" role="menuitem">{{ f.username
-                                        }}</button></li>
-                                {% endfor %}
-                                {% else %}
-                                <li><span class="action-menu__item is-disabled">No friends yet</span></li>
-                                {% endif %}
-                            </ul>
+                    <div class="flex-col settings-stack">
+                        <p class="hero-create-label hero-create-label--learn">Auto-run delay</p>
+                        <p class="text-small-sans text-dim">When auto-run is on for a player, they wait this many
+                            seconds in the write phase before deploying.</p>
+                        <div class="split-grid">
+                            <div class="field">
+                                <label class="form-label" for="p1_autorun_delay">P1 delay (sec)</label>
+                                <input type="number" id="p1_autorun_delay" name="p1_autorun_delay" min="0" max="60"
+                                    step="0.5" value="30">
+                            </div>
+
+                            <div class="field">
+                                <label class="form-label" for="p2_autorun_delay">P2 delay (sec)</label>
+                                <input type="number" id="p2_autorun_delay" name="p2_autorun_delay" min="0" max="60"
+                                    step="0.5" value="30">
+                            </div>
                         </div>
-                        {% endif %}
                     </div>
 
-                    <div id="link-display" class="info-msg warm" hidden>
-                        Copied link: <span id="link-display-url" class="info-msg__url"></span>
-                    </div>
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <p class="error-msg">{{ messages[0] }}</p>
+                    {% endif %}
+                    {% endwith %}
 
-                    <div id="create-error" class="error-msg" hidden></div>
+                    <div class="flex-row card-footer create-form-footer">
+                        <button type="submit" class="btn btn-warm-bright-border">Start Test Game</button>
+                    </div>
                 </form>
-
-                <div id="lobby-panel" hidden class="flex-col settings-stack">
-                    <div class="flex-row toggle-row">
-                        <span class="flex-shrink-0 status-dot status-dot--warn" id="join-dot"></span>
-                        <span id="join-label" class="text-dim">Waiting for player to join…</span>
-                    </div>
-                    <div id="lobby-actions" class="flex-row card-footer" hidden>
-                        <button type="button" class="btn btn--ghost" id="new-link-btn">New link</button>
-                        <button type="button" class="btn btn--ghost" id="revoke-invite-btn" hidden>Revoke
-                            invite</button>
-                        <button type="button" class="btn btn-warm-bright-border" id="p1-ready-btn">Ready</button>
-                    </div>
-                </div>
             </div>
         </article>
     </div>
@@ -177,5 +165,5 @@
 <script id="default-preset-json" type="application/json">{{ default_preset | tojson }}</script>
 <script id="user-custom-defaults-json" type="application/json">{{ user_custom_defaults | tojson }}</script>
 <script id="user-accom-defaults-json" type="application/json">{{ user_accom_defaults | tojson }}</script>
-<script src="{{ url_for('static', filename='js/game_new.js') }}"></script>
+<script src="{{ url_for('static', filename='js/test_new.js') }}"></script>
 {% endblock %}

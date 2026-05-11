@@ -3,30 +3,19 @@ This repository contains a grid-based, turn-based competitive programming game w
 
 ## How to Work in This Repo
 - Code is written primarily in Python.
-- You will typically be asked to implement or modify individual modules/files.
+- You will typically be asked to implement or modify individual features, modules, or files.
 - Favor clear, correct implementations over unnecessary abstraction.
-- Do not invent mechanics — follow the spec exactly.
-
-## Specs (IMPORTANT)
-Before doing any work, you MUST read the appropriate spec:
-
-- For implementation tasks (most cases):
-  → `.agents/spec_with_language.md`
-
-- For high-level reasoning, design, or game logic questions:
-  → `.agents/spec_without_language.md`
-
-If unsure, default to:
-→ `.agents/spec_with_language.md`
-
-If more detail is needed on general game info, refer to the specific section of `docs/game_guide.md` using the table of contents on lines 8-44. If more detail is needed on specific language implementation, refer to the right section of `docs/language_spec.md`. Load only necessary chunks into context, drop anything that is not necessary for the query or task.
+- Do not invent mechanics — follow the spec exactly (specs can be found in /docs)
 
 ## Frontend
 When working on any HTML, CSS, or UI:
 - Always read and follow `docs/style_guide.md` before making changes.
 - Before writing any new CSS, check `docs/css_classes.md` to see if an existing class already applies.
+- **Use utility classes first.** The generic section of `docs/css_classes.md` lists reusable utilities (typography, colour modifiers, layout, flex, buttons, etc.). Reach for these before writing any custom CSS. If a utility class does what you need — or is close enough — use it.
+- Write as little custom CSS as possible. Custom CSS is only justified when no combination of existing utilities and component classes covers the need.
 - Any new CSS class that could plausibly be reused elsewhere on the site must be written generically (not scoped to a single page or component).
 - Update `docs/css_classes.md` whenever a class is added, changed, or removed.
+- NEVER use inline styles to get around this rule. Do it right the first time.
 
 ## Expectations
 - Follow all rules and constraints from the specs precisely.
@@ -43,13 +32,20 @@ When working on any HTML, CSS, or UI:
 - If you have attempted or reasoned through a problem more than twice without landing on a clean solution, stop. Explain what the constraint is and ask for direction.
 - Do not use hacky workarounds (excessive specificity, arbitrary overrides, layered fixes) to force something to work. If a clean solution isn't emerging, explain why and ask.
 - The signal to stop is when you are layering fixes on top of fixes, or thinking in circles. Surface the problem instead of digging deeper.
-- Ask me questions first; only read docs/spec.md or docs/language.md if broader clarification is needed (they are large and token-expensive).
 
-## graphify
-
+## Graphify
 This project has a graphify knowledge graph at graphify-out/.
 
 Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- Before answering architecture or codebase questions, or **searching the codebase for files, functions, or other structures** read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- Navigate to graphify-out/wiki/index.md before reading any files (you may fallback to normal tools only if it does not exist)
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+
+## End of Implementation
+When I have completed all testing and say that a session is done, "looks good", or "finish up":
+- Commit logically, and put separate features/fixes in their own commits (there may be leftover changes from past sessions).
+- On average, each session will be 1-2 commits, but it depends on how much you were asked to do.
+- If the session began with/included working on tasks from the Google Tasks list, each 'Quick Fix'-level task would roughly be one commit.
+- If the changes made correlate to a Google Task (or the satura-tasks skill was used), you can take this instruction to "finish up and commit" to also mark the corresponding task as complete. This only applies to tasks that were explicitly being completed in that session.
+- If it appears there are other tasks that were inadvertently completed by the session, suggest them but do not edit them automatically.
+- Update graphify as mentioned above

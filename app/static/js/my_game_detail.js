@@ -58,6 +58,7 @@ const activePalette = {
 let currentPhaseIdx = phasesMeta.length > 0 ? phasesMeta.length - 1 : 0;
 const stateCache    = new Map();
 let replayInFlight  = false;
+let replayCancelled = false;
 let selectedFuncName = null;
 const charts        = {};
 
@@ -319,7 +320,7 @@ function renderPhasePills(meta) {
     const inactiveEl = player === mySlot  ? phaseOpp  : phaseMine;
 
     activeEl.textContent = typeLabel;
-    activeEl.className   = `phase-pill phase-pill--p${player}`;
+    activeEl.className   = `phase-pill phase-pill--p${player} ${player === 1 ? 'warm' : 'cool'}`;
     activeEl.hidden      = false;
     inactiveEl.textContent = '';
     inactiveEl.hidden    = true;
@@ -373,7 +374,7 @@ function renderFunctions(phaseIdx) {
         item.className = 'script-history-item' + (available ? '' : ' is-disabled');
 
         const labelWrap = document.createElement('div');
-        labelWrap.className = 'script-history-item__label-wrap';
+        labelWrap.className = 'flex-col flex-1 min-w-0 script-history-item__label-wrap';
 
         const labelEl = document.createElement('span');
         labelEl.className = 'script-history-item__label';
@@ -410,13 +411,26 @@ function renderFunctions(phaseIdx) {
 
 // ── Navigation buttons ─────────────────────────────────────────────────────────
 
+function setReplayButtonActive(active) {
+    if (!btnReplay) return;
+    const icon = btnReplay.querySelector('.material-symbols-outlined');
+    if (active) {
+        if (icon) { icon.textContent = 'stop'; icon.classList.add('icon-fill'); }
+        btnReplay.classList.add('game-controls-btn--is-warm', 'warm');
+    } else {
+        if (icon) { icon.textContent = 'replay'; icon.classList.remove('icon-fill'); }
+        btnReplay.classList.remove('game-controls-btn--is-warm', 'warm');
+    }
+}
+
 function updateNavButtons() {
     const atStart = currentPhaseIdx === 0;
     const atEnd   = currentPhaseIdx >= phasesMeta.length - 1;
     if (btnBack)    btnBack.disabled    = atStart || replayInFlight;
     if (btnForward) btnForward.disabled = atEnd   || replayInFlight;
     if (btnEnd)     btnEnd.disabled     = atEnd   || replayInFlight;
-    if (btnReplay)  btnReplay.disabled  = replayInFlight || phasesMeta.length === 0;
+    if (btnReplay)  btnReplay.disabled  = phasesMeta.length === 0;
+    setReplayButtonActive(replayInFlight);
 }
 
 // ── Fetch & navigate ───────────────────────────────────────────────────────────
@@ -519,6 +533,7 @@ async function replayCurrentPhase() {
         } catch { /* proceed without */ }
     }
 
+    replayCancelled = false;
     replayInFlight = true;
     updateNavButtons();
 
@@ -536,6 +551,7 @@ async function replayCurrentPhase() {
     for (let i = 0; i < log.length; i++) {
         const entry = log[i];
         if (!isInstantSensingOp(entry)) await delay(400);
+        if (replayCancelled) break;
 
         const row = document.createElement('div');
         row.className = 'log-entry';
@@ -553,6 +569,7 @@ async function replayCurrentPhase() {
     if (postExecState) renderBoard(postExecState);
 
     replayInFlight = false;
+    replayCancelled = false;
     updateNavButtons();
 }
 
@@ -598,6 +615,9 @@ function initCharts() {
     const warm       = activePalette.uiWarm;
     const warmBright = activePalette.warmBright;
     const cool       = activePalette.uiCool;
+    const myColor       = mySlot === 1 ? warm : cool;
+    const myColorBright = mySlot === 1 ? warmBright : cool;
+    const oppColor      = mySlot === 1 ? cool : warm;
     const textColor = 'rgba(246, 245, 244, 0.7)';
     const gridColor = 'rgba(246, 245, 244, 0.08)';
     const fontDef   = { family: "'DM Sans', sans-serif", size: 10 };
@@ -647,15 +667,15 @@ function initCharts() {
             labels: domLabels,
             datasets: [
                 {
-                    label: `P${mySlot} (mine)`,
-                    data:  phasesMeta.map(p => mySlot === 1 ? p.coverage_p1 : p.coverage_p2),
+                    label: `P1${mySlot === 1 ? ' (mine)' : ''}`,
+                    data:  phasesMeta.map(p => p.coverage_p1),
                     borderColor: warm, backgroundColor: 'transparent',
                     pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: warm,
                     hitRadius: 12, tension: 0.3,
                 },
                 {
-                    label: `P${oppSlot} (opp)`,
-                    data:  phasesMeta.map(p => mySlot === 1 ? p.coverage_p2 : p.coverage_p1),
+                    label: `P2${mySlot === 2 ? ' (mine)' : ''}`,
+                    data:  phasesMeta.map(p => p.coverage_p2),
                     borderColor: cool, backgroundColor: 'transparent',
                     pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: cool,
                     hitRadius: 12, tension: 0.3,
@@ -718,8 +738,8 @@ function initCharts() {
                             const s = myByTurn[t];
                             return s?.write_duration != null ? toUnit(s.write_duration) : null;
                         }),
-                        borderColor: warm, backgroundColor: 'transparent',
-                        pointBackgroundColor: warm, pointRadius: 3,
+                        borderColor: myColor, backgroundColor: 'transparent',
+                        pointBackgroundColor: myColor, pointRadius: 3,
                         spanGaps: true, tension: 0.3,
                     },
                     {
@@ -728,8 +748,8 @@ function initCharts() {
                             const s = oppByTurn[t];
                             return s?.write_duration != null ? toUnit(s.write_duration) : null;
                         }),
-                        borderColor: cool, backgroundColor: 'transparent',
-                        pointBackgroundColor: cool, pointRadius: 3,
+                        borderColor: oppColor, backgroundColor: 'transparent',
+                        pointBackgroundColor: oppColor, pointRadius: 3,
                         spanGaps: true, tension: 0.3,
                     },
                 ],
@@ -792,24 +812,24 @@ function initCharts() {
                 {
                     label: `P${mySlot} word count`,
                     data: myWordData,
-                    borderColor: warmBright, backgroundColor: 'transparent',
-                    pointBackgroundColor: warmBright, pointRadius: 3,
+                    borderColor: myColorBright, backgroundColor: 'transparent',
+                    pointBackgroundColor: myColorBright, pointRadius: 3,
                     spanGaps: true, tension: 0.3,
                     borderDash: [],
                 },
                 {
                     label: `P${mySlot} ops used`,
                     data: myOpsData,
-                    borderColor: warm, backgroundColor: 'transparent',
-                    pointBackgroundColor: warm, pointRadius: 3,
+                    borderColor: myColor, backgroundColor: 'transparent',
+                    pointBackgroundColor: myColor, pointRadius: 3,
                     spanGaps: true, tension: 0.3,
                     borderDash: [5, 3],
                 },
                 {
                     label: `P${oppSlot} ops used`,
                     data: oppOpsData,
-                    borderColor: cool, backgroundColor: 'transparent',
-                    pointBackgroundColor: cool, pointRadius: 3,
+                    borderColor: oppColor, backgroundColor: 'transparent',
+                    pointBackgroundColor: oppColor, pointRadius: 3,
                     spanGaps: true, tension: 0.3,
                     borderDash: [5, 3],
                 },
@@ -870,17 +890,17 @@ function renderStatsCoverageBar(board) {
 function setupBadges() {
     if (badgeMine) {
         badgeMine.textContent = `P${mySlot}`;
-        badgeMine.className   = `gc-player-badge gc-player-badge--p${mySlot}`;
+        badgeMine.className   = `badge ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (badgeOpp) {
         badgeOpp.textContent = `P${oppSlot}`;
-        badgeOpp.className   = `gc-player-badge gc-player-badge--p${oppSlot}`;
+        badgeOpp.className   = `badge ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (boardLegendMineEl) {
-        boardLegendMineEl.className = `board-legend-item board-legend-item--p${mySlot}`;
+        boardLegendMineEl.className = `badge ${mySlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
     if (boardLegendOppEl) {
-        boardLegendOppEl.className = `board-legend-item board-legend-item--p${oppSlot}`;
+        boardLegendOppEl.className = `badge ${oppSlot === 1 ? 'warm-bright' : 'cool-bright'}`;
     }
 }
 
@@ -889,7 +909,10 @@ function setupBadges() {
 if (btnBack)    btnBack.addEventListener('click',    () => { if (!replayInFlight) navigateTo(currentPhaseIdx - 1); });
 if (btnForward) btnForward.addEventListener('click', () => { if (!replayInFlight) navigateTo(currentPhaseIdx + 1); });
 if (btnEnd)     btnEnd.addEventListener('click',     () => { if (!replayInFlight) navigateTo(phasesMeta.length - 1); });
-if (btnReplay)  btnReplay.addEventListener('click',  () => replayCurrentPhase());
+if (btnReplay)  btnReplay.addEventListener('click',  () => {
+    if (replayInFlight) { replayCancelled = true; return; }
+    replayCurrentPhase();
+});
 
 // ── Keyboard navigation ────────────────────────────────────────────────────────
 
