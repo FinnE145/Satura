@@ -1,0 +1,13 @@
+[Unit]
+Description=Satura web app (gunicorn)
+After=network.target
+
+[Service]
+User=finne
+WorkingDirectory=/home/finne/Satura
+Environment=SECRET_KEY=777c8a610ad3c50a1cc7137073a8ac27742fee10b82137dcb75539e2fbdd416a
+ExecStart=/home/finne/Satura/.venv/bin/gunicorn --bind 0.0.0.0:45630 --workers 3 --access-logfile - --error-logfile - wsgi:app
+Restart=unless-stopped
+
+[Install]
+WantedBy=multi-user.target

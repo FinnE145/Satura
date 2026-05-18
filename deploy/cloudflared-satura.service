@@ -1,0 +1,11 @@
+[Unit]
+Description=Cloudflare Tunnel for satura.dev
+After=network.target
+
+[Service]
+User=finne
+ExecStart=/usr/bin/cloudflared tunnel --config /home/finne/Satura/cloudflared-config.yml run
+Restart=unless-stopped
+
+[Install]
+WantedBy=multi-user.target
