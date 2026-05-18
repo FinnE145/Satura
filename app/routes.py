@@ -479,11 +479,6 @@ def index():
     return render_template('index.html', total_games=total_games)
 
 
-@bp.route('/new-game')
-def new_game_legacy():
-    return redirect(url_for('main.game_new'))
-
-
 @bp.route('/game/new')
 @login_required
 def game_new():
@@ -1555,48 +1550,12 @@ def legal_privacy():
 
 @bp.route('/games', methods=['POST'])
 @bp.route('/game', methods=['POST'])
-@login_required
 def create_game():
-    """
-    Create a new game. player1 is always the logged-in user.
-
-    JSON body (optional):
-        { "player2_id": <int> }
-
-    Returns:
-        { "game_id": <str> }
-    """
-    data = request.get_json(silent=True) or {}
-    player2_id = data.get('player2_id')
-
-    game = Game(player1_id=current_user.id, player2_id=player2_id, status='active')
-    default_settings = {
-        'preset': None,
-        'size': Config.BOARD_SIZE,
-        'op_limit': Config.OP_LIMIT,
-        'clock_seconds': Config.CLOCK_SECONDS,
-        'word_rate': Config.WORD_RATE,
-        'starting_player': 1,
-        'accommodations_enabled': False,
-        'p1_clock_seconds': Config.CLOCK_SECONDS,
-        'p2_clock_seconds': Config.CLOCK_SECONDS,
-        'p1_starting_words': 0.0,
-        'p2_starting_words': 0.0,
-    }
-    _populate_game_settings(game, default_settings, created_by=current_user.id)
-    db.session.add(game)
-    db.session.commit()
-
-    session = create_session(
-        game_id=game.id,
-        size=Config.BOARD_SIZE,
-        op_limit=Config.OP_LIMIT,
-        clock_seconds=Config.CLOCK_SECONDS,
-        word_rate=Config.WORD_RATE,
-    )
-    session.set_players(current_user.id, player2_id)
-
-    return jsonify({"game_id": game.id}), 201
+    # DEPRECATED — these endpoints are no longer in use.
+    # Use POST /game/lobby to create a game. Scheduled for removal.
+    return jsonify({
+        "error": "This endpoint is deprecated. Use POST /game/lobby to create a game."
+    }), 410
 
 
 @bp.route('/game/lobby', methods=['POST'])
