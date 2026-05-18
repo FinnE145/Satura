@@ -935,6 +935,10 @@ a[aria-disabled='true'] {
     white-space: nowrap;
 }
 
+.gc-player-badge {
+    border-radius: var(--radius);
+}
+
 .game-controls-btn {
     align-items: center;
     gap: 0.35em;

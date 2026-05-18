@@ -81,10 +81,10 @@ document.querySelectorAll('[data-tc="badge-opp"]').forEach(el => {
     el.classList.add(oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 if (boardLegendMineEl) {
-    boardLegendMineEl.className = `badge ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
+    boardLegendMineEl.className = `badge gc-player-badge ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 if (boardLegendOppEl) {
-    boardLegendOppEl.className = `badge ${oppPlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
+    boardLegendOppEl.className = `badge gc-player-badge ${oppPlayer === 1 ? 'warm-bright' : 'cool-bright'}`;
 }
 
 let bankPollTimer = null;

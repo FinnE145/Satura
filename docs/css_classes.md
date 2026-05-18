@@ -378,7 +378,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-controls-draw-btns` | flex row of accept/reject buttons inside `.game-controls-draw-area` |
 | `.game-controls-btn--is-danger` | active-danger state modifier for `.game-controls-btn` — applies error colour without hover requirement |
 | `.game-controls-btn--is-warm` | active-warm state marker for `.game-controls-btn` — pair with `.warm` for colour |
-| `.gc-player-badge` | small coloured player label |
+| `.gc-player-badge` | small coloured player label — use with `.badge`; overrides border-radius to rounded square |
 | `.gc-player-badge--p1` | semantic slot marker for P1 badge (no visual effect; colour via `.warm-bright`) |
 | `.gc-player-badge--p2` | semantic slot marker for P2 badge (no visual effect; colour via `.cool-bright`) |
 | `.gc-clock` | clock time display in the controls panel |
