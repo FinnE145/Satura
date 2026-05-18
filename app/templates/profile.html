@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Satura | {{ profile_user.username }}{% endblock %}
+
+{% block content %}
+<main class="site-main">
+    <div class="container settings-layout settings-layout--single">
+        <section class="flex-col settings-main">
+            {% include '_profile_body.html' %}
+        </section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/my_games.js') }}"></script>
+{% endblock %}

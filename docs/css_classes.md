@@ -438,6 +438,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.settings-layout` | main two-column grid: sidebar + content panel |
+| `.settings-layout--single` | modifier: collapses to single column with max-width; use when there is no sidebar |
 | `.settings-sidebar-stack` | sticky vertical stack for multiple sidebar cards |
 | `.settings-sidebar` | sticky card wrapper for settings navigation |
 | `.settings-sidebar-logout` | compact card wrapper for logout action under nav sidebar |

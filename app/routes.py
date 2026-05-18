@@ -1135,7 +1135,42 @@ def settings_profile():
         Friendship.status == 'accepted',
         or_(Friendship.requester_id == me, Friendship.addressee_id == me),
     ).count()
-    return render_template('settings_profile.html', settings_nav='profile', stats=stats, friend_count=friend_count)
+    return render_template('settings_profile.html', settings_nav='profile', stats=stats,
+                           friend_count=friend_count, profile_user=current_user,
+                           is_settings_view=True, is_own_profile=True, can_block=False, is_blocked=False)
+
+
+@bp.route('/profile/<username>')
+@login_required
+def profile(username):
+    profile_user = Account.query.filter_by(username=username, deleted=False, disabled=False).first_or_404()
+    is_own_profile = (current_user.id == profile_user.id)
+
+    uid = profile_user.id
+    stats = _make_recent_games(profile_user)
+    friend_count = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == uid, Friendship.addressee_id == uid),
+    ).count()
+
+    can_block = not is_own_profile
+    is_blocked = False
+    if not is_own_profile:
+        fs = Friendship.query.filter(
+            or_(
+                (Friendship.requester_id == current_user.id) & (Friendship.addressee_id == uid),
+                (Friendship.requester_id == uid) & (Friendship.addressee_id == current_user.id),
+            )
+        ).first()
+        if fs and fs.status == 'blocked':
+            if fs.requester_id == current_user.id:
+                is_blocked = True
+            else:
+                can_block = False
+
+    return render_template('profile.html', profile_user=profile_user, stats=stats,
+                           friend_count=friend_count, is_own_profile=is_own_profile,
+                           is_settings_view=False, can_block=can_block, is_blocked=is_blocked)
 
 
 @bp.route('/settings/account', methods=['GET', 'POST'])
@@ -1431,6 +1466,34 @@ def friends_action():
             db.session.delete(fs)
             db.session.commit()
 
+    elif action == 'block_user':
+        target_id = request.form.get('target_id', 0, type=int)
+        target = Account.query.filter_by(id=target_id, deleted=False, disabled=False).first()
+        if target and target.id != me:
+            fs = Friendship.query.filter(
+                or_(
+                    (Friendship.requester_id == me) & (Friendship.addressee_id == target.id),
+                    (Friendship.requester_id == target.id) & (Friendship.addressee_id == me),
+                )
+            ).first()
+            if fs:
+                if fs.requester_id != me:
+                    fs.requester_id, fs.addressee_id = fs.addressee_id, fs.requester_id
+                fs.status = 'blocked'
+            else:
+                db.session.add(Friendship(requester_id=me, addressee_id=target.id, status='blocked'))
+            db.session.commit()
+
+    elif action == 'unblock_user':
+        target_id = request.form.get('target_id', 0, type=int)
+        fs = Friendship.query.filter_by(requester_id=me, addressee_id=target_id, status='blocked').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    next_url = request.form.get('next', '')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
     return redirect(url_for('main.settings_friends'))
 
 

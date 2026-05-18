@@ -2297,6 +2297,11 @@ body:has(.login-wrap) {
     gap: 1.1em;
 }
 
+.settings-layout--single {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 680px;
+}
+
 .settings-sidebar {
     align-self: start;
     position: sticky;
