@@ -1,10 +1,7 @@
 <article class="card settings-card">
-    <header class="flex-row card-header">
-        <h1 class="card-title">Profile</h1>
-    </header>
     <div class="settings-card-body">
         <div class="flex-row settings-profile-head">
-            <h2 class="heading-display">{{ profile_user.username }}</h2>
+            <h2 class="heading-display">{% if is_settings_view %}<a href="{{ url_for('main.profile', username=profile_user.username) }}" class="text-default no-underline warm-hover">{{ profile_user.username }}</a>{% else %}{{ profile_user.username }}{% endif %}</h2>
             {% if is_settings_view %}
             <a href="{{ url_for('main.settings_friends') }}" class="text-dim warm-hover no-underline">Friends: {{ friend_count }}</a>
             {% else %}

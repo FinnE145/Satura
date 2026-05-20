@@ -33,7 +33,7 @@
         <span class="badge badge--{{ result | result_badge }}">{{ result | capitalize }}</span>
         {% endif %}
         <span class="featured-opponent" data-slot="{{ opp_slot }}">
-          vs.&nbsp;{{ opponent_username }}
+          vs.&nbsp;{% if opponent_username and opponent_username != '(unknown)' %}<a href="/profile/{{ opponent_username }}">{{ opponent_username }}</a>{% else %}{{ opponent_username }}{% endif %}
         </span>
       </div>
 

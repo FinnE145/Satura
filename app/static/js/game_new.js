@@ -40,6 +40,15 @@
         }
     }
 
+    function profileLink(username) {
+        if (!username) return document.createTextNode('Player 2');
+        const a = document.createElement('a');
+        a.href = `/profile/${username}`;
+        a.className = 'text-dim no-underline warm-hover';
+        a.textContent = username;
+        return a;
+    }
+
     const createRoot = document.getElementById('create-root');
     const myUsername = createRoot?.dataset?.username || '';
     const startingOptMe = document.getElementById('starting-opt-me');
@@ -321,7 +330,8 @@
                 joinDot.className = data.player2_ready
                     ? 'flex-shrink-0 status-dot status-dot--ok'
                     : 'flex-shrink-0 status-dot status-dot--warn';
-                joinLabel.textContent = data.player2_ready ? `${name} ready` : `${name} joined`;
+                joinLabel.textContent = '';
+                joinLabel.append(profileLink(data.player2_username), data.player2_ready ? ' ready' : ' joined');
                 lobbyActions.hidden = false;
                 updateStartingPlayerOptions(data.player2_username);
             }
@@ -444,7 +454,7 @@
             return;
         }
 
-        if (joinLabel) joinLabel.textContent = `Waiting for ${friendUsername} to join…`;
+        if (joinLabel) { joinLabel.textContent = ''; joinLabel.append('Waiting for ', profileLink(friendUsername), ' to join…'); }
     }
 
     async function handleRevokeInvite() {

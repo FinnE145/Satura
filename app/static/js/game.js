@@ -48,6 +48,7 @@ const endpointPrefix = gameRoot?.dataset?.endpointPrefix || '/game';
 const apiBase = gameId ? `${endpointPrefix}/${encodeURIComponent(gameId)}` : null;
 const isTestMode = gameRoot?.dataset?.testMode === 'true';
 const myPlayer = parseInt(gameRoot?.dataset?.playerNum) || null;
+const oppUsername = gameRoot?.dataset?.oppUsername || '';
 const minePlayer = myPlayer || 1;
 const oppPlayer = minePlayer === 1 ? 2 : 1;
 
@@ -77,8 +78,18 @@ document.querySelectorAll('[data-tc="badge-mine"]').forEach(el => {
     el.classList.add(minePlayer === 1 ? 'warm-bright' : 'cool-bright');
 });
 document.querySelectorAll('[data-tc="badge-opp"]').forEach(el => {
-    el.textContent = `P${oppPlayer}`;
-    el.classList.add(oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
+    if (!isTestMode && oppUsername) {
+        const a = document.createElement('a');
+        a.href = `/profile/${oppUsername}`;
+        a.className = el.className + ' no-underline';
+        a.setAttribute('data-tc', 'badge-opp');
+        a.textContent = `P${oppPlayer}`;
+        a.classList.add(oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
+        el.replaceWith(a);
+    } else {
+        el.textContent = `P${oppPlayer}`;
+        el.classList.add(oppPlayer === 1 ? 'warm-bright' : 'cool-bright');
+    }
 });
 if (boardLegendMineEl) {
     boardLegendMineEl.className = `badge gc-player-badge ${minePlayer === 1 ? 'warm-bright' : 'cool-bright'}`;

@@ -569,7 +569,11 @@ def game_page(game_id):
             return redirect(url_for('main.game_view', game_id=game_id))
     else:
         return redirect(url_for('main.login', next=url_for('main.game_view', game_id=game_id)))
-    return render_template('game.html', game_id=game_id, player_num=player_num)
+    opp_num = 2 if player_num == 1 else 1
+    opp_id = session._player_ids.get(opp_num)
+    opp_account = Account.query.get(opp_id) if opp_id else None
+    opp_username = opp_account.username if opp_account else None
+    return render_template('game.html', game_id=game_id, player_num=player_num, opp_username=opp_username)
 
 
 @bp.route('/game/<game_id>/view')
@@ -1162,11 +1166,8 @@ def profile(username):
                 (Friendship.requester_id == uid) & (Friendship.addressee_id == current_user.id),
             )
         ).first()
-        if fs and fs.status == 'blocked':
-            if fs.requester_id == current_user.id:
-                is_blocked = True
-            else:
-                can_block = False
+        if not fs or fs.status != 'accepted':
+            return render_template('stub.html', page_title='Profile not accessible'), 403
 
     return render_template('profile.html', profile_user=profile_user, stats=stats,
                            friend_count=friend_count, is_own_profile=is_own_profile,

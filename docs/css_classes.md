@@ -173,7 +173,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.action-menu` | relative-positioned wrapper for a `...` trigger + dropdown panel |
 | `.action-menu__btn` | borderless icon trigger button (subtle, highlights on hover) |
 | `.action-menu__list` | absolute dropdown panel (`ul`) — positioned right-aligned below the button |
-| `.action-menu__item` | full-width button row inside the dropdown |
+| `.action-menu__item` | full-width row inside the dropdown — use on `<button>` or `<a>` |
 | `.action-menu__item--danger` | red danger-state modifier for `.action-menu__item` |
 
 ---

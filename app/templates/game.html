@@ -22,7 +22,7 @@
 {% block footer %}{% endblock %}
 
 {% block content %}
-<main class="site-main" id="game-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}" {% block
+<main class="site-main" id="game-root" data-game-id="{{ game_id }}" data-player-num="{{ player_num or '' }}" data-opp-username="{{ opp_username or '' }}" {% block
     game_root_extra_data %}{% endblock %}>
 
     <div class="game-outer">
