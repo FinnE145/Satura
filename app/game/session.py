@@ -63,6 +63,7 @@ class PendingLobby:
     player1_ready: bool = False
     player2_ready: bool = False
     invited_user_id: int | None = None
+    last_host_ping: float = field(default_factory=time.time)
 
     def lobby_status(self) -> dict:
         return {
@@ -74,6 +75,7 @@ class PendingLobby:
             "both_ready": self.player1_ready and self.player2_ready and self.player2_id is not None,
             "started": False,
             "settings": self.settings,
+            "invite_active": self.invited_user_id is not None,
         }
 
 
@@ -892,6 +894,13 @@ def remove_lobby(game_id: str) -> None:
         _alias_index.pop(lobby.join_alias.upper(), None)
     if lobby and lobby.invited_user_id is not None:
         _invite_index.pop(lobby.invited_user_id, None)
+
+
+def clear_lobby_invite(game_id: str) -> None:
+    lobby = _pending_lobbies.get(game_id)
+    if lobby and lobby.invited_user_id is not None:
+        _invite_index.pop(lobby.invited_user_id, None)
+        lobby.invited_user_id = None
 
 
 def create_session(

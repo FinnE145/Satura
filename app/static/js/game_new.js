@@ -69,6 +69,7 @@
     const newLinkBtn = document.getElementById('new-link-btn');
     const revokeInviteBtn = document.getElementById('revoke-invite-btn');
     const p1ReadyBtn = document.getElementById('p1-ready-btn');
+    const closeLobbyBtn = document.getElementById('close-lobby-btn');
 
     const fields = {
         clock_seconds: document.getElementById('clock_seconds'),
@@ -101,6 +102,7 @@
     let accomDefaultsActive = false;
     let currentGameId = null;
     let pollInterval = null;
+    let prevPlayer2Joined = false;
 
     function syncAccomToggle() {
         const enabled = fields.accommodations_enabled.checked;
@@ -316,6 +318,12 @@
     async function pollLobby(gameId) {
         try {
             const resp = await fetch(`/game/${encodeURIComponent(gameId)}/lobby`);
+            if (resp.status === 404) {
+                stopPolling();
+                resetLobbyUI();
+                setError('Lobby was closed.');
+                return;
+            }
             if (!resp.ok) return;
             const data = await resp.json();
 
@@ -326,14 +334,26 @@
             }
 
             if (data.player2_joined) {
-                const name = data.player2_username || 'Player 2';
+                prevPlayer2Joined = true;
                 joinDot.className = data.player2_ready
                     ? 'flex-shrink-0 status-dot status-dot--ok'
                     : 'flex-shrink-0 status-dot status-dot--warn';
                 joinLabel.textContent = '';
                 joinLabel.append(profileLink(data.player2_username), data.player2_ready ? ' ready' : ' joined');
-                lobbyActions.hidden = false;
+                if (p1ReadyBtn) p1ReadyBtn.hidden = false;
                 updateStartingPlayerOptions(data.player2_username);
+            } else if (prevPlayer2Joined) {
+                prevPlayer2Joined = false;
+                p1IsReady = false;
+                if (p1ReadyBtn) { p1ReadyBtn.textContent = 'Ready'; p1ReadyBtn.disabled = false; p1ReadyBtn.hidden = true; }
+                if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
+                if (joinLabel) { joinLabel.textContent = ''; joinLabel.append('Waiting for player to join…'); }
+                updateStartingPlayerOptions(null);
+                if (inviteMode && !data.invite_active) {
+                    inviteMode = false;
+                    if (newLinkBtn) newLinkBtn.hidden = false;
+                    if (revokeInviteBtn) revokeInviteBtn.hidden = true;
+                }
             }
         } catch (_) {
             // network error — silently retry next interval
@@ -344,10 +364,12 @@
         stopPolling();
         p1IsReady = false;
         inviteMode = false;
+        prevPlayer2Joined = false;
         currentGameId = null;
         if (p1ReadyBtn) {
             p1ReadyBtn.textContent = 'Ready';
             p1ReadyBtn.disabled = false;
+            p1ReadyBtn.hidden = false;
         }
         if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
         if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
@@ -404,7 +426,10 @@
             }
 
             currentGameId = data.game_id;
+            prevPlayer2Joined = false;
             if (lobbyPanel) lobbyPanel.hidden = false;
+            if (lobbyActions) lobbyActions.hidden = false;
+            if (p1ReadyBtn) p1ReadyBtn.hidden = true;
             startLobbyPoll(data.game_id);
             return data;
         } catch (error) {
@@ -463,6 +488,14 @@
                 await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
             } catch (_) { }
         }
+        resetLobbyUI();
+    }
+
+    async function handleCloseLobby() {
+        if (!currentGameId) return;
+        try {
+            await fetch(`/game/${encodeURIComponent(currentGameId)}/close`, { method: 'POST' });
+        } catch (_) { }
         resetLobbyUI();
     }
 
@@ -571,6 +604,7 @@
     if (p1ReadyBtn) p1ReadyBtn.addEventListener('click', handleReady);
     if (newLinkBtn) newLinkBtn.addEventListener('click', handleNewLink);
     if (revokeInviteBtn) revokeInviteBtn.addEventListener('click', handleRevokeInvite);
+    if (closeLobbyBtn) closeLobbyBtn.addEventListener('click', handleCloseLobby);
     if (presetInviteBtn) {
         presetInviteBtn.addEventListener('click', () => {
             handleInviteFriend(
