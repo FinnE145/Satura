@@ -79,7 +79,7 @@
                             <span class="material-symbols-outlined">more_horiz</span>
                         </button>
                         <ul class="action-menu__list" hidden>
-                            <li><button type="button" class="action-menu__item" disabled>View profile</button></li>
+                            <li><a href="/profile/{{ f.user.username }}" class="action-menu__item">View profile</a></li>
                             <li><form method="post" action="/friends">
                                 <input type="hidden" name="action" value="remove_friend">
                                 <input type="hidden" name="friendship_id" value="{{ f.friendship_id }}">

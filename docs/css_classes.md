@@ -173,7 +173,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.action-menu` | relative-positioned wrapper for a `...` trigger + dropdown panel |
 | `.action-menu__btn` | borderless icon trigger button (subtle, highlights on hover) |
 | `.action-menu__list` | absolute dropdown panel (`ul`) — positioned right-aligned below the button |
-| `.action-menu__item` | full-width button row inside the dropdown |
+| `.action-menu__item` | full-width row inside the dropdown — use on `<button>` or `<a>` |
 | `.action-menu__item--danger` | red danger-state modifier for `.action-menu__item` |
 
 ---
@@ -378,7 +378,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | `.game-controls-draw-btns` | flex row of accept/reject buttons inside `.game-controls-draw-area` |
 | `.game-controls-btn--is-danger` | active-danger state modifier for `.game-controls-btn` — applies error colour without hover requirement |
 | `.game-controls-btn--is-warm` | active-warm state marker for `.game-controls-btn` — pair with `.warm` for colour |
-| `.gc-player-badge` | small coloured player label |
+| `.gc-player-badge` | small coloured player label — use with `.badge`; overrides border-radius to rounded square |
 | `.gc-player-badge--p1` | semantic slot marker for P1 badge (no visual effect; colour via `.warm-bright`) |
 | `.gc-player-badge--p2` | semantic slot marker for P2 badge (no visual effect; colour via `.cool-bright`) |
 | `.gc-clock` | clock time display in the controls panel |
@@ -438,6 +438,7 @@ Combine base `.btn` with one variant. Add `.btn--sm` for a smaller size.
 | Class | Description |
 |---|---|
 | `.settings-layout` | main two-column grid: sidebar + content panel |
+| `.settings-layout--single` | modifier: collapses to single column with max-width; use when there is no sidebar |
 | `.settings-sidebar-stack` | sticky vertical stack for multiple sidebar cards |
 | `.settings-sidebar` | sticky card wrapper for settings navigation |
 | `.settings-sidebar-logout` | compact card wrapper for logout action under nav sidebar |

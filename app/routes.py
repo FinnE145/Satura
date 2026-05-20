@@ -17,7 +17,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
 from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction, Friendship
-from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, get_invite_for_user, create_test_session, get_test_session, remove_test_session
+from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, clear_lobby_invite, get_invite_for_user, create_test_session, get_test_session, remove_test_session
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -479,11 +479,6 @@ def index():
     return render_template('index.html', total_games=total_games)
 
 
-@bp.route('/new-game')
-def new_game_legacy():
-    return redirect(url_for('main.game_new'))
-
-
 @bp.route('/game/new')
 @login_required
 def game_new():
@@ -574,7 +569,11 @@ def game_page(game_id):
             return redirect(url_for('main.game_view', game_id=game_id))
     else:
         return redirect(url_for('main.login', next=url_for('main.game_view', game_id=game_id)))
-    return render_template('game.html', game_id=game_id, player_num=player_num)
+    opp_num = 2 if player_num == 1 else 1
+    opp_id = session._player_ids.get(opp_num)
+    opp_account = Account.query.get(opp_id) if opp_id else None
+    opp_username = opp_account.username if opp_account else None
+    return render_template('game.html', game_id=game_id, player_num=player_num, opp_username=opp_username)
 
 
 @bp.route('/game/<game_id>/view')
@@ -1140,7 +1139,39 @@ def settings_profile():
         Friendship.status == 'accepted',
         or_(Friendship.requester_id == me, Friendship.addressee_id == me),
     ).count()
-    return render_template('settings_profile.html', settings_nav='profile', stats=stats, friend_count=friend_count)
+    return render_template('settings_profile.html', settings_nav='profile', stats=stats,
+                           friend_count=friend_count, profile_user=current_user,
+                           is_settings_view=True, is_own_profile=True, can_block=False, is_blocked=False)
+
+
+@bp.route('/profile/<username>')
+@login_required
+def profile(username):
+    profile_user = Account.query.filter_by(username=username, deleted=False, disabled=False).first_or_404()
+    is_own_profile = (current_user.id == profile_user.id)
+
+    uid = profile_user.id
+    stats = _make_recent_games(profile_user)
+    friend_count = Friendship.query.filter(
+        Friendship.status == 'accepted',
+        or_(Friendship.requester_id == uid, Friendship.addressee_id == uid),
+    ).count()
+
+    can_block = not is_own_profile
+    is_blocked = False
+    if not is_own_profile:
+        fs = Friendship.query.filter(
+            or_(
+                (Friendship.requester_id == current_user.id) & (Friendship.addressee_id == uid),
+                (Friendship.requester_id == uid) & (Friendship.addressee_id == current_user.id),
+            )
+        ).first()
+        if not fs or fs.status != 'accepted':
+            return render_template('stub.html', page_title='Profile not accessible'), 403
+
+    return render_template('profile.html', profile_user=profile_user, stats=stats,
+                           friend_count=friend_count, is_own_profile=is_own_profile,
+                           is_settings_view=False, can_block=can_block, is_blocked=is_blocked)
 
 
 @bp.route('/settings/account', methods=['GET', 'POST'])
@@ -1436,6 +1467,34 @@ def friends_action():
             db.session.delete(fs)
             db.session.commit()
 
+    elif action == 'block_user':
+        target_id = request.form.get('target_id', 0, type=int)
+        target = Account.query.filter_by(id=target_id, deleted=False, disabled=False).first()
+        if target and target.id != me:
+            fs = Friendship.query.filter(
+                or_(
+                    (Friendship.requester_id == me) & (Friendship.addressee_id == target.id),
+                    (Friendship.requester_id == target.id) & (Friendship.addressee_id == me),
+                )
+            ).first()
+            if fs:
+                if fs.requester_id != me:
+                    fs.requester_id, fs.addressee_id = fs.addressee_id, fs.requester_id
+                fs.status = 'blocked'
+            else:
+                db.session.add(Friendship(requester_id=me, addressee_id=target.id, status='blocked'))
+            db.session.commit()
+
+    elif action == 'unblock_user':
+        target_id = request.form.get('target_id', 0, type=int)
+        fs = Friendship.query.filter_by(requester_id=me, addressee_id=target_id, status='blocked').first()
+        if fs:
+            db.session.delete(fs)
+            db.session.commit()
+
+    next_url = request.form.get('next', '')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
     return redirect(url_for('main.settings_friends'))
 
 
@@ -1555,48 +1614,12 @@ def legal_privacy():
 
 @bp.route('/games', methods=['POST'])
 @bp.route('/game', methods=['POST'])
-@login_required
 def create_game():
-    """
-    Create a new game. player1 is always the logged-in user.
-
-    JSON body (optional):
-        { "player2_id": <int> }
-
-    Returns:
-        { "game_id": <str> }
-    """
-    data = request.get_json(silent=True) or {}
-    player2_id = data.get('player2_id')
-
-    game = Game(player1_id=current_user.id, player2_id=player2_id, status='active')
-    default_settings = {
-        'preset': None,
-        'size': Config.BOARD_SIZE,
-        'op_limit': Config.OP_LIMIT,
-        'clock_seconds': Config.CLOCK_SECONDS,
-        'word_rate': Config.WORD_RATE,
-        'starting_player': 1,
-        'accommodations_enabled': False,
-        'p1_clock_seconds': Config.CLOCK_SECONDS,
-        'p2_clock_seconds': Config.CLOCK_SECONDS,
-        'p1_starting_words': 0.0,
-        'p2_starting_words': 0.0,
-    }
-    _populate_game_settings(game, default_settings, created_by=current_user.id)
-    db.session.add(game)
-    db.session.commit()
-
-    session = create_session(
-        game_id=game.id,
-        size=Config.BOARD_SIZE,
-        op_limit=Config.OP_LIMIT,
-        clock_seconds=Config.CLOCK_SECONDS,
-        word_rate=Config.WORD_RATE,
-    )
-    session.set_players(current_user.id, player2_id)
-
-    return jsonify({"game_id": game.id}), 201
+    # DEPRECATED — these endpoints are no longer in use.
+    # Use POST /game/lobby to create a game. Scheduled for removal.
+    return jsonify({
+        "error": "This endpoint is deprecated. Use POST /game/lobby to create a game."
+    }), 410
 
 
 @bp.route('/game/lobby', methods=['POST'])
@@ -1707,6 +1730,8 @@ def game_update_lobby_settings(game_id):
     return jsonify({'ok': True})
 
 
+_LOBBY_HOST_TTL = 60.0  # seconds without a host ping before lobby is closed
+
 @bp.route('/game/<game_id>/lobby', methods=['GET'])
 def game_lobby_status(game_id):
     lobby = get_lobby(game_id)
@@ -1721,6 +1746,11 @@ def game_lobby_status(game_id):
             "started": True,
         })
     if lobby is not None:
+        if time.time() - lobby.last_host_ping > _LOBBY_HOST_TTL:
+            remove_lobby(game_id)
+            return jsonify({'error': 'game not found'}), 404
+        if current_user.is_authenticated and current_user.id == lobby.player1_id:
+            lobby.last_host_ping = time.time()
         return jsonify(lobby.lobby_status())
     return jsonify({'error': 'game not found'}), 404
 
@@ -1759,6 +1789,7 @@ def game_leave(game_id):
     lobby.player2_username = None
     lobby.player2_ready = False
     lobby.player1_ready = False
+    clear_lobby_invite(game_id)
     return jsonify({'ok': True})
 
 
