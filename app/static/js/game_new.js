@@ -58,6 +58,7 @@
     const linkDisplay = document.getElementById('link-display');
     const linkDisplayUrl = document.getElementById('link-display-url');
     const presetButtons = Array.from(document.querySelectorAll('[data-preset]'));
+    const createFormFooter = document.getElementById('create-form-footer');
     const copyLinkBtn = document.getElementById('copy-link-btn');
     const presetInviteBtn = document.getElementById('preset-invite-btn');
     const inviteFriendBtn = document.getElementById('invite-friend-btn');
@@ -378,6 +379,7 @@
         if (revokeInviteBtn) revokeInviteBtn.hidden = true;
         if (lobbyPanel) lobbyPanel.hidden = true;
         if (linkDisplay) linkDisplay.hidden = true;
+        if (createFormFooter) createFormFooter.hidden = false;
         updateStartingPlayerOptions(null);
     }
 
@@ -427,6 +429,7 @@
 
             currentGameId = data.game_id;
             prevPlayer2Joined = false;
+            if (createFormFooter) createFormFooter.hidden = true;
             if (lobbyPanel) lobbyPanel.hidden = false;
             if (lobbyActions) lobbyActions.hidden = false;
             if (p1ReadyBtn) p1ReadyBtn.hidden = true;
