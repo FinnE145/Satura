@@ -896,6 +896,12 @@ def remove_lobby(game_id: str) -> None:
         _invite_index.pop(lobby.invited_user_id, None)
 
 
+def remove_lobbies_by_host(player1_id: int) -> None:
+    game_ids = [gid for gid, lb in _pending_lobbies.items() if lb.player1_id == player1_id]
+    for gid in game_ids:
+        remove_lobby(gid)
+
+
 def clear_lobby_invite(game_id: str) -> None:
     lobby = _pending_lobbies.get(game_id)
     if lobby and lobby.invited_user_id is not None:

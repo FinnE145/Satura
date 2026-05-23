@@ -118,7 +118,7 @@
                         Custom defaults loaded. <a href="/settings/game#defaults" class="warm-link">Edit defaults</a>
                     </p>
 
-                    <div class="flex-row card-footer create-form-footer">
+                    <div class="flex-row card-footer create-form-footer" id="create-form-footer">
                         <button type="button" class="btn btn-warm-bright-border" id="copy-link-btn">Copy invite
                             link</button>
                         {% if invite_friend %}
@@ -159,12 +159,12 @@
                         <span class="flex-shrink-0 status-dot status-dot--warn" id="join-dot"></span>
                         <span id="join-label" class="text-dim">Waiting for player to join…</span>
                     </div>
-                    <div id="lobby-actions" class="flex-row card-footer" hidden>
+                    <div id="lobby-actions" class="flex-row card-footer create-form-footer" hidden>
                         <button type="button" class="btn btn--ghost" id="new-link-btn">New link</button>
                         <button type="button" class="btn btn--ghost" id="revoke-invite-btn" hidden>Revoke
                             invite</button>
-                        <button type="button" class="btn btn-warm-bright-border" id="p1-ready-btn" hidden>Ready</button>
-                        <button type="button" class="btn btn--danger ml-auto" id="close-lobby-btn">Close lobby</button>
+                        <button type="button" class="btn btn--danger" id="close-lobby-btn">Close lobby</button>
+                        <button type="button" class="btn btn-warm-bright-border ml-auto" id="p1-ready-btn" hidden>Ready</button>
                     </div>
                 </div>
             </div>

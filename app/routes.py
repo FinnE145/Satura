@@ -17,7 +17,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
 from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction, Friendship
-from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, clear_lobby_invite, get_invite_for_user, create_test_session, get_test_session, remove_test_session
+from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, remove_lobbies_by_host, clear_lobby_invite, get_invite_for_user, create_test_session, get_test_session, remove_test_session
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -1646,6 +1646,7 @@ def game_create_lobby():
         if friendship is None:
             return jsonify({'error': 'not friends with that user'}), 400
 
+    remove_lobbies_by_host(current_user.id)
     game_id = str(uuid.uuid4())
     alias = _gen_join_alias()
     create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias, invited_user_id=invited_user_id)
