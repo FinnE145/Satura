@@ -1,0 +1,9 @@
+# Locally managed tunnel "satura" (made on fe-home in May 2026). The DNS record satura.dev -> this tunnel is in
+# Cloudflare; the credentials are /srv/stacks/satura/tunnel.json on fe-pro, never in git.
+# Only one machine may run this tunnel at a time: a second connector would get half the traffic.
+tunnel: fa8da6d0-5dfd-465f-a63c-43909963df5f
+credentials-file: /etc/cloudflared/tunnel.json
+ingress:
+  - hostname: satura.dev
+    service: http://172.31.70.10:8000
+  - service: http_status:404

@@ -1,0 +1,12 @@
+.git
+.venv
+.claude
+**/__pycache__
+instance
+*.log
+*.db
+.env
+cloudflared-config.yml
+tests
+docs
+deploy

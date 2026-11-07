@@ -1,0 +1,55 @@
+# Satura on fe-pro (see /srv/fe-pro/SERVER.md, "satura"). Run from /srv/stacks/satura/repo/deploy:
+#   docker compose up -d --build
+# https://satura.dev -> Cloudflare Tunnel -> satura-cloudflared (outbound only) -> satura-web:8000.
+# Nothing is published on the host. Both containers sit on their own network with pinned addresses, and the host
+# firewall keys on those addresses: cloudflared may reach only web:8000 and the internet, and web may start no
+# connection at all (SERVER.md, "Tunnel container lockdown"). Keep the ipv4_address pins.
+name: satura
+services:
+  web:
+    build: { context: .. }
+    image: satura
+    container_name: satura-web
+    # satura (2007), Satura's own account (SERVER.md, "Accounts"): it is public and holds users' emails and
+    # password hashes, which the other svc services must not read. It owns /srv/stacks/satura/data.
+    user: "2007:2007"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # SECRET_KEY only. Mode 600, finne-owned, never in git.
+    env_file: /srv/stacks/satura/satura.env
+    environment:
+      DATABASE_URL: sqlite:////data/satura.db
+      SATURA_LOG_DIR: /data
+      SATURA_SECURE_COOKIES: "1"
+    volumes:
+      - /srv/stacks/satura/data:/data
+    restart: unless-stopped
+    networks:
+      satura:
+        ipv4_address: 172.31.70.10
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.0
+    container_name: satura-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    dns: [1.1.1.1, 1.0.0.1]
+    volumes:
+      - ./cloudflared.yml:/etc/cloudflared/config.yml:ro
+      # the tunnel's credentials, owned by the image's user (65532), mode 400
+      - /srv/stacks/satura/tunnel.json:/etc/cloudflared/tunnel.json:ro
+    depends_on: [web]
+    networks:
+      satura:
+        ipv4_address: 172.31.70.20
+
+networks:
+  satura:
+    ipam:
+      config:
+        - subnet: 172.31.70.0/24
