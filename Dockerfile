@@ -11,6 +11,8 @@ COPY app ./app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=4)"
-# Three sync workers, as on fe-home. Game sessions are cached per worker and restored from the database.
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--worker-tmp-dir", "/tmp", "--no-control-socket", \
+# ONE worker process with threads: live game sessions are held in process memory (app/game/session.py), so with
+# several processes each one had its own copy of a game and players saw it flip between states. Threads share the
+# one copy, as under Flask's threaded dev server. Don't raise --workers without moving that state out of process.
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--worker-class", "gthread", "--threads", "8", "--worker-tmp-dir", "/tmp", "--no-control-socket", \
      "--forwarded-allow-ips", "172.31.70.20", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
