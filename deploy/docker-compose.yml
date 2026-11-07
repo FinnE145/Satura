@@ -34,7 +34,9 @@ services:
     image: cloudflare/cloudflared:2026.10.0
     container_name: satura-cloudflared
     restart: unless-stopped
-    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    # HTTP/2 over TCP, not QUIC: on fe-pro's network the QUIC connections time out every 20-30 s (also seen on packs),
+    # and requests that arrive during a reconnect get a 502.
+    command: tunnel --no-autoupdate --protocol http2 --config /etc/cloudflared/config.yml run
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
