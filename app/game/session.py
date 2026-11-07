@@ -1,6 +1,5 @@
 import json
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from .engine import Engine
 from config import Config
@@ -49,34 +48,6 @@ def _extract_func_text(source_lines: list[str], start_line: int) -> str:
         if depth <= 0 and i > idx:
             break
     return "\n".join(source_lines[idx:end_idx + 1])
-
-
-@dataclass
-class PendingLobby:
-    game_id: str
-    settings: dict
-    player1_id: int
-    player1_username: str
-    join_alias: str = ''
-    player2_id: int | None = None
-    player2_username: str | None = None
-    player1_ready: bool = False
-    player2_ready: bool = False
-    invited_user_id: int | None = None
-    last_host_ping: float = field(default_factory=time.time)
-
-    def lobby_status(self) -> dict:
-        return {
-            "player1_username": self.player1_username,
-            "player2_joined": self.player2_id is not None,
-            "player2_username": self.player2_username,
-            "player1_ready": self.player1_ready,
-            "player2_ready": self.player2_ready,
-            "both_ready": self.player1_ready and self.player2_ready and self.player2_id is not None,
-            "started": False,
-            "settings": self.settings,
-            "invite_active": self.invited_user_id is not None,
-        }
 
 
 class GameSession:
@@ -734,9 +705,6 @@ class TestGameSession(GameSession):
 # ------------------------------------------------------------------ module registry
 
 _sessions: dict[str, "GameSession"] = {}
-_pending_lobbies: dict[str, PendingLobby] = {}
-_alias_index: dict[str, str] = {}  # join_alias (uppercase) -> game_id
-_invite_index: dict[int, str] = {}  # invited_user_id -> game_id
 
 
 def _restore_session_from_db(game_id: str) -> "GameSession | None":
@@ -847,66 +815,6 @@ def _restore_session_from_db(game_id: str) -> "GameSession | None":
         return session
     except Exception:
         return None
-
-
-def create_lobby(game_id: str, settings: dict, player1_id: int, username: str, join_alias: str = '', invited_user_id: int | None = None) -> PendingLobby:
-    lobby = PendingLobby(
-        game_id=game_id,
-        settings=settings,
-        player1_id=player1_id,
-        player1_username=username,
-        join_alias=join_alias,
-        invited_user_id=invited_user_id,
-    )
-    _pending_lobbies[game_id] = lobby
-    if join_alias:
-        _alias_index[join_alias.upper()] = game_id
-    if invited_user_id is not None:
-        _invite_index[invited_user_id] = game_id
-    return lobby
-
-
-def alias_in_use(alias: str) -> bool:
-    return alias.upper() in _alias_index
-
-
-def get_lobby_by_alias(alias: str) -> PendingLobby | None:
-    game_id = _alias_index.get(alias.upper())
-    if game_id is None:
-        return None
-    return _pending_lobbies.get(game_id)
-
-
-def get_lobby(game_id: str) -> PendingLobby | None:
-    return _pending_lobbies.get(game_id)
-
-
-def get_invite_for_user(user_id: int) -> PendingLobby | None:
-    game_id = _invite_index.get(user_id)
-    if game_id is None:
-        return None
-    return _pending_lobbies.get(game_id)
-
-
-def remove_lobby(game_id: str) -> None:
-    lobby = _pending_lobbies.pop(game_id, None)
-    if lobby and lobby.join_alias:
-        _alias_index.pop(lobby.join_alias.upper(), None)
-    if lobby and lobby.invited_user_id is not None:
-        _invite_index.pop(lobby.invited_user_id, None)
-
-
-def remove_lobbies_by_host(player1_id: int) -> None:
-    game_ids = [gid for gid, lb in _pending_lobbies.items() if lb.player1_id == player1_id]
-    for gid in game_ids:
-        remove_lobby(gid)
-
-
-def clear_lobby_invite(game_id: str) -> None:
-    lobby = _pending_lobbies.get(game_id)
-    if lobby and lobby.invited_user_id is not None:
-        _invite_index.pop(lobby.invited_user_id, None)
-        lobby.invited_user_id = None
 
 
 def create_session(

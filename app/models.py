@@ -1,3 +1,5 @@
+import json
+import time
 import uuid
 from datetime import datetime, timezone
 from flask_login import UserMixin
@@ -182,3 +184,42 @@ class AccountSettings(db.Model):
     accom_starting_player   = db.Column(db.String(8), nullable=True)
 
     account = db.relationship('Account', back_populates='settings')
+
+
+class Lobby(db.Model):
+    __tablename__ = 'lobbies'
+
+    game_id          = db.Column(db.String(36), primary_key=True)
+    settings_json    = db.Column(db.Text, nullable=False)
+    player1_id       = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False)
+    player1_username = db.Column(db.String(64), nullable=False)
+    player2_id       = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True)
+    player2_username = db.Column(db.String(64), nullable=True)
+    player1_ready    = db.Column(db.Boolean, nullable=False, default=False)
+    player2_ready    = db.Column(db.Boolean, nullable=False, default=False)
+    invited_user_id  = db.Column(db.Integer, nullable=True)
+    join_alias       = db.Column(db.String(6), unique=True, nullable=True)
+    last_host_ping   = db.Column(db.Float, nullable=False, default=time.time)
+    created_at       = db.Column(db.DateTime, nullable=False,
+                                 default=lambda: datetime.now(timezone.utc))
+
+    @property
+    def settings(self):
+        return json.loads(self.settings_json)
+
+    @settings.setter
+    def settings(self, value):
+        self.settings_json = json.dumps(value)
+
+    def lobby_status(self):
+        return {
+            "player1_username": self.player1_username,
+            "player2_joined": self.player2_id is not None,
+            "player2_username": self.player2_username,
+            "player1_ready": self.player1_ready,
+            "player2_ready": self.player2_ready,
+            "both_ready": self.player1_ready and self.player2_ready and self.player2_id is not None,
+            "started": False,
+            "settings": self.settings,
+            "invite_active": self.invited_user_id is not None,
+        }

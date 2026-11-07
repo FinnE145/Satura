@@ -16,8 +16,8 @@ from urllib.parse import urlsplit
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 from . import db
-from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction, Friendship
-from .game.session import create_session, get_session, create_lobby, get_lobby, get_lobby_by_alias, alias_in_use, remove_lobby, remove_lobbies_by_host, clear_lobby_invite, get_invite_for_user, create_test_session, get_test_session, remove_test_session
+from .models import Game, Account, AccountSettings, Script, ExecutionPhase, DefinedFunction, Friendship, Lobby
+from .game.session import create_session, get_session, create_test_session, get_test_session, remove_test_session
 from config import Config
 
 bp = Blueprint('main', __name__)
@@ -47,7 +47,7 @@ def _gen_join_alias() -> str:
     """Generate a unique 6-letter consonant-only join alias."""
     while True:
         code = ''.join(random.choices(_ALIAS_CHARS, k=6))
-        if not alias_in_use(code):
+        if not Lobby.query.filter_by(join_alias=code).first() and not Game.query.filter_by(join_alias=code).first():
             return code
 
 
@@ -539,6 +539,20 @@ def game_new():
             None,
         )
 
+    existing_lobby = Lobby.query.filter_by(player1_id=current_user.id).first()
+    existing_lobby_data = None
+    if existing_lobby:
+        join_url = None
+        if existing_lobby.join_alias:
+            join_url = f'/join/{existing_lobby.join_alias}'
+        else:
+            join_url = f'/game/{existing_lobby.game_id}/join'
+        existing_lobby_data = {
+            'game_id': existing_lobby.game_id,
+            'join_url': join_url,
+            'invite_mode': existing_lobby.invited_user_id is not None,
+        }
+
     return render_template(
         'game_new.html',
         presets=Config.TIME_CONTROL_PRESETS,
@@ -551,6 +565,7 @@ def game_new():
         user_accom_defaults=user_accom_defaults,
         friends=friends,
         invite_friend=invite_friend,
+        existing_lobby=existing_lobby_data,
     )
 
 
@@ -1563,7 +1578,7 @@ def friends_search():
 @bp.route('/friends/game-invites')
 @login_required
 def friends_game_invites():
-    lobby = get_invite_for_user(current_user.id)
+    lobby = Lobby.query.filter_by(invited_user_id=current_user.id).first()
     if lobby is None:
         return jsonify({'invite': None})
     join_url = (
@@ -1646,10 +1661,21 @@ def game_create_lobby():
         if friendship is None:
             return jsonify({'error': 'not friends with that user'}), 400
 
-    remove_lobbies_by_host(current_user.id)
+    Lobby.query.filter_by(player1_id=current_user.id).delete()
+
+
     game_id = str(uuid.uuid4())
     alias = _gen_join_alias()
-    create_lobby(game_id, parsed, current_user.id, current_user.username, join_alias=alias, invited_user_id=invited_user_id)
+    lobby = Lobby(
+        game_id=game_id,
+        settings_json=json.dumps(parsed),
+        player1_id=current_user.id,
+        player1_username=current_user.username,
+        join_alias=alias,
+        invited_user_id=invited_user_id,
+    )
+    db.session.add(lobby)
+    db.session.commit()
     return jsonify({'game_id': game_id, 'join_alias': alias}), 201
 
 
@@ -1661,7 +1687,7 @@ def join_enter():
 
 @bp.route('/join/<alias>/info', methods=['GET'])
 def join_alias_info(alias):
-    lobby = get_lobby_by_alias(alias.upper())
+    lobby = Lobby.query.filter_by(join_alias=alias.upper()).first()
     if lobby is None:
         return jsonify({'error': 'not found'}), 404
     return jsonify({'owner': lobby.player1_username})
@@ -1669,7 +1695,7 @@ def join_alias_info(alias):
 
 @bp.route('/join/<alias>', methods=['GET'])
 def join_by_alias(alias):
-    lobby = get_lobby_by_alias(alias)
+    lobby = Lobby.query.filter_by(join_alias=alias.upper()).first()
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
     return redirect(url_for('main.game_join_page', game_id=lobby.game_id))
@@ -1684,7 +1710,7 @@ def game_join_page(game_id):
         if not session.game_over and current_user.id in player_ids:
             return redirect(url_for('main.game_page', game_id=game_id))
         return render_template('stub.html', page_title='Game not found'), 404
-    lobby = get_lobby(game_id)
+    lobby = Lobby.query.get(game_id)
     if lobby is None:
         return render_template('stub.html', page_title='Game not found'), 404
     if lobby.invited_user_id is not None and current_user.id != lobby.invited_user_id:
@@ -1700,7 +1726,7 @@ def game_join_page(game_id):
 @bp.route('/game/<game_id>/join', methods=['POST'])
 @login_required
 def game_join(game_id):
-    lobby = get_lobby(game_id)
+    lobby = Lobby.query.get(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
     if current_user.id == lobby.player1_id:
@@ -1711,13 +1737,14 @@ def game_join(game_id):
         return jsonify({'error': 'game is full'}), 409
     lobby.player2_id = current_user.id
     lobby.player2_username = current_user.username
+    db.session.commit()
     return jsonify({'ok': True}), 200
 
 
 @bp.route('/game/<game_id>/settings', methods=['PATCH'])
 @login_required
 def game_update_lobby_settings(game_id):
-    lobby = get_lobby(game_id)
+    lobby = Lobby.query.get(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
     if current_user.id != lobby.player1_id:
@@ -1728,6 +1755,7 @@ def game_update_lobby_settings(game_id):
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     lobby.settings = parsed
+    db.session.commit()
     return jsonify({'ok': True})
 
 
@@ -1735,7 +1763,6 @@ _LOBBY_HOST_TTL = 60.0  # seconds without a host ping before lobby is closed
 
 @bp.route('/game/<game_id>/lobby', methods=['GET'])
 def game_lobby_status(game_id):
-    lobby = get_lobby(game_id)
     session = get_session(game_id)
     if session is not None:
         return jsonify({
@@ -1746,12 +1773,15 @@ def game_lobby_status(game_id):
             "both_ready": True,
             "started": True,
         })
+    lobby = Lobby.query.get(game_id)
     if lobby is not None:
         if time.time() - lobby.last_host_ping > _LOBBY_HOST_TTL:
-            remove_lobby(game_id)
+            db.session.delete(lobby)
+            db.session.commit()
             return jsonify({'error': 'game not found'}), 404
         if current_user.is_authenticated and current_user.id == lobby.player1_id:
             lobby.last_host_ping = time.time()
+            db.session.commit()
         return jsonify(lobby.lobby_status())
     return jsonify({'error': 'game not found'}), 404
 
@@ -1759,7 +1789,7 @@ def game_lobby_status(game_id):
 @bp.route('/game/<game_id>/ready', methods=['POST'])
 @login_required
 def game_ready(game_id):
-    lobby = get_lobby(game_id)
+    lobby = Lobby.query.get(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
     if current_user.id == lobby.player1_id:
@@ -1775,13 +1805,14 @@ def game_ready(game_id):
     if status['both_ready']:
         _start_lobby_game(game_id, lobby)
         return jsonify({'ready': True, 'both_ready': True})
+    db.session.commit()
     return jsonify({'ready': ready, 'both_ready': False})
 
 
 @bp.route('/game/<game_id>/leave', methods=['POST'])
 @login_required
 def game_leave(game_id):
-    lobby = get_lobby(game_id)
+    lobby = Lobby.query.get(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
     if current_user.id != lobby.player2_id:
@@ -1790,34 +1821,41 @@ def game_leave(game_id):
     lobby.player2_username = None
     lobby.player2_ready = False
     lobby.player1_ready = False
-    clear_lobby_invite(game_id)
+    lobby.invited_user_id = None
+    db.session.commit()
     return jsonify({'ok': True})
 
 
 @bp.route('/game/<game_id>/close', methods=['POST'])
 @login_required
 def game_close(game_id):
-    lobby = get_lobby(game_id)
+    lobby = Lobby.query.get(game_id)
     if lobby is None:
         return jsonify({'error': 'game not found'}), 404
     if current_user.id != lobby.player1_id:
         return jsonify({'error': 'forbidden'}), 403
-    remove_lobby(game_id)
+    db.session.delete(lobby)
+    db.session.commit()
     return jsonify({'ok': True})
 
 
 def _start_lobby_game(game_id: str, lobby) -> None:
     """Create a real GameSession from a ready lobby, then remove the lobby."""
     parsed = lobby.settings
+    p1_id = lobby.player1_id
+    p2_id = lobby.player2_id
+    join_alias = lobby.join_alias or None
+
+    db.session.delete(lobby)
 
     game = Game(
         id=game_id,
-        player1_id=lobby.player1_id,
-        player2_id=lobby.player2_id,
+        player1_id=p1_id,
+        player2_id=p2_id,
         status='active',
-        join_alias=lobby.join_alias or None,
+        join_alias=join_alias,
     )
-    _populate_game_settings(game, parsed, created_by=lobby.player1_id)
+    _populate_game_settings(game, parsed, created_by=p1_id)
     db.session.add(game)
     db.session.commit()
 
@@ -1837,8 +1875,7 @@ def _start_lobby_game(game_id: str, lobby) -> None:
     session.engine._clock_remaining[2] = parsed['p2_clock_seconds']
     session.engine._clock_tick[1] = None
     session.engine._clock_tick[2] = None
-    session.set_players(lobby.player1_id, lobby.player2_id)
-    remove_lobby(game_id)
+    session.set_players(p1_id, p2_id)
 
 
 @bp.route('/game/<game_id>/compile', methods=['POST'])

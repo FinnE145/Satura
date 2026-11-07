@@ -5,6 +5,7 @@
     const defaultPresetEl = document.getElementById('default-preset-json');
     const userCustomDefaultsEl = document.getElementById('user-custom-defaults-json');
     const userAccomDefaultsEl = document.getElementById('user-accom-defaults-json');
+    const existingLobbyEl = document.getElementById('existing-lobby-json');
 
     let presets = {};
     let defaultPreset = '5';
@@ -370,7 +371,7 @@
         if (p1ReadyBtn) {
             p1ReadyBtn.textContent = 'Ready';
             p1ReadyBtn.disabled = false;
-            p1ReadyBtn.hidden = false;
+            p1ReadyBtn.hidden = true;
         }
         if (joinDot) joinDot.className = 'flex-shrink-0 status-dot status-dot--warn';
         if (joinLabel) joinLabel.textContent = 'Waiting for player to join…';
@@ -660,4 +661,28 @@
     syncDefaultsNotice();
     syncStartingPlayerToggle();
     updateStartingPlayerOptions(null);
+
+    // Restore lobby panel if a lobby already exists for this user (e.g. after a page refresh).
+    let existingLobby = null;
+    try { existingLobby = existingLobbyEl?.textContent ? JSON.parse(existingLobbyEl.textContent) : null; } catch (_) {}
+    if (existingLobby?.game_id) {
+        currentGameId = existingLobby.game_id;
+        prevPlayer2Joined = false;
+        if (createFormFooter) createFormFooter.hidden = true;
+        if (lobbyPanel) lobbyPanel.hidden = false;
+        if (lobbyActions) lobbyActions.hidden = false;
+        if (p1ReadyBtn) p1ReadyBtn.hidden = true;
+        if (existingLobby.invite_mode) {
+            inviteMode = true;
+            if (newLinkBtn) newLinkBtn.hidden = true;
+            if (revokeInviteBtn) revokeInviteBtn.hidden = false;
+        } else {
+            if (linkDisplay) {
+                linkDisplay.firstChild.textContent = 'Copy this link: ';
+                if (linkDisplayUrl) linkDisplayUrl.textContent = location.origin + existingLobby.join_url;
+                linkDisplay.hidden = false;
+            }
+        }
+        startLobbyPoll(existingLobby.game_id);
+    }
 })();
