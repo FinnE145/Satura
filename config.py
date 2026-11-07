@@ -6,12 +6,24 @@ import os
 
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
+    # Required: create_app refuses to start without it. Never commit a real one (the key that was in
+    # deploy/satura-web.service until 2026-11 is public and must not be used again).
+    SECRET_KEY = os.environ.get('SECRET_KEY')
     HOST = '0.0.0.0'
     PORT = 45630
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///satura.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DELETED_USERNAME = '[Deleted]'
+
+    # The two P1_Test/P2_Test accounts (password test123) exist only where this is set: tests and local dev.
+    SEED_TEST_ACCOUNTS = os.environ.get('SATURA_SEED_TEST_ACCOUNTS') == '1'
+    # Where contact.log and feedback logs are written; unset means the repo root, as before.
+    LOG_DIR = os.environ.get('SATURA_LOG_DIR')
+    # Behind HTTPS (Cloudflare) the cookies must only travel over HTTPS.
+    SESSION_COOKIE_SECURE = os.environ.get('SATURA_SECURE_COOKIES') == '1'
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
 
     # ── User settings defaults ───────────────────────────────────────────────
     DEFAULT_PALETTE = 'solstice'

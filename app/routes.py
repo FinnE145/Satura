@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, current_app
 from urllib.parse import urlsplit
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
@@ -184,7 +184,8 @@ def _log_contact(log_file, name, email, message):
         f"Message:\n"
         f"{message}\n"
     )
-    with open(_LOG_DIR / log_file, 'a') as f:
+    log_dir = Path(current_app.config.get('LOG_DIR') or _LOG_DIR)
+    with open(log_dir / log_file, 'a') as f:
         f.write(entry + "\n\n")
 
 
@@ -417,7 +418,7 @@ def login():
         password = request.form.get('password', '')
         next_url = request.form.get('next', '')
         account = Account.query.filter_by(username=username).first()
-        if account and account.check_password(password):
+        if account and account.is_active and account.check_password(password):
             login_user(account)
             parsed = urlsplit(next_url)
             if next_url and not parsed.scheme and not parsed.netloc:

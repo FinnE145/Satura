@@ -8,6 +8,7 @@ from config import Config
 class TestConfig(Config):
     TESTING = True
     SECRET_KEY = 'test-secret'
+    SEED_TEST_ACCOUNTS = True
 
 
 @pytest.fixture()
@@ -134,3 +135,41 @@ def test_profile_recent_games_matches_my_games_timeline_and_limits_to_four(clien
     assert f'href="/my-games/{created_ids[0]}"' not in html
     assert 'href="/my-games"' in html
     assert 'Show more' in html
+
+
+def test_disabled_account_cannot_log_in(app, client):
+    with app.app_context():
+        user = Account.query.filter_by(username='P1_Test').first()
+        user.disabled = True
+        db.session.commit()
+    response = _login(client)
+    assert response.status_code == 200  # back on the login page, not redirected
+    assert b'Invalid username or password.' in response.data
+
+
+def test_test_accounts_not_seeded_by_default(tmp_path):
+    class ProdLikeConfig(Config):
+        SECRET_KEY = 'x'
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{tmp_path / "prod.db"}'
+    prod_app = create_app(ProdLikeConfig)
+    with prod_app.app_context():
+        assert Account.query.filter(Account.username.in_(['P1_Test', 'P2_Test'])).count() == 0
+
+
+def test_missing_secret_key_refuses_to_start(tmp_path):
+    class NoKeyConfig(Config):
+        SECRET_KEY = None
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{tmp_path / "nokey.db"}'
+    with pytest.raises(RuntimeError):
+        create_app(NoKeyConfig)
+
+
+def test_contact_log_goes_to_log_dir(tmp_path):
+    class LogDirConfig(Config):
+        SECRET_KEY = 'x'
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{tmp_path / "log.db"}'
+        LOG_DIR = str(tmp_path / 'logs')
+    (tmp_path / 'logs').mkdir()
+    log_app = create_app(LogDirConfig)
+    log_app.test_client().post('/contact', data={'name': 'A', 'email': 'a@b.cd', 'message': 'hi'})
+    assert 'a@b.cd' in (tmp_path / 'logs' / 'contact.log').read_text()

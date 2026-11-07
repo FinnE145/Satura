@@ -7,6 +7,7 @@ from config import Config
 class TestConfig(Config):
     TESTING = True
     SECRET_KEY = 'test-secret'
+    SEED_TEST_ACCOUNTS = True
 
 
 @pytest.fixture()

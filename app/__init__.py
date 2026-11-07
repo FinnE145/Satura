@@ -12,6 +12,8 @@ login_manager = LoginManager()
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    if not app.config.get('SECRET_KEY'):
+        raise RuntimeError('SECRET_KEY is not set (see .env.example)')
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -32,7 +34,8 @@ def create_app(config_class=Config):
         from app import models  # noqa: F401 — ensure models are registered
         db.create_all()
         _upgrade_schema()
-        _seed_accounts()
+        if app.config.get('SEED_TEST_ACCOUNTS'):
+            _seed_accounts()
 
     return app
 
